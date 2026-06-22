@@ -1,4 +1,4 @@
-// Staybox MVP — 3 tables : Host, Box, Product
+// Eskale Box MVP — 3 tables : Host, Box, Product
 // Database: SQLite (simple & self-contained for the MVP).
 
 generator client {

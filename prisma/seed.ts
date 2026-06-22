@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
   const host = await prisma.host.upsert({
     where: { email: "marie@example.com" },
-    update: {},
+    update: { name: "Marie (hôte démo)" },
     create: {
       name: "Marie (hôte démo)",
       email: "marie@example.com",
@@ -19,10 +19,13 @@ async function main() {
 
   const box = await prisma.box.upsert({
     where: { qrSlug: "demo" },
-    update: {},
+    update: {
+      name: "Eskale Box — Appartement Bellecour",
+      location: "Appartement Bellecour, Lyon",
+    },
     create: {
       qrSlug: "demo",
-      name: "Staybox — Appartement Bellecour",
+      name: "Eskale Box — Appartement Bellecour",
       location: "Appartement Bellecour, Lyon",
       hostId: host.id,
     },

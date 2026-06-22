@@ -30,9 +30,14 @@ export default async function BoxPage({
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">
       <header className="border-b border-neutral-200 pb-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-          Staybox
-        </p>
+        <Image
+          src="/eskale-box-logo.png"
+          alt="Eskale Box"
+          width={120}
+          height={120}
+          priority
+          className="mb-3 h-auto w-28"
+        />
         <h1 className="mt-1 text-2xl font-bold">{box.name}</h1>
         {box.location && (
           <p className="mt-1 text-sm text-neutral-500">{box.location}</p>
@@ -84,7 +89,7 @@ export default async function BoxPage({
                     <input type="hidden" name="qrSlug" value={box.qrSlug} />
                     <button
                       type="submit"
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 active:bg-blue-800"
+                      className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark active:bg-accent-dark"
                     >
                       Payer
                     </button>

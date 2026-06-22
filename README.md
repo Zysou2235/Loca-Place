@@ -1,4 +1,6 @@
-# Staybox — MVP
+# Eskale Box — MVP
+
+> _La boutique autonome pour voyageurs._
 
 La boîte transparente avec QR code qui permet aux hôtes Airbnb de vendre des
 produits à leurs voyageurs. Le voyageur scanne le QR code, voit les produits et

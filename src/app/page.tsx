@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
@@ -13,11 +14,18 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 px-6 py-16">
-      <header>
-        <h1 className="text-3xl font-bold">Staybox</h1>
-        <p className="mt-2 text-neutral-600">
-          La boîte transparente qui permet à vos hôtes de vous proposer des
-          produits locaux. Scannez le QR code de votre logement pour commander.
+      <header className="flex flex-col items-center text-center">
+        <Image
+          src="/eskale-box-logo.png"
+          alt="Eskale Box"
+          width={200}
+          height={200}
+          priority
+          className="h-auto w-44"
+        />
+        <p className="mt-4 text-neutral-600">
+          La boutique autonome pour voyageurs. Vos hôtes vous proposent des
+          produits locaux : scannez le QR code de votre logement pour commander.
         </p>
       </header>
 
@@ -27,7 +35,7 @@ export default async function Home() {
         </h2>
         {boxes.length === 0 ? (
           <p className="rounded-lg border border-dashed border-neutral-300 p-4 text-sm text-neutral-500">
-            Aucune boîte en base. Lancez{" "}
+            Aucune Eskale Box en base. Lancez{" "}
             <code className="rounded bg-neutral-100 px-1">npm run db:seed</code>{" "}
             pour créer la boîte de démo.
           </p>
@@ -47,7 +55,9 @@ export default async function Home() {
                       </span>
                     )}
                   </span>
-                  <span className="text-sm text-blue-600">Ouvrir →</span>
+                  <span className="text-sm font-medium text-accent">
+                    Ouvrir →
+                  </span>
                 </Link>
               </li>
             ))}

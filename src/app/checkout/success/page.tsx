@@ -58,7 +58,7 @@ export default async function SuccessPage({
             )}
           </p>
           <p className="text-sm text-neutral-500">
-            Récupérez votre produit dans la Staybox de votre logement.
+            Récupérez votre produit dans l&apos;Eskale Box de votre logement.
           </p>
         </>
       ) : (
@@ -73,7 +73,7 @@ export default async function SuccessPage({
 
       <Link
         href={qrSlug ? `/b/${qrSlug}` : "/"}
-        className="mt-2 text-sm font-semibold text-blue-600 hover:underline"
+        className="mt-2 text-sm font-semibold text-accent hover:underline"
       >
         ← Retour à la boutique
       </Link>
