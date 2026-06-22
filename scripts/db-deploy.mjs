@@ -1,5 +1,6 @@
-// Crée/MAJ automatiquement les tables au build SI une base est configurée.
-// Évite à l'utilisateur de lancer `prisma db push` à la main.
+// Crée/MAJ les tables au build SI une base est joignable.
+// IMPORTANT : ne fait JAMAIS échouer le build — le site (landing statique)
+// doit pouvoir se déployer même sans base configurée/joignable.
 import { execSync } from "node:child_process";
 
 const url = process.env.DATABASE_URL;
@@ -16,6 +17,11 @@ try {
   });
   console.log("[db-deploy] Tables à jour ✅");
 } catch (err) {
-  console.error("[db-deploy] Échec de la synchronisation :", err.message);
-  process.exit(1);
+  // Non bloquant : on log et on laisse le build continuer.
+  console.warn(
+    "[db-deploy] Synchronisation ignorée (base non joignable au build) :",
+    err.message
+  );
 }
+
+process.exit(0);
