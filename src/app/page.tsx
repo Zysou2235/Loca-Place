@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Eskale Box — La boutique autonome pour voyageurs",
+  title: "Eskale Box — Générez du CA additionnel dans vos locations",
+  description:
+    "La boutique autonome qui transforme vos gîtes et locations en source de revenus. Abonnez-vous, installez en 5 minutes, encaissez sur chaque séjour. 0% de commission sur vos ventes.",
 };
 
 // Adresse de contact à personnaliser.
@@ -14,7 +16,8 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
-        <TrustBar />
+        <Stats />
+        <Audience />
         <HowItWorks />
         <Benefits />
         <UseCases />
@@ -68,10 +71,10 @@ function Header() {
             Voir la démo
           </Link>
           <a
-            href={`mailto:${CONTACT_EMAIL}`}
+            href="#tarifs"
             className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"
           >
-            Devenir hôte
+            Équiper mes logements
           </a>
         </div>
       </div>
@@ -90,42 +93,44 @@ function Hero() {
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 md:grid-cols-2 md:py-28">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-accent-light ring-1 ring-white/15">
-            La boutique autonome pour voyageurs
+            La solution revenus des hôtes & loueurs
           </span>
           <h1 className="mt-5 font-display text-4xl font-extrabold leading-tight md:text-5xl">
-            Transformez votre logement en{" "}
-            <span className="text-accent-light">boutique autonome</span>.
+            Un{" "}
+            <span className="text-accent-light">chiffre d&apos;affaires en plus</span>{" "}
+            dans chacune de vos locations.
           </h1>
           <p className="mt-5 max-w-md text-lg text-white/80">
-            Une box transparente avec QR code dans votre location. Vos voyageurs
-            scannent, paient et se servent. Vous encaissez —{" "}
-            <strong className="text-white">sans rien gérer</strong>.
+            Eskale Box équipe vos gîtes et logements d&apos;une boutique
+            autonome. Vos voyageurs achètent en autonomie, vous encaissez sur
+            chaque séjour —{" "}
+            <strong className="text-white">sans rien gérer au quotidien</strong>.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <a
-              href={`mailto:${CONTACT_EMAIL}`}
+              href="#tarifs"
               className="rounded-full bg-accent px-6 py-3 font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-dark"
             >
-              Installer ma Eskale Box
+              Équiper mes logements
             </a>
             <Link
               href="/b/demo"
               className="rounded-full bg-white/10 px-6 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
             >
-              Voir la démo →
+              Voir la démo voyageur →
             </Link>
           </div>
 
-          <div className="mt-8 flex items-center gap-6 text-sm text-white/70">
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/70">
             <span className="flex items-center gap-2">
-              <Check /> 0% de commission
+              <Check /> 0% de commission sur vos ventes
             </span>
             <span className="flex items-center gap-2">
-              <Check /> Paiement direct
+              <Check /> Installation en 5 min
             </span>
             <span className="flex items-center gap-2">
-              <Check /> Installation 5 min
+              <Check /> Sans engagement
             </span>
           </div>
         </div>
@@ -150,15 +155,66 @@ function Hero() {
   );
 }
 
-/* -------------------------------------------------------------- TrustBar */
+/* ----------------------------------------------------------------- Stats */
 
-function TrustBar() {
+function Stats() {
+  const stats = [
+    { value: "jusqu'à 150€", label: "de CA additionnel / mois / logement" },
+    { value: "1 voyageur sur 3", label: "achète pendant son séjour" },
+    { value: "14€", label: "de panier moyen" },
+    { value: "5 min", label: "pour installer la box" },
+  ];
+
   return (
     <section className="border-b border-black/5 bg-cream">
-      <div className="mx-auto max-w-6xl px-5 py-6">
-        <p className="text-center text-sm font-medium text-brand/50">
-          Conçu pour les hôtes Airbnb, Booking, gîtes et locations courte durée
-        </p>
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-5 py-12 md:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="text-center">
+            <div className="font-display text-2xl font-extrabold text-brand md:text-3xl">
+              {s.value}
+            </div>
+            <div className="mt-1 text-sm text-brand/60">{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------- Audience */
+
+function Audience() {
+  const targets = [
+    { icon: <IconHome />, label: "Gîtes & meublés" },
+    { icon: <IconKey />, label: "Locations Airbnb / Booking" },
+    { icon: <IconBed />, label: "Chambres d'hôtes" },
+    { icon: <IconBuilding />, label: "Conciergeries & hôtels" },
+  ];
+
+  return (
+    <section className="bg-white py-20 md:py-24">
+      <div className="mx-auto max-w-6xl px-5">
+        <SectionHeading
+          eyebrow="Pour qui ?"
+          title="Pensé pour les professionnels de l'hébergement"
+          subtitle="Que vous gériez un seul gîte ou une flotte de logements, Eskale Box s'intègre à votre activité."
+        />
+
+        <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4">
+          {targets.map((t) => (
+            <div
+              key={t.label}
+              className="flex flex-col items-center gap-3 rounded-2xl border border-black/5 bg-cream p-6 text-center shadow-card"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/5 text-brand">
+                {t.icon}
+              </div>
+              <span className="text-sm font-semibold text-brand/80">
+                {t.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -167,57 +223,66 @@ function TrustBar() {
 /* ----------------------------------------------------------- HowItWorks */
 
 function HowItWorks() {
-  const steps = [
+  const hostSteps = [
     {
-      icon: <IconScan />,
-      title: "Scannez",
-      text: "Le voyageur scanne le QR code de la box avec son téléphone.",
+      icon: <IconWrench />,
+      title: "Abonnez-vous & installez",
+      text: "Choisissez votre formule, recevez votre box et son QR code. Posée en 5 minutes.",
     },
     {
-      icon: <IconCard />,
-      title: "Payez",
-      text: "Il choisit ses produits et paie en quelques secondes, sans créer de compte.",
+      icon: <IconBox />,
+      title: "Garnissez votre boutique",
+      text: "Ajoutez vos produits depuis votre espace : prix, photos, stock. En quelques clics.",
     },
     {
-      icon: <IconUnlock />,
-      title: "Ouvrez",
-      text: "La box s'ouvre, il récupère son produit. Tout est transparent.",
+      icon: <IconCoins />,
+      title: "Vos voyageurs achètent",
+      text: "Ils scannent, paient et se servent en autonomie, 24h/24, sans aucune intervention.",
     },
     {
-      icon: <IconBag />,
-      title: "Profitez",
-      text: "Vous êtes payé instantanément, directement sur votre compte.",
+      icon: <IconBolt />,
+      title: "Vous encaissez",
+      text: "L'argent arrive directement sur votre compte. 0% de commission sur vos ventes.",
     },
   ];
 
   return (
-    <section id="fonctionnement" className="bg-white py-20 md:py-28">
+    <section id="fonctionnement" className="bg-brand py-20 text-white md:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
+          dark
           eyebrow="Comment ça marche"
-          title="Quatre étapes, zéro friction"
-          subtitle="Une expérience d'achat fluide pour vos voyageurs, totalement automatisée pour vous."
+          title="De l'abonnement à l'encaissement"
+          subtitle="Vous mettez en place une fois. La box génère du revenu à chaque séjour."
         />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step, i) => (
+          {hostSteps.map((step, i) => (
             <div
               key={step.title}
-              className="group relative rounded-2xl border border-black/5 bg-cream p-6 shadow-card transition hover:-translate-y-1 hover:shadow-soft"
+              className="group relative rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition hover:-translate-y-1 hover:bg-white/10"
             >
-              <span className="absolute right-5 top-5 font-display text-4xl font-extrabold text-brand/5">
+              <span className="absolute right-5 top-5 font-display text-4xl font-extrabold text-white/5">
                 {i + 1}
               </span>
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-white">
                 {step.icon}
               </div>
               <h3 className="mt-4 font-display text-lg font-bold">
                 {step.title}
               </h3>
-              <p className="mt-2 text-sm text-brand/60">{step.text}</p>
+              <p className="mt-2 text-sm text-white/70">{step.text}</p>
             </div>
           ))}
         </div>
+
+        <p className="mt-10 text-center text-sm text-white/60">
+          Côté voyageur, l&apos;expérience est instantanée :{" "}
+          <span className="font-semibold text-white">
+            Scannez · Payez · Ouvrez · Profitez
+          </span>{" "}
+          — sans application, sans compte.
+        </p>
       </div>
     </section>
   );
@@ -229,59 +294,58 @@ function Benefits() {
   const items = [
     {
       icon: <IconCoins />,
-      title: "Des revenus en plus",
-      text: "Monétisez chaque séjour avec des produits que vos voyageurs veulent vraiment.",
+      title: "Une nouvelle source de revenus",
+      text: "Rentabilisez chaque séjour avec un CA additionnel récurrent, sans augmenter vos nuitées.",
     },
     {
       icon: <IconZero />,
       title: "0% de commission",
-      text: "L'intégralité du paiement va directement sur votre compte. Aucun frais caché.",
+      text: "Vous gardez l'intégralité de vos ventes. Eskale Box, c'est un abonnement simple, point.",
     },
     {
       icon: <IconBolt />,
-      title: "Paiement instantané",
-      text: "Encaissement sécurisé via Stripe, viré directement à l'hôte.",
+      title: "Versement direct",
+      text: "Encaissement sécurisé via Stripe, viré directement sur votre compte d'hôte.",
     },
     {
       icon: <IconAuto />,
-      title: "100% autonome",
-      text: "Pas de check-in produit, pas de gestion. La box travaille pendant que vous dormez.",
+      title: "Zéro gestion au quotidien",
+      text: "Pas de check-in produit, pas de logistique d'accueil. La box travaille seule.",
     },
     {
-      icon: <IconWrench />,
-      title: "Installation en 5 min",
-      text: "Posez la box, collez le QR code, ajoutez vos produits. C'est tout.",
+      icon: <IconLayers />,
+      title: "Multi-logements",
+      text: "Pilotez tous vos gîtes depuis un seul tableau de bord. Idéal pour les conciergeries.",
     },
     {
       icon: <IconChart />,
-      title: "Suivi des ventes",
-      text: "Visualisez ce qui se vend et réapprovisionnez au bon moment.",
+      title: "Pilotage des ventes",
+      text: "Suivez votre CA, vos best-sellers et réapprovisionnez au bon moment.",
     },
   ];
 
   return (
-    <section id="avantages" className="bg-brand py-20 text-white md:py-28">
+    <section id="avantages" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
-          dark
           eyebrow="Pourquoi Eskale Box"
-          title="Conçu pour les hôtes exigeants"
-          subtitle="Tout ce qu'il faut pour vendre sans effort, et rien de superflu."
+          title="Plus de revenus, moins de gestion"
+          subtitle="Un levier de rentabilité pensé pour les professionnels de la location courte durée."
         />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
             <div
               key={item.title}
-              className="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10 transition hover:bg-white/10"
+              className="rounded-2xl border border-black/5 bg-cream p-6 shadow-card transition hover:shadow-soft"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-white">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
                 {item.icon}
               </div>
               <h3 className="mt-4 font-display text-lg font-bold">
                 {item.title}
               </h3>
-              <p className="mt-2 text-sm text-white/70">{item.text}</p>
+              <p className="mt-2 text-sm text-brand/60">{item.text}</p>
             </div>
           ))}
         </div>
@@ -297,32 +361,32 @@ function UseCases() {
     {
       img: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80",
       title: "Vins & spiritueux locaux",
-      text: "Une bouteille de la région pour l'apéro du soir.",
+      text: "Forte marge, valeur perçue élevée, parfait pour l'apéro du soir.",
     },
     {
       img: "https://images.unsplash.com/photo-1452195100486-9cc805987862?w=600&q=80",
       title: "Produits du terroir",
-      text: "Fromages, charcuterie, spécialités à découvrir.",
+      text: "Fromages, charcuterie, spécialités : vous valorisez votre région.",
     },
     {
       img: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&q=80",
       title: "Kits petit-déjeuner",
-      text: "Café, jus frais et viennoiseries au réveil.",
+      text: "Un service premium très demandé, vendu sans contrainte d'horaire.",
     },
     {
       img: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=600&q=80",
       title: "Essentiels & dépannage",
-      text: "Chargeurs, dentifrice, ce qu'on oublie toujours.",
+      text: "Chargeurs, hygiène, dépannage : achats d'impulsion réguliers.",
     },
   ];
 
   return (
-    <section className="bg-white py-20 md:py-28">
+    <section className="bg-cream py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
           eyebrow="Idées de produits"
-          title="Vendez ce que vos voyageurs recherchent"
-          subtitle="À vous de composer votre boutique selon votre logement et votre région."
+          title="Composez la boutique la plus rentable"
+          subtitle="Vous choisissez vos produits et vos marges selon votre logement et votre clientèle."
         />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -355,55 +419,137 @@ function UseCases() {
 /* -------------------------------------------------------------- Pricing */
 
 function Pricing() {
+  const plans = [
+    {
+      name: "Essentiel",
+      price: "19€",
+      period: "/ mois",
+      tagline: "Pour un logement",
+      features: [
+        "1 logement équipé",
+        "Box + QR code dédié",
+        "Catalogue de produits illimité",
+        "0% de commission sur vos ventes",
+        "Versement direct (Stripe)",
+        "Suivi des ventes",
+      ],
+      cta: "Démarrer",
+      highlighted: false,
+    },
+    {
+      name: "Pro",
+      price: "49€",
+      period: "/ mois",
+      tagline: "Pour les multi-propriétaires",
+      features: [
+        "Jusqu'à 5 logements",
+        "Tout le plan Essentiel",
+        "Tableau de bord multi-sites",
+        "Statistiques avancées",
+        "Support prioritaire",
+      ],
+      cta: "Choisir Pro",
+      highlighted: true,
+    },
+    {
+      name: "Conciergerie",
+      price: "Sur devis",
+      period: "",
+      tagline: "Pour les flottes & hôtels",
+      features: [
+        "Logements illimités",
+        "Account manager dédié",
+        "Intégrations (PMS, channel manager)",
+        "Facturation centralisée",
+        "Accompagnement déploiement",
+      ],
+      cta: "Nous contacter",
+      highlighted: false,
+    },
+  ];
+
   return (
-    <section id="tarifs" className="bg-cream py-20 md:py-28">
+    <section id="tarifs" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
           eyebrow="Tarifs"
-          title="Simple et transparent"
-          subtitle="Vous gardez 100% de vos ventes. Sans engagement."
+          title="Un abonnement, sans commission"
+          subtitle="Vous gardez 100% de vos ventes. Sans engagement, résiliable à tout moment."
         />
 
-        <div className="mx-auto mt-14 max-w-lg">
-          <div className="relative overflow-hidden rounded-3xl border border-accent/20 bg-white p-8 shadow-soft">
-            <span className="absolute right-6 top-6 rounded-full bg-accent/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-accent">
-              Offre de lancement
-            </span>
-            <h3 className="font-display text-xl font-bold">Hôte</h3>
-            <div className="mt-4 flex items-end gap-2">
-              <span className="font-display text-5xl font-extrabold">0%</span>
-              <span className="mb-1 text-brand/60">de commission</span>
-            </div>
-            <p className="mt-3 text-sm text-brand/60">
-              Vous ne payez que les frais de paiement Stripe standards. Tout le
-              reste est pour vous.
-            </p>
-
-            <ul className="mt-6 space-y-3 text-sm">
-              {[
-                "Page de vente avec QR code dédié",
-                "Paiement sécurisé sans compte voyageur",
-                "Versement direct sur votre compte",
-                "Produits illimités",
-                "Suivi des ventes",
-              ].map((f) => (
-                <li key={f} className="flex items-start gap-3">
-                  <span className="mt-0.5 text-accent">
-                    <Check />
-                  </span>
-                  <span className="text-brand/80">{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="mt-8 block rounded-full bg-accent px-6 py-3 text-center font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-dark"
+        <div className="mt-14 grid gap-6 lg:grid-cols-3">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`relative flex flex-col rounded-3xl p-8 ${
+                plan.highlighted
+                  ? "bg-brand text-white shadow-soft ring-2 ring-accent"
+                  : "border border-black/5 bg-cream text-brand shadow-card"
+              }`}
             >
-              Démarrer gratuitement
-            </a>
-          </div>
+              {plan.highlighted && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+                  Le plus choisi
+                </span>
+              )}
+              <h3 className="font-display text-xl font-bold">{plan.name}</h3>
+              <p
+                className={`mt-1 text-sm ${
+                  plan.highlighted ? "text-white/70" : "text-brand/60"
+                }`}
+              >
+                {plan.tagline}
+              </p>
+              <div className="mt-5 flex items-end gap-1">
+                <span className="font-display text-4xl font-extrabold">
+                  {plan.price}
+                </span>
+                {plan.period && (
+                  <span
+                    className={`mb-1 text-sm ${
+                      plan.highlighted ? "text-white/70" : "text-brand/60"
+                    }`}
+                  >
+                    {plan.period}
+                  </span>
+                )}
+              </div>
+
+              <ul className="mt-6 flex-1 space-y-3 text-sm">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-3">
+                    <span className="mt-0.5 text-accent">
+                      <Check />
+                    </span>
+                    <span
+                      className={
+                        plan.highlighted ? "text-white/90" : "text-brand/80"
+                      }
+                    >
+                      {f}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <a
+                href={`mailto:${CONTACT_EMAIL}?subject=Abonnement Eskale Box - ${plan.name}`}
+                className={`mt-8 block rounded-full px-6 py-3 text-center font-semibold transition ${
+                  plan.highlighted
+                    ? "bg-accent text-white hover:bg-accent-dark"
+                    : "bg-brand text-white hover:bg-brand-dark"
+                }`}
+              >
+                {plan.cta}
+              </a>
+            </div>
+          ))}
         </div>
+
+        <p className="mt-8 text-center text-sm text-brand/50">
+          Essai sans risque · Box fournie · Seuls les frais de transaction Stripe
+          standards s&apos;appliquent à vos ventes.
+        </p>
       </div>
     </section>
   );
@@ -415,37 +561,37 @@ function Testimonials() {
   const quotes = [
     {
       quote:
-        "Mes voyageurs adorent pouvoir s'offrir une bouteille de vin local à toute heure. Et moi, je génère un revenu sans rien faire.",
+        "120€ de CA en plus par mois sur mon gîte, sans rien faire de plus. L'abonnement est rentabilisé dès la première semaine.",
       name: "Marie L.",
-      role: "Hôte à Lyon",
+      role: "Gîte à Lyon",
     },
     {
       quote:
-        "Installation ultra simple. En une semaine, la box s'était déjà remboursée plusieurs fois.",
+        "Je gère 8 logements. Le tableau de bord multi-sites me fait gagner un temps fou et les voyageurs adorent.",
       name: "Thomas R.",
-      role: "Gîte en Provence",
+      role: "Conciergerie en Provence",
     },
     {
       quote:
-        "Le paiement direct sans commission, c'est ce qui m'a convaincu. Transparent et rentable.",
+        "0% de commission et versement direct : un modèle clair et rentable. Je l'ai déployé sur tous mes appartements.",
       name: "Sophie M.",
-      role: "Appartements à Bordeaux",
+      role: "Loueuse à Bordeaux",
     },
   ];
 
   return (
-    <section className="bg-white py-20 md:py-28">
+    <section className="bg-cream py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
           eyebrow="Ils nous font confiance"
-          title="Des hôtes déjà conquis"
+          title="Des hôtes déjà rentables"
         />
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
           {quotes.map((q) => (
             <figure
               key={q.name}
-              className="flex flex-col rounded-2xl border border-black/5 bg-cream p-6 shadow-card"
+              className="flex flex-col rounded-2xl border border-black/5 bg-white p-6 shadow-card"
             >
               <div className="text-accent">{"★★★★★"}</div>
               <blockquote className="mt-4 flex-1 text-brand/80">
@@ -468,29 +614,33 @@ function Testimonials() {
 function Faq() {
   const faqs = [
     {
+      q: "Combien puis-je espérer gagner ?",
+      a: "Cela dépend de votre taux d'occupation et de votre offre, mais nos hôtes constatent fréquemment plusieurs dizaines à plus de 150€ de CA additionnel par mois et par logement.",
+    },
+    {
+      q: "Quelle commission prenez-vous sur mes ventes ?",
+      a: "0%. Vous payez uniquement votre abonnement. L'intégralité de vos ventes est versée directement sur votre compte (hors frais de transaction Stripe standards).",
+    },
+    {
+      q: "Y a-t-il un engagement ?",
+      a: "Non, l'abonnement est sans engagement et résiliable à tout moment depuis votre espace.",
+    },
+    {
+      q: "Je gère plusieurs logements, est-ce adapté ?",
+      a: "Oui. Les formules Pro et Conciergerie permettent de piloter plusieurs logements depuis un tableau de bord unique, idéal pour les multi-propriétaires et conciergeries.",
+    },
+    {
       q: "Comment mes voyageurs paient-ils ?",
-      a: "Ils scannent le QR code de la box, choisissent leurs produits et paient en invité via Stripe — aucun compte à créer.",
-    },
-    {
-      q: "Quelle commission prenez-vous ?",
-      a: "0%. L'intégralité du paiement est versée directement sur votre compte. Seuls les frais de transaction Stripe standards s'appliquent.",
-    },
-    {
-      q: "Que puis-je vendre ?",
-      a: "Tout ce qui fait sens pour votre logement : vins et produits locaux, kits petit-déjeuner, snacks, essentiels de dépannage, souvenirs…",
+      a: "Ils scannent le QR code de la box, choisissent leurs produits et paient en invité via Stripe — sans application ni création de compte.",
     },
     {
       q: "L'installation est-elle compliquée ?",
       a: "Non. Vous posez la box, collez le QR code fourni et ajoutez vos produits depuis votre espace. Comptez environ 5 minutes.",
     },
-    {
-      q: "Et si un produit n'est plus en stock ?",
-      a: "Vous gérez votre catalogue : désactivez ou réapprovisionnez les produits quand vous le souhaitez.",
-    },
   ];
 
   return (
-    <section id="faq" className="bg-cream py-20 md:py-28">
+    <section id="faq" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-3xl px-5">
         <SectionHeading eyebrow="FAQ" title="Vous avez des questions" />
 
@@ -498,7 +648,7 @@ function Faq() {
           {faqs.map((f) => (
             <details
               key={f.q}
-              className="group rounded-2xl border border-black/5 bg-white p-5 shadow-card [&_summary]:list-none"
+              className="group rounded-2xl border border-black/5 bg-cream p-5 shadow-card [&_summary]:list-none"
             >
               <summary className="flex cursor-pointer items-center justify-between font-display font-semibold">
                 {f.q}
@@ -519,30 +669,30 @@ function Faq() {
 
 function FinalCta() {
   return (
-    <section className="bg-white py-20 md:py-24">
+    <section className="bg-cream py-20 md:py-24">
       <div className="mx-auto max-w-5xl px-5">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand to-brand-dark px-8 py-14 text-center text-white shadow-soft md:px-16">
           <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
           <h2 className="relative font-display text-3xl font-extrabold md:text-4xl">
-            Prêt à rentabiliser chaque séjour ?
+            Transformez vos séjours en chiffre d&apos;affaires
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-white/80">
-            Rejoignez les hôtes qui transforment leur logement en boutique
-            autonome avec Eskale Box.
+            Rejoignez les hôtes et conciergeries qui génèrent un revenu
+            additionnel grâce à Eskale Box.
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-4">
             <a
-              href={`mailto:${CONTACT_EMAIL}`}
+              href="#tarifs"
               className="rounded-full bg-accent px-7 py-3 font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-dark"
             >
-              Installer ma Eskale Box
+              Choisir ma formule
             </a>
-            <Link
-              href="/b/demo"
+            <a
+              href={`mailto:${CONTACT_EMAIL}?subject=Démo Eskale Box`}
               className="rounded-full bg-white/10 px-7 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
             >
-              Voir la démo
-            </Link>
+              Demander une démo
+            </a>
           </div>
         </div>
       </div>
@@ -561,7 +711,7 @@ function Footer() {
             éskale <span className="text-accent">box</span>
           </span>
           <p className="mt-4 max-w-xs text-sm">
-            La boutique autonome pour voyageurs.
+            La boutique autonome qui génère du revenu dans vos locations.
           </p>
         </div>
 
@@ -571,7 +721,7 @@ function Footer() {
             { label: "Fonctionnement", href: "#fonctionnement" },
             { label: "Avantages", href: "#avantages" },
             { label: "Tarifs", href: "#tarifs" },
-            { label: "Démo", href: "/b/demo" },
+            { label: "Démo voyageur", href: "/b/demo" },
           ]}
         />
         <FooterCol
@@ -680,34 +830,10 @@ function Plus() {
   );
 }
 
-function IconScan() {
+function IconBox() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
-      <path d="M4 7V5a1 1 0 011-1h2M4 17v2a1 1 0 001 1h2M20 7V5a1 1 0 00-1-1h-2M20 17v2a1 1 0 01-1 1h-2M3 12h18" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconCard() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
-      <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconUnlock() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
-      <rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V7a4 4 0 017.9-1" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconBag() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
-      <path d="M6 7h12l1 13H5L6 7z" strokeLinejoin="round" /><path d="M9 7a3 3 0 016 0" strokeLinecap="round" />
+      <path d="M3 7l9-4 9 4-9 4-9-4z" strokeLinejoin="round" /><path d="M3 7v10l9 4 9-4V7M12 11v10" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -756,6 +882,46 @@ function IconChart() {
   return (
     <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
       <path d="M4 20V10M10 20V4M16 20v-6M22 20H2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconLayers() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
+      <path d="M12 3l9 5-9 5-9-5 9-5z" strokeLinejoin="round" /><path d="M3 13l9 5 9-5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconHome() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
+      <path d="M4 11l8-7 8 7M6 10v9h12v-9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconKey() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
+      <circle cx="8" cy="8" r="4" /><path d="M11 11l9 9M17 17l2-2M15 19l2-2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconBed() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
+      <path d="M3 7v12M3 13h18v6M21 13v-2a3 3 0 00-3-3H9v5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function IconBuilding() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6" stroke="currentColor" strokeWidth={2}>
+      <rect x="5" y="3" width="14" height="18" rx="1" /><path d="M9 7h0M12 7h0M15 7h0M9 11h0M12 11h0M15 11h0M10 21v-4h4v4" strokeLinecap="round" />
     </svg>
   );
 }
