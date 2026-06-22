@@ -1,0 +1,53 @@
+// Staybox MVP — 3 tables : Host, Box, Product
+// Database: SQLite (simple & self-contained for the MVP).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Host {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  // Stripe Connect Express account id (acct_...). Money goes directly to the host.
+  stripeAccountId String?
+  createdAt       DateTime @default(now())
+
+  boxes Box[]
+}
+
+model Box {
+  id        String   @id @default(cuid())
+  // Public slug used in the URL /b/[qr_slug] and encoded in the QR code.
+  qrSlug    String   @unique
+  name      String
+  // Free-text location shown to the traveler (e.g. "Appartement Bellecour, Lyon").
+  location  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  // Price in the smallest currency unit (cents) to avoid float rounding issues.
+  priceCents  Int
+  currency    String   @default("eur")
+  photoUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  boxId String
+  box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
+}
