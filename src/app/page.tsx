@@ -2,6 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
+// Rendered on demand so the build never touches the database.
+export const dynamic = "force-dynamic";
+
 // Simple landing page. The traveler journey lives at /b/[qr_slug].
 export default async function Home() {
   const boxes = await prisma.box

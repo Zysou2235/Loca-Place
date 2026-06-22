@@ -1,12 +1,12 @@
 // Eskale Box MVP — 3 tables : Host, Box, Product
-// Database: SQLite (simple & self-contained for the MVP).
+// Database: PostgreSQL (Neon / Supabase / Vercel Postgres) for production on Vercel.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

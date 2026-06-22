@@ -14,7 +14,7 @@ va directement à l'hôte.
 ## Stack
 
 - **Next.js 15** (App Router) + React 19 + TypeScript
-- **Prisma + SQLite** (base auto-suffisante pour démarrer, sans service externe)
+- **Prisma + PostgreSQL** (Neon / Supabase / Vercel Postgres)
 - **Stripe** Checkout + Connect Express (`on_behalf_of` → destination charge)
 - **qrcode** pour générer le QR code depuis l'URL `/b/[qr_slug]`
 - **Tailwind CSS**
@@ -32,14 +32,19 @@ npm install
 
 # Configure l'environnement
 cp .env.example .env
-# Renseigne STRIPE_SECRET_KEY (clé test) dans .env
+# Renseigne DATABASE_URL (Postgres) et STRIPE_SECRET_KEY dans .env
 
-# Crée la base + la boîte de démo
+# Crée les tables + la boîte de démo
 npm run db:push
 npm run db:seed
 
 npm run dev
 ```
+
+> Pas de Postgres local ? Crée une base gratuite sur Neon/Supabase et utilise sa
+> chaîne de connexion comme `DATABASE_URL` (en local comme en prod).
+
+**Déploiement Vercel : voir [DEPLOY.md](./DEPLOY.md).**
 
 Puis ouvre :
 
