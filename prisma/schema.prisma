@@ -1,4 +1,4 @@
-// Eskale Box MVP — 3 tables : Host, Box, Product
+// Eskale Box — Host, Box, Product (+ host auth, abonnement, Stripe Connect)
 // Database: PostgreSQL (Neon / Supabase / Vercel Postgres) for production on Vercel.
 
 generator client {
@@ -11,22 +11,28 @@ datasource db {
 }
 
 model Host {
-  id              String   @id @default(cuid())
-  name            String
-  email           String   @unique
-  // Stripe Connect Express account id (acct_...). Money goes directly to the host.
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  createdAt    DateTime @default(now())
+
+  // Stripe Connect Express account (acct_...) — receives the product sales.
   stripeAccountId String?
-  createdAt       DateTime @default(now())
+  chargesEnabled  Boolean @default(false) // payouts ready (onboarding done)
+
+  // Subscription billing (the platform's revenue).
+  stripeCustomerId   String?
+  subscriptionStatus String  @default("none") // none | trialing | active | past_due | canceled
+  subscriptionPlan   String? // essentiel | duo | pro
 
   boxes Box[]
 }
 
 model Box {
   id        String   @id @default(cuid())
-  // Public slug used in the URL /b/[qr_slug] and encoded in the QR code.
   qrSlug    String   @unique
   name      String
-  // Free-text location shown to the traveler (e.g. "Appartement Bellecour, Lyon").
   location  String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -41,7 +47,6 @@ model Product {
   id          String   @id @default(cuid())
   name        String
   description String?
-  // Price in the smallest currency unit (cents) to avoid float rounding issues.
   priceCents  Int
   currency    String   @default("eur")
   photoUrl    String?

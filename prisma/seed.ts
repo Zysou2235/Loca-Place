@@ -1,18 +1,31 @@
 import { PrismaClient } from "@prisma/client";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
-// Seed = "boîte créée à la main en base" (pas encore de formulaire hôte).
+// Local password hashing (mirrors src/lib/auth.ts) for the demo host.
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+// Seed = un hôte de démo + une box d'exemple.
+// Le modèle : on fournit la box (vide), l'hôte gère ses propres produits.
 async function main() {
   const host = await prisma.host.upsert({
     where: { email: "marie@example.com" },
-    update: { name: "Marie (hôte démo)" },
+    update: {
+      name: "Marie Démo",
+      subscriptionStatus: "active",
+      subscriptionPlan: "pro",
+    },
     create: {
-      name: "Marie (hôte démo)",
+      name: "Marie Démo",
       email: "marie@example.com",
-      // Replace with a real Stripe Connect Express account id (acct_...) to enable
-      // routing the payment to the host. If null, Checkout falls back to the
-      // platform account so the flow stays testable end-to-end.
+      passwordHash: hashPassword("password123"),
+      subscriptionStatus: "active",
+      subscriptionPlan: "pro",
       stripeAccountId: process.env.DEMO_HOST_STRIPE_ACCOUNT ?? null,
     },
   });
@@ -31,9 +44,8 @@ async function main() {
     },
   });
 
-  // Reset products for an idempotent seed.
+  // Exemples de produits (l'hôte est libre de mettre ce qu'il veut).
   await prisma.product.deleteMany({ where: { boxId: box.id } });
-
   await prisma.product.createMany({
     data: [
       {
@@ -64,8 +76,8 @@ async function main() {
   });
 
   console.log("✅ Seed terminé.");
-  console.log(`   Hôte : ${host.name} (${host.email})`);
-  console.log(`   Boîte : /b/${box.qrSlug}`);
+  console.log(`   Hôte démo : ${host.email} / password123`);
+  console.log(`   Box : /b/${box.qrSlug}`);
 }
 
 main()

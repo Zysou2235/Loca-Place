@@ -65,17 +65,17 @@ function Header() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/b/demo"
+            href="/host/login"
             className="hidden text-sm font-semibold text-brand hover:text-accent sm:inline"
           >
-            Voir la démo
+            Connexion
           </Link>
-          <a
-            href="#tarifs"
+          <Link
+            href="/host/signup"
             className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"
           >
             Équiper mes logements
-          </a>
+          </Link>
         </div>
       </div>
     </header>
@@ -108,12 +108,12 @@ function Hero() {
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <a
-              href="#tarifs"
+            <Link
+              href="/host/signup"
               className="rounded-full bg-accent px-6 py-3 font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-dark"
             >
               Équiper mes logements
-            </a>
+            </Link>
             <Link
               href="/b/demo"
               className="rounded-full bg-white/10 px-6 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
@@ -546,16 +546,29 @@ function Pricing() {
                 ))}
               </ul>
 
-              <a
-                href={`mailto:${CONTACT_EMAIL}?subject=Abonnement Eskale Box - ${plan.name}`}
-                className={`mt-8 block rounded-full px-6 py-3 text-center font-semibold transition ${
-                  plan.highlighted
-                    ? "bg-accent text-white hover:bg-accent-dark"
-                    : "bg-brand text-white hover:bg-brand-dark"
-                }`}
-              >
-                {plan.cta}
-              </a>
+              {plan.name === "Conciergerie" ? (
+                <a
+                  href={`mailto:${CONTACT_EMAIL}?subject=Eskale Box - Conciergerie`}
+                  className={`mt-8 block rounded-full px-6 py-3 text-center font-semibold transition ${
+                    plan.highlighted
+                      ? "bg-accent text-white hover:bg-accent-dark"
+                      : "bg-brand text-white hover:bg-brand-dark"
+                  }`}
+                >
+                  {plan.cta}
+                </a>
+              ) : (
+                <Link
+                  href="/host/signup"
+                  className={`mt-8 block rounded-full px-6 py-3 text-center font-semibold transition ${
+                    plan.highlighted
+                      ? "bg-accent text-white hover:bg-accent-dark"
+                      : "bg-brand text-white hover:bg-brand-dark"
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              )}
             </div>
           ))}
         </div>
@@ -695,18 +708,18 @@ function FinalCta() {
             additionnel grâce à Eskale Box.
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-4">
-            <a
-              href="#tarifs"
+            <Link
+              href="/host/signup"
               className="rounded-full bg-accent px-7 py-3 font-semibold text-white shadow-lg shadow-accent/30 transition hover:bg-accent-dark"
             >
-              Choisir ma formule
-            </a>
-            <a
-              href={`mailto:${CONTACT_EMAIL}?subject=Démo Eskale Box`}
+              Créer mon espace hôte
+            </Link>
+            <Link
+              href="/b/demo"
               className="rounded-full bg-white/10 px-7 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
             >
-              Demander une démo
-            </a>
+              Voir la démo
+            </Link>
           </div>
         </div>
       </div>
