@@ -6,7 +6,15 @@ const COOKIE_NAME = "eskale_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 function secret(): string {
-  return process.env.SESSION_SECRET ?? "insecure-dev-secret";
+  const value = process.env.SESSION_SECRET;
+  if (!value) {
+    // Never allow a guessable signing key in production — sessions would be forgeable.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET must be set in production.");
+    }
+    return "insecure-dev-secret";
+  }
+  return value;
 }
 
 /* ----------------------------------------------------------- Passwords */

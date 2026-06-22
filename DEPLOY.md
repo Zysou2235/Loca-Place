@@ -26,11 +26,31 @@ Choisis un fournisseur (un seul) :
 | Variable                  | Valeur                                                        |
 | ------------------------- | ------------------------------------------------------------ |
 | `DATABASE_URL`            | la chaîne **poolée** Postgres (ou `POSTGRES_PRISMA_URL` Vercel) |
+| `SESSION_SECRET`          | **obligatoire** — `openssl rand -hex 32`                      |
 | `STRIPE_SECRET_KEY`       | `sk_test_...` (ou `sk_live_...` en prod)                      |
+| `STRIPE_WEBHOOK_SECRET`   | `whsec_...` (voir étape 6)                                    |
+| `STRIPE_PRICE_ESSENTIEL`  | Price ID Stripe de la formule Essentiel (`price_...`)        |
+| `STRIPE_PRICE_DUO`        | Price ID Stripe de la formule Duo                            |
+| `STRIPE_PRICE_PRO`        | Price ID Stripe de la formule Pro                            |
 | `NEXT_PUBLIC_BASE_URL`    | l'URL du déploiement, ex. `https://eskale-box.vercel.app`    |
+
+> ⚠️ `SESSION_SECRET` est **requis en production** : sans lui, les sessions
+> seraient falsifiables (l'app refuse de démarrer). Génère-le avec
+> `openssl rand -hex 32`.
 
 > Astuce : déploie une première fois pour connaître l'URL, puis renseigne
 > `NEXT_PUBLIC_BASE_URL` et redéploie.
+
+### Créer les produits d'abonnement Stripe
+
+Dans le dashboard Stripe → **Produits**, crée 3 produits récurrents (mensuels)
+à 19€, 29,90€ et 49€, puis copie chaque **Price ID** (`price_...`) dans les
+variables `STRIPE_PRICE_*`.
+
+### Activer Stripe Connect
+
+Active **Connect** dans le dashboard Stripe (pour le versement direct des
+ventes aux hôtes via comptes Express).
 
 ## 4. Créer les tables + la boîte de démo
 
@@ -47,8 +67,20 @@ DATABASE_URL="postgresql://..." npm run db:seed
 ## 5. Tester
 
 - Accueil : `https://<ton-app>.vercel.app`
+- Espace hôte : `https://<ton-app>.vercel.app/host/signup`
 - Parcours voyageur : `https://<ton-app>.vercel.app/b/demo`
 - Paiement : carte test Stripe `4242 4242 4242 4242`.
+
+## 6. Configurer le webhook Stripe
+
+Dans Stripe → **Developers → Webhooks → Add endpoint** :
+
+- URL : `https://<ton-app>.vercel.app/api/stripe/webhook`
+- Événements : `checkout.session.completed`, `customer.subscription.created`,
+  `customer.subscription.updated`, `customer.subscription.deleted`,
+  `account.updated`
+- Copie le **Signing secret** (`whsec_...`) dans `STRIPE_WEBHOOK_SECRET`, puis
+  redéploie.
 
 ## Mettre le code dans un dépôt `eskale-box` dédié
 

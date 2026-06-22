@@ -15,17 +15,23 @@ export async function signup(
   _prev: AuthState,
   formData: FormData
 ): Promise<AuthState> {
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "")
+    .trim()
+    .slice(0, 120);
   const email = String(formData.get("email") ?? "")
     .trim()
-    .toLowerCase();
+    .toLowerCase()
+    .slice(0, 200);
   const password = String(formData.get("password") ?? "");
 
   if (!name || !email || !password) {
     return { error: "Tous les champs sont requis." };
   }
-  if (password.length < 8) {
-    return { error: "Le mot de passe doit faire au moins 8 caractères." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Adresse email invalide." };
+  }
+  if (password.length < 8 || password.length > 200) {
+    return { error: "Le mot de passe doit faire entre 8 et 200 caractères." };
   }
 
   const existing = await prisma.host.findUnique({ where: { email } });

@@ -16,7 +16,30 @@ async function requireHostId(): Promise<string> {
 function eurosToCents(raw: string): number {
   const n = Number(raw.replace(",", ".").trim());
   if (!Number.isFinite(n) || n < 0) throw new Error("Prix invalide.");
+  if (n > 100000) throw new Error("Prix trop élevé.");
   return Math.round(n * 100);
+}
+
+/** Trim and cap a string to a max length. */
+function clean(raw: FormDataEntryValue | null, max: number): string {
+  return String(raw ?? "")
+    .trim()
+    .slice(0, max);
+}
+
+/** Only allow https image URLs (kept null otherwise). */
+function cleanPhotoUrl(raw: FormDataEntryValue | null): string | null {
+  const value = clean(raw, 2048);
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") {
+      throw new Error("L'URL de la photo doit commencer par https://");
+    }
+    return url.toString();
+  } catch {
+    throw new Error("URL de photo invalide (https requise).");
+  }
 }
 
 /* --------------------------------------------------------------- Boxes */
@@ -40,8 +63,8 @@ export async function createBox(formData: FormData) {
     );
   }
 
-  const name = String(formData.get("name") ?? "").trim();
-  const location = String(formData.get("location") ?? "").trim() || null;
+  const name = clean(formData.get("name"), 120);
+  const location = clean(formData.get("location"), 200) || null;
   if (!name) throw new Error("Le nom est requis.");
 
   await prisma.box.create({
@@ -73,9 +96,9 @@ export async function createProduct(formData: FormData) {
   const boxId = String(formData.get("boxId") ?? "");
   await assertBoxOwner(boxId, hostId);
 
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim() || null;
-  const photoUrl = String(formData.get("photoUrl") ?? "").trim() || null;
+  const name = clean(formData.get("name"), 120);
+  const description = clean(formData.get("description"), 500) || null;
+  const photoUrl = cleanPhotoUrl(formData.get("photoUrl"));
   const priceCents = eurosToCents(String(formData.get("price") ?? ""));
   if (!name) throw new Error("Le nom du produit est requis.");
 
