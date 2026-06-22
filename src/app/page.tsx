@@ -437,6 +437,20 @@ function Pricing() {
       highlighted: false,
     },
     {
+      name: "Duo",
+      price: "29,90€",
+      period: "/ mois",
+      tagline: "Pour deux logements",
+      features: [
+        "2 logements équipés (2 box)",
+        "Tout le plan Essentiel",
+        "Tableau de bord multi-sites",
+        "Suivi des ventes consolidé",
+      ],
+      cta: "Choisir Duo",
+      highlighted: false,
+    },
+    {
       name: "Pro",
       price: "49€",
       period: "/ mois",
@@ -477,7 +491,7 @@ function Pricing() {
           subtitle="Vous gardez 100% de vos ventes. Sans engagement, résiliable à tout moment."
         />
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
             <div
               key={plan.name}
