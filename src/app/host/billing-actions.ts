@@ -4,9 +4,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { getCurrentHost } from "@/lib/auth";
+import { getBaseUrl } from "@/lib/base-url";
 import { getPlan, type PlanId } from "@/lib/plans";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
 function assertStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -40,6 +39,7 @@ export async function subscribe(formData: FormData) {
     });
   }
 
+  const baseUrl = await getBaseUrl();
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
@@ -58,8 +58,8 @@ export async function subscribe(formData: FormData) {
     subscription_data: { metadata: { hostId: host.id, planId } },
     client_reference_id: host.id,
     metadata: { hostId: host.id, planId },
-    success_url: `${BASE_URL}/host?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${BASE_URL}/host/billing`,
+    success_url: `${baseUrl}/host?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/host/billing`,
   });
 
   if (!session.url) throw new Error("Création de la session impossible.");
@@ -94,6 +94,39 @@ export async function syncSubscriptionFromCheckout(sessionId: string) {
   }
 }
 
+/**
+ * Self-healing: read the host's real subscription state from Stripe and update
+ * the DB. Works even if the post-checkout redirect failed (e.g. wrong base URL).
+ */
+export async function refreshSubscriptionStatus() {
+  if (!process.env.STRIPE_SECRET_KEY) return;
+  const host = await getCurrentHost();
+  if (!host?.stripeCustomerId) return;
+
+  try {
+    const subs = await stripe.subscriptions.list({
+      customer: host.stripeCustomerId,
+      status: "all",
+      limit: 1,
+    });
+    const sub = subs.data[0];
+    if (!sub) return;
+
+    const active = sub.status === "active" || sub.status === "trialing";
+    await prisma.host.update({
+      where: { id: host.id },
+      data: {
+        subscriptionStatus: sub.status,
+        ...(active && sub.metadata?.planId
+          ? { subscriptionPlan: sub.metadata.planId }
+          : {}),
+      },
+    });
+  } catch {
+    // ignore
+  }
+}
+
 export async function openBillingPortal() {
   assertStripe();
   const host = await getCurrentHost();
@@ -101,7 +134,7 @@ export async function openBillingPortal() {
 
   const session = await stripe.billingPortal.sessions.create({
     customer: host.stripeCustomerId,
-    return_url: `${BASE_URL}/host`,
+    return_url: `${await getBaseUrl()}/host`,
   });
   redirect(session.url);
 }
@@ -127,10 +160,11 @@ export async function connectOnboard() {
     });
   }
 
+  const baseUrl = await getBaseUrl();
   const link = await stripe.accountLinks.create({
     account: accountId,
-    refresh_url: `${BASE_URL}/host`,
-    return_url: `${BASE_URL}/host`,
+    refresh_url: `${baseUrl}/host`,
+    return_url: `${baseUrl}/host`,
     type: "account_onboarding",
   });
   redirect(link.url);

@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+import { getBaseUrl } from "@/lib/base-url";
 
 /**
  * Create a Stripe Checkout Session for a single product and redirect the
@@ -33,6 +32,7 @@ export async function createCheckoutSession(formData: FormData) {
 
   const host = product.box.host;
 
+  const baseUrl = await getBaseUrl();
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [
@@ -65,8 +65,8 @@ export async function createCheckoutSession(formData: FormData) {
       boxId: product.box.id,
       qrSlug,
     },
-    success_url: `${BASE_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${BASE_URL}/b/${qrSlug}`,
+    success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/b/${qrSlug}`,
   });
 
   if (!session.url) {

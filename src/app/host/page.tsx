@@ -10,6 +10,7 @@ import {
   connectOnboard,
   openBillingPortal,
   refreshConnectStatus,
+  refreshSubscriptionStatus,
   syncSubscriptionFromCheckout,
 } from "./billing-actions";
 
@@ -28,6 +29,7 @@ export default async function HostDashboard({
   if (session_id) {
     await syncSubscriptionFromCheckout(session_id);
   }
+  await refreshSubscriptionStatus();
   await refreshConnectStatus();
   host = await getCurrentHost();
   if (!host) redirect("/host/login");
