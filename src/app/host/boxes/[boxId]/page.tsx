@@ -9,6 +9,7 @@ import {
   createProduct,
   deleteProduct,
   toggleProduct,
+  updateProduct,
 } from "../../box-actions";
 
 export const dynamic = "force-dynamic";
@@ -53,54 +54,103 @@ export default async function ManageBoxPage({
           box.products.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-black/5 bg-white p-4 shadow-card"
+              className="rounded-2xl border border-black/5 bg-white p-4 shadow-card"
             >
-              <div className="flex items-center gap-4">
-                {p.photoUrl && (
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
-                    <Image
-                      src={p.photoUrl}
-                      alt={p.name}
-                      fill
-                      sizes="56px"
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div>
-                  <div className="font-semibold text-brand">
-                    {p.name}{" "}
-                    {!p.active && (
-                      <span className="ml-1 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                        masqué
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-brand/60">
-                    {formatPrice(p.priceCents, p.currency)}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  {p.photoUrl && (
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+                      <Image
+                        src={p.photoUrl}
+                        alt={p.name}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-semibold text-brand">
+                      {p.name}{" "}
+                      {!p.active && (
+                        <span className="ml-1 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                          masqué
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-brand/60">
+                      {formatPrice(p.priceCents, p.currency)}
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <form action={toggleProduct}>
+                    <input type="hidden" name="productId" value={p.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-black/10 px-3 py-1.5 text-sm font-medium text-brand/70 transition hover:bg-black/5"
+                    >
+                      {p.active ? "Masquer" : "Afficher"}
+                    </button>
+                  </form>
+                  <form action={deleteProduct}>
+                    <input type="hidden" name="productId" value={p.id} />
+                    <button
+                      type="submit"
+                      className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                    >
+                      Supprimer
+                    </button>
+                  </form>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <form action={toggleProduct}>
+
+              {/* Modifier (prix / article) */}
+              <details className="group mt-3 [&_summary]:list-none">
+                <summary className="cursor-pointer text-sm font-medium text-accent">
+                  Modifier le prix / l&apos;article
+                </summary>
+                <form
+                  action={updateProduct}
+                  className="mt-3 grid gap-3 border-t border-black/5 pt-3 sm:grid-cols-2"
+                >
                   <input type="hidden" name="productId" value={p.id} />
+                  <input
+                    name="name"
+                    defaultValue={p.name}
+                    placeholder="Nom du produit"
+                    required
+                    className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  />
+                  <input
+                    name="price"
+                    defaultValue={(p.priceCents / 100).toFixed(2).replace(".", ",")}
+                    placeholder="Prix en € (ex. 12,50)"
+                    required
+                    inputMode="decimal"
+                    className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  />
+                  <input
+                    name="photoUrl"
+                    defaultValue={p.photoUrl ?? ""}
+                    placeholder="URL de la photo (optionnel)"
+                    className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 sm:col-span-2"
+                  />
+                  <textarea
+                    name="description"
+                    defaultValue={p.description ?? ""}
+                    placeholder="Description (optionnel)"
+                    rows={2}
+                    className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 sm:col-span-2"
+                  />
                   <button
                     type="submit"
-                    className="rounded-full border border-black/10 px-3 py-1.5 text-sm font-medium text-brand/70 transition hover:bg-black/5"
+                    className="rounded-full bg-brand px-5 py-2.5 font-semibold text-white transition hover:bg-brand-dark sm:col-span-2"
                   >
-                    {p.active ? "Masquer" : "Afficher"}
+                    Enregistrer les modifications
                   </button>
                 </form>
-                <form action={deleteProduct}>
-                  <input type="hidden" name="productId" value={p.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                  >
-                    Supprimer
-                  </button>
-                </form>
-              </div>
+              </details>
             </div>
           ))
         )}

@@ -108,6 +108,28 @@ export async function createProduct(formData: FormData) {
   revalidatePath(`/host/boxes/${boxId}`);
 }
 
+export async function updateProduct(formData: FormData) {
+  const hostId = await requireHostId();
+  const productId = String(formData.get("productId") ?? "");
+  const product = await prisma.product.findFirst({
+    where: { id: productId, box: { hostId } },
+    select: { id: true, boxId: true },
+  });
+  if (!product) throw new Error("Produit introuvable.");
+
+  const name = clean(formData.get("name"), 120);
+  const description = clean(formData.get("description"), 500) || null;
+  const photoUrl = cleanPhotoUrl(formData.get("photoUrl"));
+  const priceCents = eurosToCents(String(formData.get("price") ?? ""));
+  if (!name) throw new Error("Le nom du produit est requis.");
+
+  await prisma.product.update({
+    where: { id: product.id },
+    data: { name, description, photoUrl, priceCents },
+  });
+  revalidatePath(`/host/boxes/${product.boxId}`);
+}
+
 export async function toggleProduct(formData: FormData) {
   const hostId = await requireHostId();
   const productId = String(formData.get("productId") ?? "");
