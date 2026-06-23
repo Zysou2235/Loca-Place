@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { getPlan, maxBoxesFor } from "@/lib/plans";
+import { isAdminEmail } from "@/lib/admin";
 import { HostShell } from "./HostShell";
 import { createBox, deleteBox } from "./box-actions";
 import {
@@ -46,9 +47,19 @@ export default async function HostDashboard({
 
   return (
     <HostShell hostName={host.name}>
-      <h1 className="font-display text-2xl font-bold text-brand">
-        Bonjour {host.name.split(" ")[0]} 👋
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold text-brand">
+          Bonjour {host.name.split(" ")[0]} 👋
+        </h1>
+        {isAdminEmail(host.email) && (
+          <Link
+            href="/admin"
+            className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            Espace admin →
+          </Link>
+        )}
+      </div>
       <p className="mt-1 text-brand/60">
         Pilotez vos box, vos produits et votre abonnement.
       </p>
@@ -136,12 +147,6 @@ export default async function HostDashboard({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/host/boxes/${box.id}/qr`}
-                  className="rounded-full border border-black/10 px-3 py-1.5 text-sm font-medium text-brand/70 transition hover:bg-black/5"
-                >
-                  QR à imprimer
-                </Link>
                 <Link
                   href={`/host/boxes/${box.id}`}
                   className="rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-dark"

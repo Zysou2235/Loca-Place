@@ -25,6 +25,7 @@ Clique sur le service **de l'application** (pas le Postgres) → onglet
 | ----------------- | -------------------------------------------------------- |
 | `DATABASE_URL`    | `${{Postgres.DATABASE_URL}}` (référence au service Postgres) |
 | `SESSION_SECRET`  | une longue chaîne aléatoire (`openssl rand -hex 32`)     |
+| `ADMIN_EMAILS`    | ton email (pour accéder à `/admin`)                      |
 | `NEXT_PUBLIC_BASE_URL` | l'URL publique (à remplir après l'étape 5)          |
 
 > Astuce : pour `DATABASE_URL`, Railway propose souvent d'ajouter la référence

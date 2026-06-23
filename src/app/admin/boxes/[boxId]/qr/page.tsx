@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentHost } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -16,17 +16,16 @@ async function publicBaseUrl(): Promise<string> {
   return host ? `${proto}://${host}` : "http://localhost:3000";
 }
 
-export default async function QrPrintPage({
+export default async function AdminQrPrintPage({
   params,
 }: {
   params: Promise<{ boxId: string }>;
 }) {
-  const host = await getCurrentHost();
-  if (!host) redirect("/host/login");
+  await requireAdmin();
 
   const { boxId } = await params;
-  const box = await prisma.box.findFirst({
-    where: { id: boxId, hostId: host.id },
+  const box = await prisma.box.findUnique({
+    where: { id: boxId },
     select: { qrSlug: true, name: true, location: true },
   });
   if (!box) notFound();
@@ -35,18 +34,13 @@ export default async function QrPrintPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center px-6 py-10">
-      {/* Toolbar (hidden when printing) */}
       <div className="mb-8 flex w-full items-center justify-between print:hidden">
-        <Link
-          href={`/host/boxes/${boxId}`}
-          className="text-sm font-medium text-accent"
-        >
-          ← Retour
+        <Link href="/admin" className="text-sm font-medium text-accent">
+          ← Admin
         </Link>
         <PrintButton />
       </div>
 
-      {/* Printable card */}
       <div className="flex w-full flex-col items-center rounded-3xl border border-black/10 bg-white p-10 text-center shadow-card print:border-0 print:shadow-none">
         <Image
           src="/eskale-box-logo.png"
@@ -68,7 +62,6 @@ export default async function QrPrintPage({
           Scannez pour découvrir &amp; acheter
         </p>
 
-        {/* QR */}
         <div className="mt-4 rounded-2xl border border-black/10 p-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -80,7 +73,7 @@ export default async function QrPrintPage({
           />
         </div>
 
-        <p className="mt-4 text-xs text-brand/40 break-all">{targetUrl}</p>
+        <p className="mt-4 break-all text-xs text-brand/40">{targetUrl}</p>
 
         <p className="mt-6 max-w-xs text-sm text-brand/60">
           Pointez l&apos;appareil photo de votre téléphone vers ce code —
@@ -89,8 +82,8 @@ export default async function QrPrintPage({
       </div>
 
       <p className="mt-6 text-center text-xs text-brand/40 print:hidden">
-        Astuce : imprimez cette page et collez-la sur votre Eskale Box. Le QR
-        code reste valable indéfiniment pour cette box.
+        À imprimer et coller sur la boîte avant expédition. Le QR reste valable
+        indéfiniment pour cette box.
       </p>
     </main>
   );
