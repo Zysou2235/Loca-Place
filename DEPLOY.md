@@ -27,25 +27,24 @@ Choisis un fournisseur (un seul) :
 | ------------------------- | ------------------------------------------------------------ |
 | `DATABASE_URL`            | la chaîne **poolée** Postgres (ou `POSTGRES_PRISMA_URL` Vercel) |
 | `SESSION_SECRET`          | **obligatoire** — `openssl rand -hex 32`                      |
+| `ADMIN_EMAILS`            | ton email (accès à `/admin`)                                 |
 | `STRIPE_SECRET_KEY`       | `sk_test_...` (ou `sk_live_...` en prod)                      |
-| `STRIPE_WEBHOOK_SECRET`   | `whsec_...` (voir étape 6)                                    |
-| `STRIPE_PRICE_ESSENTIEL`  | Price ID Stripe de la formule Essentiel (`price_...`)        |
-| `STRIPE_PRICE_DUO`        | Price ID Stripe de la formule Duo                            |
-| `STRIPE_PRICE_PRO`        | Price ID Stripe de la formule Pro                            |
+| `STRIPE_WEBHOOK_SECRET`   | `whsec_...` — optionnel mais recommandé (voir étape 6)        |
 | `NEXT_PUBLIC_BASE_URL`    | l'URL du déploiement, ex. `https://eskale-box.vercel.app`    |
 
 > ⚠️ `SESSION_SECRET` est **requis en production** : sans lui, les sessions
 > seraient falsifiables (l'app refuse de démarrer). Génère-le avec
 > `openssl rand -hex 32`.
 
+> 💳 Les **tarifs d'abonnement sont créés automatiquement** : aucun Price ID à
+> configurer. Seule `STRIPE_SECRET_KEY` est indispensable côté paiements.
+
+> 🍎 **Apple Pay / Google Pay** s'affichent automatiquement sur la page de
+> paiement Stripe (rien à coder). Vérifie juste qu'ils sont activés dans
+> Stripe → Settings → Payment methods.
+
 > Astuce : déploie une première fois pour connaître l'URL, puis renseigne
 > `NEXT_PUBLIC_BASE_URL` et redéploie.
-
-### Créer les produits d'abonnement Stripe
-
-Dans le dashboard Stripe → **Produits**, crée 3 produits récurrents (mensuels)
-à 19€, 29,90€ et 49€, puis copie chaque **Price ID** (`price_...`) dans les
-variables `STRIPE_PRICE_*`.
 
 ### Activer Stripe Connect
 

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { getCurrentHost } from "@/lib/auth";
-import { getPlan, planPriceId, type PlanId } from "@/lib/plans";
+import { getPlan, type PlanId } from "@/lib/plans";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
@@ -25,13 +25,6 @@ export async function subscribe(formData: FormData) {
   const plan = getPlan(planId);
   if (!plan) throw new Error("Formule inconnue.");
 
-  const priceId = planPriceId(planId);
-  if (!priceId) {
-    throw new Error(
-      `Le tarif Stripe n'est pas configuré (${plan.priceEnv} manquante).`
-    );
-  }
-
   // Ensure a Stripe customer for this host.
   let customerId = host.stripeCustomerId;
   if (!customerId) {
@@ -50,7 +43,19 @@ export async function subscribe(formData: FormData) {
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    line_items: [{ price: priceId, quantity: 1 }],
+    // Price created inline → no need to pre-create products/prices in Stripe.
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: plan.currency,
+          unit_amount: plan.priceCents,
+          recurring: { interval: "month" },
+          product_data: { name: `Eskale Box — ${plan.name}` },
+        },
+      },
+    ],
+    subscription_data: { metadata: { hostId: host.id, planId } },
     client_reference_id: host.id,
     metadata: { hostId: host.id, planId },
     success_url: `${BASE_URL}/host?session_id={CHECKOUT_SESSION_ID}`,

@@ -2,16 +2,9 @@ import { NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { PLANS } from "@/lib/plans";
 
 // Stripe needs the raw request body to verify the signature.
 export const dynamic = "force-dynamic";
-
-function planIdForPrice(priceId?: string | null): string | null {
-  if (!priceId) return null;
-  const match = PLANS.find((p) => process.env[p.priceEnv] === priceId);
-  return match?.id ?? null;
-}
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -62,12 +55,12 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.created": {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
-        const priceId = sub.items.data[0]?.price?.id;
+        const planId = sub.metadata?.planId;
         await prisma.host.updateMany({
           where: { stripeCustomerId: customerId },
           data: {
             subscriptionStatus: sub.status,
-            subscriptionPlan: planIdForPrice(priceId) ?? undefined,
+            ...(planId ? { subscriptionPlan: planId } : {}),
           },
         });
         break;

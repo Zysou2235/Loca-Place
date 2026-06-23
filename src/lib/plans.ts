@@ -9,8 +9,9 @@ export interface Plan {
   maxBoxes: number;
   features: string[];
   highlighted?: boolean;
-  /** Env var holding the Stripe Price ID for this plan. */
-  priceEnv: string;
+  /** Monthly price in cents — used to create the Stripe price inline. */
+  priceCents: number;
+  currency: string;
 }
 
 export const PLANS: Plan[] = [
@@ -21,7 +22,8 @@ export const PLANS: Plan[] = [
     period: "/ mois",
     tagline: "Pour un logement",
     maxBoxes: 1,
-    priceEnv: "STRIPE_PRICE_ESSENTIEL",
+    priceCents: 1900,
+    currency: "eur",
     features: [
       "1 logement équipé",
       "Box + QR code dédié",
@@ -38,7 +40,8 @@ export const PLANS: Plan[] = [
     period: "/ mois",
     tagline: "Pour deux logements",
     maxBoxes: 2,
-    priceEnv: "STRIPE_PRICE_DUO",
+    priceCents: 2990,
+    currency: "eur",
     features: [
       "2 logements équipés (2 box)",
       "Tout le plan Essentiel",
@@ -54,7 +57,8 @@ export const PLANS: Plan[] = [
     tagline: "Pour les multi-propriétaires",
     maxBoxes: 5,
     highlighted: true,
-    priceEnv: "STRIPE_PRICE_PRO",
+    priceCents: 4900,
+    currency: "eur",
     features: [
       "Jusqu'à 5 logements",
       "Tout le plan Duo",
@@ -72,6 +76,3 @@ export function maxBoxesFor(planId?: string | null): number {
   return getPlan(planId)?.maxBoxes ?? 0;
 }
 
-export function planPriceId(id: PlanId): string | undefined {
-  return process.env[getPlan(id)!.priceEnv];
-}

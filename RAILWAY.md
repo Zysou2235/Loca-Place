@@ -69,6 +69,13 @@ Railway permet de connecter un domaine perso (ex. `eskalebox.fr`).
 
 ## Stripe (quand tu seras prêt)
 
-Ajoute dans les Variables : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-`STRIPE_PRICE_ESSENTIEL`, `STRIPE_PRICE_DUO`, `STRIPE_PRICE_PRO`.
-Webhook Stripe → URL : `https://<ton-app>.up.railway.app/api/stripe/webhook`.
+1. Ajoute la variable **`STRIPE_SECRET_KEY`** (`sk_test_...` puis `sk_live_...`).
+   C'est la **seule** clé indispensable — les tarifs d'abonnement sont créés
+   automatiquement (aucun Price ID à configurer).
+2. Active **Apple Pay / Google Pay** dans Stripe → Settings → Payment methods
+   (activés par défaut). Rien d'autre à faire : ils apparaissent tout seuls.
+3. Active **Connect** (versement direct des ventes aux hôtes).
+4. (Recommandé en prod) Webhook → URL :
+   `https://<ton-app>.up.railway.app/api/stripe/webhook`, événements
+   `checkout.session.completed`, `customer.subscription.*`, `account.updated`,
+   puis copie le secret dans `STRIPE_WEBHOOK_SECRET`.
