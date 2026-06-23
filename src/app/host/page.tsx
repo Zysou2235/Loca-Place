@@ -136,14 +136,12 @@ export default async function HostDashboard({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <a
-                  href={`/api/qr/${box.qrSlug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href={`/host/boxes/${box.id}/qr`}
                   className="rounded-full border border-black/10 px-3 py-1.5 text-sm font-medium text-brand/70 transition hover:bg-black/5"
                 >
-                  QR code
-                </a>
+                  QR à imprimer
+                </Link>
                 <Link
                   href={`/host/boxes/${box.id}`}
                   className="rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-dark"

@@ -33,9 +33,15 @@ export default async function ManageBoxPage({
       <Link href="/host" className="text-sm font-medium text-accent">
         ← Tableau de bord
       </Link>
-      <h1 className="mt-2 font-display text-2xl font-bold text-brand">
-        {box.name}
-      </h1>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold text-brand">{box.name}</h1>
+        <Link
+          href={`/host/boxes/${box.id}/qr`}
+          className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
+        >
+          🖨️ QR à imprimer
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-brand/60">
         Page publique :{" "}
         <Link href={`/b/${box.qrSlug}`} className="text-accent hover:underline">
