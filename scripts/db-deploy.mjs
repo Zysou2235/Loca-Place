@@ -3,16 +3,21 @@
 // doit pouvoir se déployer même sans base configurée/joignable.
 import { execSync } from "node:child_process";
 
-// Accept the various names used by Vercel/Neon Postgres integrations.
+// Accept the various names used by Vercel/Neon Postgres integrations, ignoring
+// non-standard schemes (e.g. Prisma Accelerate `prisma+postgres://`).
 // For DDL (db push), prefer a NON-pooled connection.
-const url =
-  process.env.DATABASE_URL ||
-  process.env.POSTGRES_URL_NON_POOLING ||
-  process.env.POSTGRES_URL ||
-  process.env.POSTGRES_PRISMA_URL;
+const isStandardPostgres = (u) =>
+  typeof u === "string" && /^postgres(ql)?:\/\//.test(u);
 
-if (!url || url.startsWith("file:")) {
-  console.log("[db-deploy] DATABASE_URL absente — étape ignorée.");
+const url = [
+  process.env.POSTGRES_URL_NON_POOLING,
+  process.env.DATABASE_URL,
+  process.env.POSTGRES_URL,
+  process.env.POSTGRES_PRISMA_URL,
+].find(isStandardPostgres);
+
+if (!url) {
+  console.log("[db-deploy] Aucune URL Postgres valide — étape ignorée.");
   process.exit(0);
 }
 
