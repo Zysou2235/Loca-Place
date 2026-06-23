@@ -2,12 +2,15 @@ import { NextRequest } from "next/server";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/prisma";
 
-/** Public base URL: env var if set, otherwise derived from the request host. */
+/** Public base URL, derived from the request host (correct at runtime). */
 function baseUrlFrom(req: NextRequest): string {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "http://localhost:3000";
+  if (host) {
+    const proto = req.headers.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${host}`;
+  }
+  const env = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
+  return env ? env.replace(/\/$/, "") : "http://localhost:3000";
 }
 
 /**

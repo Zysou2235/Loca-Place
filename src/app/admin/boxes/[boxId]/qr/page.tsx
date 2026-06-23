@@ -1,20 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
+import { getBaseUrl } from "@/lib/base-url";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
-
-async function publicBaseUrl(): Promise<string> {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : "http://localhost:3000";
-}
 
 export default async function AdminQrPrintPage({
   params,
@@ -30,7 +22,7 @@ export default async function AdminQrPrintPage({
   });
   if (!box) notFound();
 
-  const targetUrl = `${await publicBaseUrl()}/b/${box.qrSlug}`;
+  const targetUrl = `${await getBaseUrl()}/b/${box.qrSlug}`;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center px-6 py-10">
