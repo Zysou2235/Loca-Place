@@ -60,9 +60,14 @@ export default async function ManageBoxPage({
           <h3 className="font-display font-bold text-brand">Le QR code de votre box</h3>
           <p className="mt-1 text-sm text-brand/60">
             Ce QR code est associé <strong>définitivement</strong> à cette box et
-            mène vos voyageurs vers votre boutique. La version imprimée est
-            collée sur la boîte par Eskale Box avant l&apos;envoi.
+            mène vos voyageurs vers votre boutique.
           </p>
+          <Link
+            href={`/host/boxes/${box.id}/qr`}
+            className="mt-3 inline-block rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark"
+          >
+            🖨️ Voir / imprimer le QR
+          </Link>
         </div>
       </div>
 
