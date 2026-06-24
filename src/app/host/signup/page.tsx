@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionHostId } from "@/lib/auth";
+import { getCurrentHost } from "@/lib/auth";
 import { signup } from "../auth-actions";
 import { AuthForm } from "../AuthForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function SignupPage() {
-  if (await getSessionHostId()) redirect("/host");
+  // Vérifie que le compte existe réellement (cookie orphelin -> pas de boucle).
+  if (await getCurrentHost()) redirect("/host");
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-12">
