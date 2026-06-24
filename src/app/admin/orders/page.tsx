@@ -35,6 +35,9 @@ export default async function AdminOrdersPage() {
             <Link href="/admin/orders" className="font-semibold text-brand">
               Ventes
             </Link>
+            <Link href="/admin/stats" className="font-medium text-brand/70 hover:text-brand">
+              Statistiques
+            </Link>
             <form action={logout}>
               <button className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5">
                 Déconnexion

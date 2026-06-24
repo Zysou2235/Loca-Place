@@ -47,6 +47,12 @@ export default async function AdminPage() {
             >
               Ventes
             </Link>
+            <Link
+              href="/admin/stats"
+              className="font-medium text-brand/70 hover:text-brand"
+            >
+              Statistiques
+            </Link>
             <form action={logout}>
               <button className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5">
                 Déconnexion
