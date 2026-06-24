@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionHostId } from "@/lib/auth";
+import { getCurrentHost } from "@/lib/auth";
 import { login } from "../auth-actions";
 import { AuthForm } from "../AuthForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
-  if (await getSessionHostId()) redirect("/host");
+  // On vérifie que le compte existe vraiment (pas seulement un cookie signé) :
+  // un cookie orphelin (compte supprimé) ne doit pas relancer une boucle de
+  // redirection avec /host.
+  if (await getCurrentHost()) redirect("/host");
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-12">
