@@ -30,11 +30,18 @@ export async function createCheckoutSession(formData: FormData) {
     throw new Error("Produit introuvable.");
   }
 
+  // The box must have a lock code before it can sell — the code is sent to the
+  // traveler after payment.
+  if (!product.box.accessCode) {
+    throw new Error("Cette box n'est pas encore disponible à la vente.");
+  }
+
   const host = product.box.host;
 
   const baseUrl = await getBaseUrl();
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    phone_number_collection: { enabled: true },
     line_items: [
       {
         quantity: 1,

@@ -35,12 +35,16 @@ model Box {
   name      String
   location  String?
   active    Boolean  @default(true)
+  // Lock code set by the platform (admin) before shipping. The box can't sell
+  // until a code is set; the code is sent to the traveler after payment.
+  accessCode String?
   createdAt DateTime @default(now())
 
   hostId String
   host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   products Product[]
+  orders   Order[]
 }
 
 model Product {
@@ -52,6 +56,21 @@ model Product {
   photoUrl    String?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
+
+  boxId String
+  box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  stripeSessionId String   @unique
+  productName     String
+  amountCents     Int
+  currency        String   @default("eur")
+  customerEmail   String?
+  customerPhone   String?
+  codeSent        Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   boxId String
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)

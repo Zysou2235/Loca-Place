@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { stripe } from "@/lib/stripe";
+import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
+import { deliverBoxCode } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,7 @@ export default async function SuccessPage({
   let currency = "eur";
   let qrSlug: string | undefined;
   let customerEmail: string | null = null;
+  let accessCode: string | null = null;
 
   if (session_id) {
     try {
@@ -25,6 +28,19 @@ export default async function SuccessPage({
       currency = session.currency ?? "eur";
       qrSlug = session.metadata?.qrSlug;
       customerEmail = session.customer_details?.email ?? null;
+
+      if (paid) {
+        // Fallback delivery (works even without a configured webhook).
+        await deliverBoxCode(session);
+        const boxId = session.metadata?.boxId;
+        if (boxId) {
+          const box = await prisma.box.findUnique({
+            where: { id: boxId },
+            select: { accessCode: true },
+          });
+          accessCode = box?.accessCode ?? null;
+        }
+      }
     } catch {
       // Invalid or expired session id — fall through to the generic message.
     }
@@ -57,8 +73,19 @@ export default async function SuccessPage({
               </>
             )}
           </p>
+          {accessCode && (
+            <div className="w-full rounded-2xl border border-green-200 bg-green-50 p-5">
+              <p className="text-sm font-medium text-green-700">
+                Code pour ouvrir la boîte
+              </p>
+              <p className="mt-1 text-3xl font-bold tracking-widest text-green-800">
+                {accessCode}
+              </p>
+            </div>
+          )}
           <p className="text-sm text-neutral-500">
-            Récupérez votre produit dans l&apos;Eskale Box de votre logement.
+            Récupérez votre produit dans l&apos;Eskale Box de votre logement
+            {customerEmail ? " (le code vous a aussi été envoyé par email)" : ""}.
           </p>
         </>
       ) : (

@@ -48,7 +48,11 @@ export default async function BoxPage({
         </p>
       </header>
 
-      {box.products.length === 0 ? (
+      {!box.accessCode ? (
+        <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
+          Cette boutique sera bientôt disponible. Revenez un peu plus tard&nbsp;!
+        </p>
+      ) : box.products.length === 0 ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
           Aucun produit disponible pour le moment.
         </p>

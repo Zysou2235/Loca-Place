@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { deliverBoxCode } from "@/lib/orders";
 
 // Stripe needs the raw request body to verify the signature.
 export const dynamic = "force-dynamic";
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
               },
             });
           }
+        } else if (session.mode === "payment") {
+          // Traveler purchase → record the order and deliver the box code.
+          await deliverBoxCode(session);
         }
         break;
       }
