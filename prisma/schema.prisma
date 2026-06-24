@@ -39,6 +39,9 @@ model Box {
   // Lock code set by the platform (admin) before shipping. The box can't sell
   // until a code is set; the code is sent to the traveler after payment.
   accessCode String?
+  // Date d'expédition vers l'hôte. Ne peut être posée que si accessCode existe
+  // (le code du cadenas ne peut plus être réglé une fois la box partie).
+  shippedAt  DateTime?
   createdAt DateTime @default(now())
 
   hostId String

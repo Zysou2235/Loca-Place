@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPlan } from "@/lib/plans";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
-import { setBoxCode } from "./actions";
+import { markBoxShipped, setBoxCode, unmarkBoxShipped } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -177,6 +177,44 @@ export default async function AdminPage() {
                               Enregistrer le code
                             </button>
                           </form>
+
+                          {/* Expédition — bloquée tant que le code n'est pas défini */}
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            {box.shippedAt ? (
+                              <>
+                                <span className="text-xs font-semibold text-green-600">
+                                  📦 Expédiée le{" "}
+                                  {box.shippedAt.toLocaleDateString("fr-FR")}
+                                </span>
+                                <form action={unmarkBoxShipped}>
+                                  <input type="hidden" name="boxId" value={box.id} />
+                                  <button
+                                    type="submit"
+                                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-brand/60 transition hover:bg-black/5"
+                                  >
+                                    Annuler l&apos;expédition
+                                  </button>
+                                </form>
+                              </>
+                            ) : box.accessCode ? (
+                              <form action={markBoxShipped}>
+                                <input type="hidden" name="boxId" value={box.id} />
+                                <button
+                                  type="submit"
+                                  className="rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-dark"
+                                >
+                                  📦 Marquer comme expédiée
+                                </button>
+                              </form>
+                            ) : (
+                              <span
+                                title="Définissez d'abord le code du cadenas"
+                                className="cursor-not-allowed rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold text-brand/30"
+                              >
+                                📦 Expédition bloquée — code requis
+                              </span>
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ul>

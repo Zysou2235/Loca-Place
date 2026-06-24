@@ -1,10 +1,16 @@
 "use server";
 
+import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionHostId, getCurrentHost } from "@/lib/auth";
 import { makeSlug } from "@/lib/slug";
 import { maxBoxesFor } from "@/lib/plans";
+
+/** Code de cadenas à 3 chiffres (000–999), généré à la création de la box. */
+function generateLockCode(): string {
+  return String(crypto.randomInt(0, 1000)).padStart(3, "0");
+}
 
 async function requireHostId(): Promise<string> {
   const hostId = await getSessionHostId();
@@ -82,7 +88,13 @@ export async function createBox(formData: FormData) {
   if (!name) throw new Error("Le nom est requis.");
 
   await prisma.box.create({
-    data: { name, location, qrSlug: makeSlug(name), hostId: host.id },
+    data: {
+      name,
+      location,
+      qrSlug: makeSlug(name),
+      hostId: host.id,
+      accessCode: generateLockCode(),
+    },
   });
   revalidatePath("/host");
 }

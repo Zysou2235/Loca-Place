@@ -41,6 +41,7 @@ async function main() {
       name: "Eskale Box — Appartement Bellecour",
       location: "Appartement Bellecour, Lyon",
       hostId: host.id,
+      accessCode: "482",
     },
   });
 
