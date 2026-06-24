@@ -79,3 +79,30 @@ Railway permet de connecter un domaine perso (ex. `eskalebox.fr`).
    `https://<ton-app>.up.railway.app/api/stripe/webhook`, événements
    `checkout.session.completed`, `customer.subscription.*`, `account.updated`,
    puis copie le secret dans `STRIPE_WEBHOOK_SECRET`.
+
+## Envoi du code au voyageur (Resend)
+
+Après chaque paiement, l'app envoie automatiquement au voyageur un email
+contenant le code d'ouverture de la boîte. Cela passe par **Resend**.
+
+1. Crée un compte gratuit sur **[resend.com](https://resend.com)** (3 000
+   emails/mois gratuits).
+2. **API Keys → Create** → copie la clé `re_...`.
+3. Ajoute les variables sur le service de l'app :
+
+   | Variable          | Valeur                                                  |
+   | ----------------- | ------------------------------------------------------- |
+   | `RESEND_API_KEY`  | ta clé `re_...`                                         |
+   | `RESEND_FROM`     | `onboarding@resend.dev` (test) puis `Eskale Box <codes@tondomaine.fr>` |
+
+> ⚠️ Avec `onboarding@resend.dev`, les emails ne partent **que** vers l'adresse
+> de ton compte Resend. Pour écrire à n'importe quel voyageur, vérifie ton
+> domaine dans **Resend → Domains** (ajout de 2-3 lignes DNS) puis utilise
+> `codes@tondomaine.fr`.
+
+Le voyageur voit aussi son code à l'écran après paiement : si Resend n'est pas
+configuré, la vente fonctionne quand même, et tu peux renvoyer le code à la
+main depuis `/admin`.
+
+> SMS (Twilio) : optionnel, non requis pour le lancement. À ajouter plus tard
+> si tu veux doubler l'email par un SMS.

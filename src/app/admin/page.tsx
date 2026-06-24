@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPlan } from "@/lib/plans";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
-import { setBoxCode } from "./actions";
+import { markBoxShipped, setBoxCode, unmarkBoxShipped } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function AdminPage() {
     include: {
       boxes: {
         orderBy: { createdAt: "asc" },
-        include: { _count: { select: { products: true } } },
+        include: { selectedProduct: { select: { name: true } } },
       },
     },
   });
@@ -38,6 +38,12 @@ export default async function AdminPage() {
             </span>
           </span>
           <div className="flex items-center gap-4 text-sm">
+            <Link
+              href="/host"
+              className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5"
+            >
+              ← Espace hôte
+            </Link>
             <Link href="/admin" className="font-semibold text-brand">
               Comptes &amp; box
             </Link>
@@ -46,6 +52,12 @@ export default async function AdminPage() {
               className="font-medium text-brand/70 hover:text-brand"
             >
               Ventes
+            </Link>
+            <Link
+              href="/admin/stats"
+              className="font-medium text-brand/70 hover:text-brand"
+            >
+              Statistiques
             </Link>
             <form action={logout}>
               <button className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5">
@@ -123,8 +135,11 @@ export default async function AdminPage() {
                               </span>
                               <span className="text-brand/40">
                                 {" "}
-                                · {box._count.products} produit(s) · /b/
-                                {box.qrSlug}
+                                ·{" "}
+                                {box.selectedProduct
+                                  ? box.selectedProduct.name
+                                  : "aucun article"}{" "}
+                                · /b/{box.qrSlug}
                               </span>
                             </div>
                             <Link
@@ -162,6 +177,44 @@ export default async function AdminPage() {
                               Enregistrer le code
                             </button>
                           </form>
+
+                          {/* Expédition — bloquée tant que le code n'est pas défini */}
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            {box.shippedAt ? (
+                              <>
+                                <span className="text-xs font-semibold text-green-600">
+                                  📦 Expédiée le{" "}
+                                  {box.shippedAt.toLocaleDateString("fr-FR")}
+                                </span>
+                                <form action={unmarkBoxShipped}>
+                                  <input type="hidden" name="boxId" value={box.id} />
+                                  <button
+                                    type="submit"
+                                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-medium text-brand/60 transition hover:bg-black/5"
+                                  >
+                                    Annuler l&apos;expédition
+                                  </button>
+                                </form>
+                              </>
+                            ) : box.accessCode ? (
+                              <form action={markBoxShipped}>
+                                <input type="hidden" name="boxId" value={box.id} />
+                                <button
+                                  type="submit"
+                                  className="rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-dark"
+                                >
+                                  📦 Marquer comme expédiée
+                                </button>
+                              </form>
+                            ) : (
+                              <span
+                                title="Définissez d'abord le code du cadenas"
+                                className="cursor-not-allowed rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold text-brand/30"
+                              >
+                                📦 Expédition bloquée — code requis
+                              </span>
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ul>

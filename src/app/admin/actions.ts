@@ -23,6 +23,46 @@ export async function setBoxCode(formData: FormData) {
   revalidatePath("/admin");
 }
 
+/** Marque une box comme expédiée à l'hôte. Bloqué si le code n'est pas défini
+ *  (impossible de régler le cadenas une fois la box partie). Admin only. */
+export async function markBoxShipped(formData: FormData) {
+  await requireAdmin();
+
+  const boxId = String(formData.get("boxId") ?? "");
+  if (!boxId) throw new Error("Box manquante.");
+
+  const box = await prisma.box.findUnique({
+    where: { id: boxId },
+    select: { accessCode: true },
+  });
+  if (!box) throw new Error("Box introuvable.");
+  if (!box.accessCode) {
+    throw new Error(
+      "Impossible d'expédier : définissez d'abord le code du cadenas. Il ne pourra plus être réglé une fois la box chez l'hôte."
+    );
+  }
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { shippedAt: new Date() },
+  });
+  revalidatePath("/admin");
+}
+
+/** Annule l'expédition (erreur / box retournée). Admin only. */
+export async function unmarkBoxShipped(formData: FormData) {
+  await requireAdmin();
+
+  const boxId = String(formData.get("boxId") ?? "");
+  if (!boxId) throw new Error("Box manquante.");
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { shippedAt: null },
+  });
+  revalidatePath("/admin");
+}
+
 /** Resend the box access code for an order (email + SMS). Admin only. */
 export async function resendCode(formData: FormData) {
   await requireAdmin();

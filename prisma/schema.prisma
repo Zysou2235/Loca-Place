@@ -26,7 +26,8 @@ model Host {
   subscriptionStatus String  @default("none") // none | trialing | active | past_due | canceled
   subscriptionPlan   String? // essentiel | duo | pro
 
-  boxes Box[]
+  boxes    Box[]
+  products Product[] // catalogue d'articles réutilisables de l'hôte
 }
 
 model Box {
@@ -38,13 +39,19 @@ model Box {
   // Lock code set by the platform (admin) before shipping. The box can't sell
   // until a code is set; the code is sent to the traveler after payment.
   accessCode String?
+  // Date d'expédition vers l'hôte. Ne peut être posée que si accessCode existe
+  // (le code du cadenas ne peut plus être réglé une fois la box partie).
+  shippedAt  DateTime?
   createdAt DateTime @default(now())
 
   hostId String
   host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  products Product[]
-  orders   Order[]
+  // L'article unique actuellement placé dans la box (choisi dans le catalogue).
+  selectedProductId String?
+  selectedProduct   Product? @relation("BoxSelected", fields: [selectedProductId], references: [id], onDelete: SetNull)
+
+  orders Order[]
 }
 
 model Product {
@@ -53,12 +60,14 @@ model Product {
   description String?
   priceCents  Int
   currency    String   @default("eur")
-  photoUrl    String?
+  photoUrl    String? // URL https OU image importée (data URL)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  boxId String
-  box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  selectedInBoxes Box[] @relation("BoxSelected")
 }
 
 model Order {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
@@ -37,7 +38,7 @@ export default async function HostDashboard({
   const boxes = await prisma.box.findMany({
     where: { hostId: host.id },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { products: true } } },
+    include: { selectedProduct: { select: { name: true } } },
   });
 
   const plan = getPlan(host.subscriptionPlan);
@@ -122,49 +123,63 @@ export default async function HostDashboard({
         <h2 className="font-display text-xl font-bold text-brand">Mes box</h2>
       </div>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {boxes.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center text-sm text-brand/50">
+          <p className="rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center text-sm text-brand/50 sm:col-span-2">
             Aucune box pour le moment.
           </p>
         ) : (
           boxes.map((box) => (
             <div
               key={box.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/5 bg-white p-4 shadow-card"
+              className="group relative rounded-2xl border border-black/5 bg-white p-5 shadow-card transition hover:border-accent/40 hover:shadow-md"
             >
-              <div>
-                <div className="font-semibold text-brand">{box.name}</div>
-                {box.location && (
-                  <div className="text-sm text-brand/50">{box.location}</div>
-                )}
-                <div className="mt-1 text-xs text-brand/40">
-                  {box._count.products} produit(s) ·{" "}
-                  <Link
-                    href={`/b/${box.qrSlug}`}
-                    className="text-accent hover:underline"
-                  >
-                    /b/{box.qrSlug}
-                  </Link>
+              {/* Toute la carte est cliquable → gestion de la box */}
+              <Link
+                href={`/host/boxes/${box.id}`}
+                aria-label={`Gérer ${box.name}`}
+                className="absolute inset-0 rounded-2xl"
+              />
+              <div className="pointer-events-none flex items-center gap-4">
+                <Image
+                  src="/eskale-box-logo.png"
+                  alt=""
+                  width={56}
+                  height={56}
+                  className="h-12 w-12 shrink-0 object-contain"
+                />
+                <div className="min-w-0">
+                  <div className="truncate font-display font-bold text-brand">
+                    {box.name}
+                  </div>
+                  {box.location && (
+                    <div className="truncate text-sm text-brand/50">
+                      {box.location}
+                    </div>
+                  )}
+                  <div className="mt-0.5 text-xs text-brand/40">
+                    {box.selectedProduct
+                      ? `Article : ${box.selectedProduct.name}`
+                      : "Aucun article sélectionné"}
+                  </div>
                 </div>
+                <span className="ml-auto shrink-0 text-brand/30 transition group-hover:text-accent">
+                  →
+                </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/host/boxes/${box.id}`}
-                  className="rounded-full bg-brand px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
+              {/* Supprimer — au-dessus du lien */}
+              <form
+                action={deleteBox}
+                className="relative z-10 mt-3 flex justify-end border-t border-black/5 pt-3"
+              >
+                <input type="hidden" name="boxId" value={box.id} />
+                <button
+                  type="submit"
+                  className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
                 >
-                  Gérer les produits
-                </Link>
-                <form action={deleteBox}>
-                  <input type="hidden" name="boxId" value={box.id} />
-                  <button
-                    type="submit"
-                    className="rounded-full border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                  >
-                    Supprimer
-                  </button>
-                </form>
-              </div>
+                  Supprimer
+                </button>
+              </form>
             </div>
           ))
         )}
