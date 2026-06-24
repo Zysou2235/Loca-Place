@@ -58,6 +58,9 @@ function Header() {
           <a href="#tarifs" className="hover:text-brand">
             Tarifs
           </a>
+          <Link href="/a-propos" className="hover:text-brand">
+            À propos
+          </Link>
           <a href="#faq" className="hover:text-brand">
             FAQ
           </a>
@@ -754,6 +757,7 @@ function Footer() {
         <FooterCol
           title="Entreprise"
           links={[
+            { label: "À propos", href: "/a-propos" },
             { label: "FAQ", href: "#faq" },
             { label: "Contact", href: `mailto:${CONTACT_EMAIL}` },
           ]}
