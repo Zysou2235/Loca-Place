@@ -44,6 +44,28 @@ export default async function ManageBoxPage({
         </Link>
       </p>
 
+      {/* QR code (lecture seule) — l'impression sur la boîte est gérée par Eskale Box */}
+      <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-black/5 bg-white p-5 shadow-card sm:flex-row sm:items-center">
+        <div className="rounded-xl border border-black/10 p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/api/qr/${box.qrSlug}`}
+            alt={`QR code de ${box.name}`}
+            width={140}
+            height={140}
+            className="h-32 w-32"
+          />
+        </div>
+        <div className="text-center sm:text-left">
+          <h3 className="font-display font-bold text-brand">Le QR code de votre box</h3>
+          <p className="mt-1 text-sm text-brand/60">
+            Ce QR code est associé <strong>définitivement</strong> à cette box et
+            mène vos voyageurs vers votre boutique. La version imprimée est
+            collée sur la boîte par Eskale Box avant l&apos;envoi.
+          </p>
+        </div>
+      </div>
+
       {/* Products list */}
       <div className="mt-8 space-y-3">
         {box.products.length === 0 ? (
