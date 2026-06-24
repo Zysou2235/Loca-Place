@@ -24,9 +24,23 @@ if (!url) {
 // Ensure the local prisma binary is found regardless of how we're invoked.
 const binDir = path.join(process.cwd(), "node_modules", ".bin");
 
+// Réinitialisation volontaire de la base (vide tout puis recrée le schéma).
+// À utiliser UNIQUEMENT quand une migration ne peut pas s'appliquer sur des
+// données existantes (ex. ajout d'une colonne obligatoire). Activer en posant
+// la variable DB_FORCE_RESET=true sur l'hébergeur, déployer, PUIS la retirer.
+const forceReset = /^(1|true|yes)$/i.test(process.env.DB_FORCE_RESET ?? "");
+
+const baseCmd = "prisma db push --skip-generate --accept-data-loss";
+const cmd = forceReset ? `${baseCmd} --force-reset` : baseCmd;
+
 try {
+  if (forceReset) {
+    console.warn(
+      "[db-deploy] ⚠️ DB_FORCE_RESET activé — la base va être VIDÉE puis recréée."
+    );
+  }
   console.log("[db-deploy] Synchronisation du schéma Prisma…");
-  execSync("prisma db push --skip-generate --accept-data-loss", {
+  execSync(cmd, {
     stdio: "inherit",
     env: {
       ...process.env,
@@ -35,10 +49,15 @@ try {
     },
   });
   console.log("[db-deploy] Tables à jour ✅");
+  if (forceReset) {
+    console.warn(
+      "[db-deploy] ⚠️ Base réinitialisée. Pensez à RETIRER la variable DB_FORCE_RESET pour ne pas la vider au prochain déploiement."
+    );
+  }
 } catch (err) {
   // Non bloquant : on log et on laisse le process continuer.
   console.warn(
-    "[db-deploy] Synchronisation ignorée (base non joignable) :",
+    "[db-deploy] Synchronisation ignorée (base non joignable ou migration impossible) :",
     err.message
   );
 }
