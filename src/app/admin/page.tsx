@@ -12,7 +12,7 @@ function isActive(status: string) {
 }
 
 export default async function AdminPage() {
-  const admin = await requireAdmin();
+  await requireAdmin();
 
   const hosts = await prisma.host.findMany({
     orderBy: { createdAt: "desc" },
@@ -38,7 +38,15 @@ export default async function AdminPage() {
             </span>
           </span>
           <div className="flex items-center gap-4 text-sm">
-            <span className="hidden text-brand/60 sm:inline">{admin.email}</span>
+            <Link href="/admin" className="font-semibold text-brand">
+              Comptes &amp; box
+            </Link>
+            <Link
+              href="/admin/orders"
+              className="font-medium text-brand/70 hover:text-brand"
+            >
+              Ventes
+            </Link>
             <form action={logout}>
               <button className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5">
                 Déconnexion

@@ -38,6 +38,15 @@ export async function createCheckoutSession(formData: FormData) {
 
   const host = product.box.host;
 
+  // Connect guard: if the host started onboarding but it isn't complete,
+  // a destination charge would fail — block the sale with a clear message.
+  if (host.stripeAccountId && !host.chargesEnabled) {
+    throw new Error(
+      "Cette boutique n'est pas encore prête à encaisser. Réessayez bientôt."
+    );
+  }
+  const canReceive = Boolean(host.stripeAccountId && host.chargesEnabled);
+
   const baseUrl = await getBaseUrl();
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -58,12 +67,12 @@ export async function createCheckoutSession(formData: FormData) {
         },
       },
     ],
-    // Destination charge → full amount goes to the host (0% commission at MVP).
-    ...(host.stripeAccountId
+    // Destination charge → full amount goes to the host (0% commission).
+    ...(canReceive
       ? {
           payment_intent_data: {
-            on_behalf_of: host.stripeAccountId,
-            transfer_data: { destination: host.stripeAccountId },
+            on_behalf_of: host.stripeAccountId!,
+            transfer_data: { destination: host.stripeAccountId! },
           },
         }
       : {}),

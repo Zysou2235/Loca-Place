@@ -3,15 +3,16 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
 import { deliverBoxCode } from "@/lib/orders";
+import { resendForSession } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; resent?: string }>;
 }) {
-  const { session_id } = await searchParams;
+  const { session_id, resent } = await searchParams;
 
   let paid = false;
   let amountTotal: number | null = null;
@@ -87,6 +88,24 @@ export default async function SuccessPage({
             Récupérez votre produit dans l&apos;Eskale Box de votre logement
             {customerEmail ? " (le code vous a aussi été envoyé par email)" : ""}.
           </p>
+
+          {resent ? (
+            <p className="rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+              Code renvoyé ✓ Pensez à vérifier vos spams.
+            </p>
+          ) : (
+            session_id && (
+              <form action={resendForSession}>
+                <input type="hidden" name="sessionId" value={session_id} />
+                <button
+                  type="submit"
+                  className="text-sm font-semibold text-accent hover:underline"
+                >
+                  Je n&apos;ai pas reçu le code
+                </button>
+              </form>
+            )
+          )}
         </>
       ) : (
         <>
