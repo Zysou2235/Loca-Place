@@ -44,35 +44,43 @@ async function main() {
     },
   });
 
-  // Exemples de produits (l'hôte est libre de mettre ce qu'il veut).
-  await prisma.product.deleteMany({ where: { boxId: box.id } });
-  await prisma.product.createMany({
-    data: [
-      {
-        boxId: box.id,
-        name: "Bouteille de vin rouge — Côtes du Rhône",
-        description: "Bouteille locale 75cl, parfaite pour l'apéro.",
-        priceCents: 1200,
-        photoUrl:
-          "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80",
-      },
-      {
-        boxId: box.id,
-        name: "Plateau de fromages",
-        description: "Sélection de 3 fromages affinés de la région.",
-        priceCents: 1500,
-        photoUrl:
-          "https://images.unsplash.com/photo-1452195100486-9cc805987862?w=600&q=80",
-      },
-      {
-        boxId: box.id,
-        name: "Kit petit-déjeuner",
-        description: "Café, jus d'orange frais et viennoiseries.",
-        priceCents: 900,
-        photoUrl:
-          "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&q=80",
-      },
-    ],
+  // Catalogue d'articles de l'hôte (réutilisables). On en place UN dans la box.
+  await prisma.product.deleteMany({ where: { hostId: host.id } });
+  const vin = await prisma.product.create({
+    data: {
+      hostId: host.id,
+      name: "Bouteille de vin rouge — Côtes du Rhône",
+      description: "Bouteille locale 75cl, parfaite pour l'apéro.",
+      priceCents: 1200,
+      photoUrl:
+        "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80",
+    },
+  });
+  await prisma.product.create({
+    data: {
+      hostId: host.id,
+      name: "Plateau de fromages",
+      description: "Sélection de 3 fromages affinés de la région.",
+      priceCents: 1500,
+      photoUrl:
+        "https://images.unsplash.com/photo-1452195100486-9cc805987862?w=600&q=80",
+    },
+  });
+  await prisma.product.create({
+    data: {
+      hostId: host.id,
+      name: "Kit petit-déjeuner",
+      description: "Café, jus d'orange frais et viennoiseries.",
+      priceCents: 900,
+      photoUrl:
+        "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&q=80",
+    },
+  });
+
+  // Article placé dans la box démo.
+  await prisma.box.update({
+    where: { id: box.id },
+    data: { selectedProductId: vin.id },
   });
 
   console.log("✅ Seed terminé.");

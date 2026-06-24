@@ -19,7 +19,7 @@ export default async function AdminPage() {
     include: {
       boxes: {
         orderBy: { createdAt: "asc" },
-        include: { _count: { select: { products: true } } },
+        include: { selectedProduct: { select: { name: true } } },
       },
     },
   });
@@ -38,6 +38,12 @@ export default async function AdminPage() {
             </span>
           </span>
           <div className="flex items-center gap-4 text-sm">
+            <Link
+              href="/host"
+              className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5"
+            >
+              ← Espace hôte
+            </Link>
             <Link href="/admin" className="font-semibold text-brand">
               Comptes &amp; box
             </Link>
@@ -129,8 +135,11 @@ export default async function AdminPage() {
                               </span>
                               <span className="text-brand/40">
                                 {" "}
-                                · {box._count.products} produit(s) · /b/
-                                {box.qrSlug}
+                                ·{" "}
+                                {box.selectedProduct
+                                  ? box.selectedProduct.name
+                                  : "aucun article"}{" "}
+                                · /b/{box.qrSlug}
                               </span>
                             </div>
                             <Link

@@ -27,10 +27,24 @@ function clean(raw: FormDataEntryValue | null, max: number): string {
     .slice(0, max);
 }
 
-/** Only allow https image URLs (kept null otherwise). */
+// Max size for an imported (data URL) image, ~2 MB once base64-encoded.
+const MAX_PHOTO_LEN = 2_800_000;
+
+/**
+ * Accept either an imported image (data:image/...;base64) or an https URL.
+ * Returns null when empty.
+ */
 function cleanPhotoUrl(raw: FormDataEntryValue | null): string | null {
-  const value = clean(raw, 2048);
+  const value = String(raw ?? "").trim();
   if (!value) return null;
+
+  if (value.startsWith("data:image/")) {
+    if (value.length > MAX_PHOTO_LEN) {
+      throw new Error("Image trop lourde (max ~2 Mo). Réessayez avec une photo plus légère.");
+    }
+    return value;
+  }
+
   try {
     const url = new URL(value);
     if (url.protocol !== "https:") {
@@ -38,7 +52,7 @@ function cleanPhotoUrl(raw: FormDataEntryValue | null): string | null {
     }
     return url.toString();
   } catch {
-    throw new Error("URL de photo invalide (https requise).");
+    throw new Error("Photo invalide (image importée ou URL https requise).");
   }
 }
 
@@ -81,7 +95,9 @@ export async function deleteBox(formData: FormData) {
   revalidatePath("/host");
 }
 
-/* ------------------------------------------------------------ Products */
+/* --------------------------------------------------- Catalogue d'articles */
+// Un article appartient à l'hôte (catalogue réutilisable). On en place UN seul
+// dans chaque box via box.selectedProductId.
 
 async function assertBoxOwner(boxId: string, hostId: string) {
   const box = await prisma.box.findFirst({
@@ -91,70 +107,100 @@ async function assertBoxOwner(boxId: string, hostId: string) {
   if (!box) throw new Error("Box introuvable.");
 }
 
+/** Crée un article dans le catalogue de l'hôte. Si boxId est fourni, l'article
+ *  est aussitôt placé dans cette box. */
 export async function createProduct(formData: FormData) {
   const hostId = await requireHostId();
-  const boxId = String(formData.get("boxId") ?? "");
-  await assertBoxOwner(boxId, hostId);
 
   const name = clean(formData.get("name"), 120);
   const description = clean(formData.get("description"), 500) || null;
   const photoUrl = cleanPhotoUrl(formData.get("photoUrl"));
   const priceCents = eurosToCents(String(formData.get("price") ?? ""));
-  if (!name) throw new Error("Le nom du produit est requis.");
+  if (!name) throw new Error("Le nom de l'article est requis.");
 
-  await prisma.product.create({
-    data: { name, description, photoUrl, priceCents, boxId },
+  const product = await prisma.product.create({
+    data: { name, description, photoUrl, priceCents, hostId },
   });
-  revalidatePath(`/host/boxes/${boxId}`);
+
+  const boxId = String(formData.get("boxId") ?? "");
+  if (boxId) {
+    await assertBoxOwner(boxId, hostId);
+    await prisma.box.update({
+      where: { id: boxId },
+      data: { selectedProductId: product.id },
+    });
+    revalidatePath(`/host/boxes/${boxId}`);
+  }
+  revalidatePath("/host/catalogue");
 }
 
 export async function updateProduct(formData: FormData) {
   const hostId = await requireHostId();
   const productId = String(formData.get("productId") ?? "");
   const product = await prisma.product.findFirst({
-    where: { id: productId, box: { hostId } },
-    select: { id: true, boxId: true },
+    where: { id: productId, hostId },
+    select: { id: true },
   });
-  if (!product) throw new Error("Produit introuvable.");
+  if (!product) throw new Error("Article introuvable.");
 
   const name = clean(formData.get("name"), 120);
   const description = clean(formData.get("description"), 500) || null;
   const photoUrl = cleanPhotoUrl(formData.get("photoUrl"));
   const priceCents = eurosToCents(String(formData.get("price") ?? ""));
-  if (!name) throw new Error("Le nom du produit est requis.");
+  if (!name) throw new Error("Le nom de l'article est requis.");
 
   await prisma.product.update({
     where: { id: product.id },
     data: { name, description, photoUrl, priceCents },
   });
-  revalidatePath(`/host/boxes/${product.boxId}`);
-}
-
-export async function toggleProduct(formData: FormData) {
-  const hostId = await requireHostId();
-  const productId = String(formData.get("productId") ?? "");
-  const product = await prisma.product.findFirst({
-    where: { id: productId, box: { hostId } },
-    select: { id: true, active: true, boxId: true },
-  });
-  if (!product) throw new Error("Produit introuvable.");
-
-  await prisma.product.update({
-    where: { id: product.id },
-    data: { active: !product.active },
-  });
-  revalidatePath(`/host/boxes/${product.boxId}`);
+  revalidatePath("/host/catalogue");
+  const boxId = String(formData.get("boxId") ?? "");
+  if (boxId) revalidatePath(`/host/boxes/${boxId}`);
 }
 
 export async function deleteProduct(formData: FormData) {
   const hostId = await requireHostId();
   const productId = String(formData.get("productId") ?? "");
   const product = await prisma.product.findFirst({
-    where: { id: productId, box: { hostId } },
-    select: { id: true, boxId: true },
+    where: { id: productId, hostId },
+    select: { id: true },
   });
-  if (!product) throw new Error("Produit introuvable.");
+  if (!product) throw new Error("Article introuvable.");
 
+  // onDelete: SetNull détache automatiquement l'article des box.
   await prisma.product.delete({ where: { id: product.id } });
-  revalidatePath(`/host/boxes/${product.boxId}`);
+  revalidatePath("/host/catalogue");
+}
+
+/** Place (coche) un article du catalogue dans une box. */
+export async function assignProductToBox(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
+  const productId = String(formData.get("productId") ?? "");
+  await assertBoxOwner(boxId, hostId);
+
+  const product = await prisma.product.findFirst({
+    where: { id: productId, hostId },
+    select: { id: true },
+  });
+  if (!product) throw new Error("Article introuvable.");
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { selectedProductId: product.id },
+  });
+  revalidatePath(`/host/boxes/${boxId}`);
+}
+
+/** Retire l'article de la box (la box n'a plus rien à vendre). */
+export async function removeProductFromBox(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
+  await assertBoxOwner(boxId, hostId);
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { selectedProductId: null },
+  });
+  revalidatePath(`/host/boxes/${boxId}`);
 }

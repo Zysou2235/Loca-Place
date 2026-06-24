@@ -26,6 +26,12 @@ export function HostShell({
               Tableau de bord
             </Link>
             <Link
+              href="/host/catalogue"
+              className="font-medium text-brand/70 hover:text-brand"
+            >
+              Catalogue
+            </Link>
+            <Link
               href="/host/stats"
               className="font-medium text-brand/70 hover:text-brand"
             >

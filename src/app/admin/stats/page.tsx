@@ -33,6 +33,12 @@ export default async function AdminStatsPage() {
             </span>
           </span>
           <div className="flex items-center gap-4 text-sm">
+            <Link
+              href="/host"
+              className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5"
+            >
+              ← Espace hôte
+            </Link>
             <Link href="/admin" className="font-medium text-brand/70 hover:text-brand">
               Comptes &amp; box
             </Link>

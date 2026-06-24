@@ -15,17 +15,17 @@ export default async function BoxPage({
 
   const box = await prisma.box.findFirst({
     where: { qrSlug: qr_slug, active: true },
-    include: {
-      products: {
-        where: { active: true },
-        orderBy: { createdAt: "asc" },
-      },
-    },
+    include: { selectedProduct: true },
   });
 
   if (!box) {
     notFound();
   }
+
+  const product =
+    box.selectedProduct && box.selectedProduct.active
+      ? box.selectedProduct
+      : null;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">
@@ -48,61 +48,49 @@ export default async function BoxPage({
         </p>
       </header>
 
-      {!box.accessCode ? (
+      {!box.accessCode || !product ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
           Cette boutique sera bientôt disponible. Revenez un peu plus tard&nbsp;!
         </p>
-      ) : box.products.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
-          Aucun produit disponible pour le moment.
-        </p>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {box.products.map((product) => (
-            <li
-              key={product.id}
-              className="flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
-            >
-              {product.photoUrl && (
-                <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
-                  <Image
-                    src={product.photoUrl}
-                    alt={product.name}
-                    fill
-                    sizes="96px"
-                    className="object-cover"
-                  />
-                </div>
-              )}
+        <div className="flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+          {product.photoUrl && (
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={product.photoUrl}
+                alt={product.name}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
+          )}
 
-              <div className="flex min-w-0 flex-1 flex-col">
-                <h2 className="font-semibold leading-snug">{product.name}</h2>
-                {product.description && (
-                  <p className="mt-1 line-clamp-2 text-sm text-neutral-500">
-                    {product.description}
-                  </p>
-                )}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h2 className="font-semibold leading-snug">{product.name}</h2>
+            {product.description && (
+              <p className="mt-1 text-sm text-neutral-500">
+                {product.description}
+              </p>
+            )}
 
-                <div className="mt-auto flex items-center justify-between pt-3">
-                  <span className="text-lg font-bold">
-                    {formatPrice(product.priceCents, product.currency)}
-                  </span>
+            <div className="mt-auto flex items-center justify-between pt-3">
+              <span className="text-lg font-bold">
+                {formatPrice(product.priceCents, product.currency)}
+              </span>
 
-                  <form action={createCheckoutSession}>
-                    <input type="hidden" name="productId" value={product.id} />
-                    <input type="hidden" name="qrSlug" value={box.qrSlug} />
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark active:bg-accent-dark"
-                    >
-                      Payer
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+              <form action={createCheckoutSession}>
+                <input type="hidden" name="productId" value={product.id} />
+                <input type="hidden" name="qrSlug" value={box.qrSlug} />
+                <button
+                  type="submit"
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark active:bg-accent-dark"
+                >
+                  Payer
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
       <footer className="pt-4 text-center text-xs text-neutral-400">

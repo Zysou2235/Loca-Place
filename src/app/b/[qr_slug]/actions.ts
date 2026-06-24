@@ -21,22 +21,24 @@ export async function createCheckoutSession(formData: FormData) {
     throw new Error("Produit ou boîte manquant.");
   }
 
-  const product = await prisma.product.findFirst({
-    where: { id: productId, active: true, box: { qrSlug, active: true } },
-    include: { box: { include: { host: true } } },
+  // The product must be the one currently selected in this box.
+  const box = await prisma.box.findFirst({
+    where: { qrSlug, active: true, selectedProductId: productId },
+    include: { selectedProduct: true, host: true },
   });
 
-  if (!product) {
+  const product = box?.selectedProduct;
+  if (!box || !product || !product.active) {
     throw new Error("Produit introuvable.");
   }
 
   // The box must have a lock code before it can sell — the code is sent to the
   // traveler after payment.
-  if (!product.box.accessCode) {
+  if (!box.accessCode) {
     throw new Error("Cette box n'est pas encore disponible à la vente.");
   }
 
-  const host = product.box.host;
+  const host = box.host;
 
   // Connect guard: if the host started onboarding but it isn't complete,
   // a destination charge would fail — block the sale with a clear message.
@@ -62,7 +64,11 @@ export async function createCheckoutSession(formData: FormData) {
             ...(product.description
               ? { description: product.description }
               : {}),
-            ...(product.photoUrl ? { images: [product.photoUrl] } : {}),
+            // Stripe n'accepte que des URLs publiques (pas les images importées
+            // en data URL) — on ne les transmet que si c'est une URL http(s).
+            ...(product.photoUrl && /^https?:\/\//.test(product.photoUrl)
+              ? { images: [product.photoUrl] }
+              : {}),
           },
         },
       },
@@ -78,7 +84,7 @@ export async function createCheckoutSession(formData: FormData) {
       : {}),
     metadata: {
       productId: product.id,
-      boxId: product.box.id,
+      boxId: box.id,
       qrSlug,
     },
     success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
