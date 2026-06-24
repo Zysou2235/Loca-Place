@@ -761,9 +761,9 @@ function Footer() {
         <FooterCol
           title="Légal"
           links={[
-            { label: "Mentions légales", href: "#" },
-            { label: "Confidentialité", href: "#" },
-            { label: "CGV", href: "#" },
+            { label: "Mentions légales", href: "/mentions-legales" },
+            { label: "Confidentialité", href: "/confidentialite" },
+            { label: "CGV", href: "/cgv" },
           ]}
         />
       </div>
