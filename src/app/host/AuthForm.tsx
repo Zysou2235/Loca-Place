@@ -46,6 +46,20 @@ export function AuthForm({
         placeholder="vous@exemple.fr"
         autoComplete="email"
       />
+      {isSignup && (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-brand/80">
+            Téléphone <span className="text-brand/40">(optionnel)</span>
+          </span>
+          <input
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="06 12 34 56 78"
+            className="rounded-xl border border-black/10 bg-white px-4 py-2.5 outline-none ring-accent/30 transition focus:border-accent focus:ring-2"
+          />
+        </label>
+      )}
       <Field
         label="Mot de passe"
         name="password"

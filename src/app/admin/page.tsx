@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlan } from "@/lib/plans";
 import { requireAdmin } from "@/lib/admin";
@@ -12,11 +13,76 @@ function isActive(status: string) {
   return status === "active" || status === "trialing";
 }
 
-export default async function AdminPage() {
+const ACTIVE_STATUSES = ["active", "trialing"];
+
+type Filter = "tous" | "nouveaux" | "abonnes" | "a_expedier" | "expediees";
+
+/** Construit le filtre Prisma à partir de l'onglet + recherche texte. */
+function buildWhere(filter: Filter, q: string): Prisma.HostWhereInput {
+  const and: Prisma.HostWhereInput[] = [];
+
+  if (q) {
+    and.push({
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { email: { contains: q, mode: "insensitive" } },
+        { phone: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (filter === "nouveaux") {
+    and.push({ subscriptionStatus: { notIn: ACTIVE_STATUSES } });
+  } else if (filter === "abonnes") {
+    and.push({ subscriptionStatus: { in: ACTIVE_STATUSES } });
+  } else if (filter === "a_expedier") {
+    and.push({
+      subscriptionStatus: { in: ACTIVE_STATUSES },
+      boxes: { some: { shippedAt: null } },
+    });
+  } else if (filter === "expediees") {
+    and.push({ boxes: { some: { shippedAt: { not: null } } } });
+  }
+
+  return and.length ? { AND: and } : {};
+}
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string; q?: string }>;
+}) {
   await requireAdmin();
 
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const filters: Filter[] = [
+    "tous",
+    "nouveaux",
+    "abonnes",
+    "a_expedier",
+    "expediees",
+  ];
+  const filter: Filter = filters.includes(sp.filter as Filter)
+    ? (sp.filter as Filter)
+    : "tous";
+
+  // Compteurs par onglet (en tenant compte de la recherche en cours).
+  const [cTous, cNouveaux, cAbonnes, cAExpedier, cExpediees] = await Promise.all(
+    filters.map((f) => prisma.host.count({ where: buildWhere(f, q) }))
+  );
+  const counts: Record<Filter, number> = {
+    tous: cTous,
+    nouveaux: cNouveaux,
+    abonnes: cAbonnes,
+    a_expedier: cAExpedier,
+    expediees: cExpediees,
+  };
+
   const hosts = await prisma.host.findMany({
+    where: buildWhere(filter, q),
     orderBy: { createdAt: "desc" },
+    take: 100,
     include: {
       boxes: {
         orderBy: { createdAt: "asc" },
@@ -26,7 +92,7 @@ export default async function AdminPage() {
   });
 
   const totalBoxes = hosts.reduce((n, h) => n + h.boxes.length, 0);
-  const activeSubs = hosts.filter((h) => isActive(h.subscriptionStatus)).length;
+  const activeSubs = counts.abonnes;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -79,13 +145,53 @@ export default async function AdminPage() {
 
         {/* Stats */}
         <div className="mt-6 grid grid-cols-3 gap-4">
-          <Stat label="Hôtes" value={hosts.length} />
+          <Stat label="Hôtes" value={counts.tous} />
           <Stat label="Abonnements actifs" value={activeSubs} />
-          <Stat label="Box au total" value={totalBoxes} />
+          <Stat label="Box affichées" value={totalBoxes} />
+        </div>
+
+        {/* Recherche */}
+        <form method="GET" className="mt-8 flex gap-2">
+          <input type="hidden" name="filter" value={filter} />
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Rechercher un hôte : nom, email ou téléphone…"
+            className="flex-1 rounded-full border border-black/10 bg-white px-5 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="submit"
+            className="rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark"
+          >
+            Rechercher
+          </button>
+          {q && (
+            <Link
+              href={`/admin?filter=${filter}`}
+              className="rounded-full border border-black/10 px-4 py-2.5 text-sm font-medium text-brand/60 transition hover:bg-black/5"
+            >
+              Effacer
+            </Link>
+          )}
+        </form>
+
+        {/* Onglets de filtre */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          <FilterTab current={filter} value="tous" label="Tous" count={counts.tous} q={q} />
+          <FilterTab current={filter} value="nouveaux" label="Nouveaux comptes" count={counts.nouveaux} q={q} />
+          <FilterTab current={filter} value="abonnes" label="Abonnés" count={counts.abonnes} q={q} />
+          <FilterTab current={filter} value="a_expedier" label="À configurer / expédier" count={counts.a_expedier} q={q} />
+          <FilterTab current={filter} value="expediees" label="Expédiées" count={counts.expediees} q={q} />
         </div>
 
         {/* Hosts */}
-        <div className="mt-10 space-y-5">
+        <div className="mt-8 space-y-5">
+          {hosts.length === 0 && (
+            <p className="rounded-2xl border border-dashed border-black/10 bg-white p-8 text-center text-sm text-brand/50">
+              Aucun hôte ne correspond à ce filtre{q ? " / cette recherche" : ""}.
+            </p>
+          )}
           {hosts.map((host) => {
             const plan = getPlan(host.subscriptionPlan);
             const active = isActive(host.subscriptionStatus);
@@ -96,8 +202,25 @@ export default async function AdminPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <div className="font-semibold text-brand">{host.name}</div>
+                    <div className="flex items-center gap-2 font-semibold text-brand">
+                      {host.name}
+                      {host.emailVerified ? (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                          email vérifié
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                          non vérifié
+                        </span>
+                      )}
+                    </div>
                     <div className="text-sm text-brand/50">{host.email}</div>
+                    {host.phone && (
+                      <div className="text-sm text-brand/50">📞 {host.phone}</div>
+                    )}
+                    <div className="text-xs text-brand/40">
+                      Inscrit le {host.createdAt.toLocaleDateString("fr-FR")}
+                    </div>
                   </div>
                   <div className="text-right">
                     <span
@@ -230,6 +353,42 @@ export default async function AdminPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function FilterTab({
+  current,
+  value,
+  label,
+  count,
+  q,
+}: {
+  current: string;
+  value: string;
+  label: string;
+  count: number;
+  q: string;
+}) {
+  const active = current === value;
+  const href = `/admin?filter=${value}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  return (
+    <Link
+      href={href}
+      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+        active
+          ? "bg-brand text-white"
+          : "border border-black/10 bg-white text-brand/70 hover:bg-black/5"
+      }`}
+    >
+      {label}
+      <span
+        className={`ml-2 rounded-full px-1.5 py-0.5 text-xs ${
+          active ? "bg-white/20" : "bg-black/5 text-brand/50"
+        }`}
+      >
+        {count}
+      </span>
+    </Link>
   );
 }
 
