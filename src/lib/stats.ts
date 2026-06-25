@@ -11,7 +11,12 @@ export type OrderForStats = {
 };
 
 export type ProductStat = { name: string; qty: number; revenueCents: number };
-export type BoxStat = { name: string; qty: number; revenueCents: number };
+export type BoxStat = {
+  name: string;
+  qty: number;
+  revenueCents: number;
+  avgCents: number;
+};
 export type DayStat = { date: string; label: string; revenueCents: number };
 
 export type SalesStats = {
@@ -65,6 +70,7 @@ export function computeStats(orders: OrderForStats[]): SalesStats {
       name: o.box.name,
       qty: 0,
       revenueCents: 0,
+      avgCents: 0,
     };
     b.qty += 1;
     b.revenueCents += o.amountCents;
@@ -74,9 +80,12 @@ export function computeStats(orders: OrderForStats[]): SalesStats {
   const topProducts = [...products.values()].sort(
     (a, b) => b.revenueCents - a.revenueCents,
   );
-  const byBox = [...boxes.values()].sort(
-    (a, b) => b.revenueCents - a.revenueCents,
-  );
+  const byBox = [...boxes.values()]
+    .map((b) => ({
+      ...b,
+      avgCents: b.qty > 0 ? Math.round(b.revenueCents / b.qty) : 0,
+    }))
+    .sort((a, b) => b.revenueCents - a.revenueCents);
 
   // Last 14 days revenue per day (oldest -> newest).
   const byDayMap = new Map<string, number>();

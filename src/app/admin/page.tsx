@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getPlan } from "@/lib/plans";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
-import { markBoxShipped, setBoxCode, unmarkBoxShipped } from "./actions";
+import { markBoxShipped, unmarkBoxShipped } from "./actions";
+import { GenerateCodeButton } from "./GenerateCodeButton";
 
 export const dynamic = "force-dynamic";
 
@@ -150,12 +151,10 @@ export default async function AdminPage() {
                             </Link>
                           </div>
 
-                          {/* Code de la boîte (obligatoire pour vendre) */}
-                          <form
-                            action={setBoxCode}
-                            className="mt-2 flex flex-wrap items-center gap-2"
-                          >
-                            <input type="hidden" name="boxId" value={box.id} />
+                          {/* Code de la boîte (obligatoire pour vendre) —
+                              généré, jamais saisi à la main. Affiché en grisé
+                              (lecture seule) pour ne pas l'effacer par erreur. */}
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span
                               className={`text-xs font-semibold ${
                                 box.accessCode ? "text-green-600" : "text-red-600"
@@ -163,20 +162,25 @@ export default async function AdminPage() {
                             >
                               {box.accessCode ? "Code défini ✓" : "⚠️ Code manquant"}
                             </span>
-                            <input
-                              name="code"
-                              defaultValue={box.accessCode ?? ""}
-                              placeholder="Code de la boîte (ex. 4821)"
-                              required
-                              className="flex-1 rounded-lg border border-black/10 px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-                            />
-                            <button
-                              type="submit"
-                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-black/5"
-                            >
-                              Enregistrer le code
-                            </button>
-                          </form>
+                            {box.accessCode && (
+                              <span
+                                title="Code du cadenas (lecture seule)"
+                                className="cursor-not-allowed select-none rounded-lg border border-black/10 bg-black/5 px-3 py-1.5 font-mono text-sm font-bold tracking-widest text-brand/40"
+                              >
+                                {box.accessCode}
+                              </span>
+                            )}
+                            {box.shippedAt ? (
+                              <span className="text-xs text-brand/40">
+                                🔒 Box expédiée — code verrouillé
+                              </span>
+                            ) : (
+                              <GenerateCodeButton
+                                boxId={box.id}
+                                hasCode={!!box.accessCode}
+                              />
+                            )}
+                          </div>
 
                           {/* Expédition — bloquée tant que le code n'est pas défini */}
                           <div className="mt-2 flex flex-wrap items-center gap-2">

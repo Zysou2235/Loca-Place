@@ -91,6 +91,9 @@ export function StatsDashboard({
                     <span className="ml-2 text-brand/50">
                       {formatPrice(b.revenueCents, currency)}
                     </span>
+                    <span className="block text-xs text-brand/40">
+                      Panier moyen {formatPrice(b.avgCents, currency)}
+                    </span>
                   </span>
                 </li>
               ))}

@@ -4,21 +4,34 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
+import { generateLockCode } from "@/lib/lock-code";
 
-/** Set (or update) the lock code of a box. Admin only. */
-export async function setBoxCode(formData: FormData) {
+/**
+ * Génère (ou régénère) le code du cadenas d'une box. Admin only.
+ * Le code n'est jamais saisi à la main : on tire un code à 3 chiffres pour
+ * éviter les fautes de frappe et garantir qu'il corresponde au cadenas.
+ * Régénération bloquée une fois la box expédiée (le cadenas est déjà réglé).
+ */
+export async function generateBoxCode(formData: FormData) {
   await requireAdmin();
 
   const boxId = String(formData.get("boxId") ?? "");
-  const code = String(formData.get("code") ?? "")
-    .trim()
-    .slice(0, 32);
   if (!boxId) throw new Error("Box manquante.");
-  if (!code) throw new Error("Le code ne peut pas être vide.");
+
+  const box = await prisma.box.findUnique({
+    where: { id: boxId },
+    select: { shippedAt: true },
+  });
+  if (!box) throw new Error("Box introuvable.");
+  if (box.shippedAt) {
+    throw new Error(
+      "Box déjà expédiée : le code du cadenas ne peut plus être modifié."
+    );
+  }
 
   await prisma.box.update({
     where: { id: boxId },
-    data: { accessCode: code },
+    data: { accessCode: generateLockCode() },
   });
   revalidatePath("/admin");
 }

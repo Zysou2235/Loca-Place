@@ -1,16 +1,11 @@
 "use server";
 
-import crypto from "crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionHostId, getCurrentHost } from "@/lib/auth";
 import { makeSlug } from "@/lib/slug";
 import { maxBoxesFor } from "@/lib/plans";
-
-/** Code de cadenas à 3 chiffres (000–999), généré à la création de la box. */
-function generateLockCode(): string {
-  return String(crypto.randomInt(0, 1000)).padStart(3, "0");
-}
+import { generateLockCode } from "@/lib/lock-code";
 
 async function requireHostId(): Promise<string> {
   const hostId = await getSessionHostId();
