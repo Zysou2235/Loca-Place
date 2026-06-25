@@ -6,9 +6,15 @@ import { ProfileForm } from "./ProfileForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ incomplete?: string }>;
+}) {
   const host = await getCurrentHost();
   if (!host) redirect("/host/login");
+
+  const { incomplete } = await searchParams;
 
   const data = await prisma.host.findUnique({
     where: { id: host.id },
@@ -52,6 +58,13 @@ export default async function ProfilePage() {
         Renseignez votre facturation et votre adresse de livraison pour recevoir
         votre box.
       </p>
+      {incomplete && (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Complétez d&apos;abord ces informations : elles sont nécessaires
+          <strong> avant de vous abonner</strong> et pour l&apos;envoi de votre
+          box.
+        </div>
+      )}
       <div className="mt-8">
         <ProfileForm defaults={defaults} />
       </div>

@@ -131,64 +131,28 @@ export default async function HostDashboard({
         </Card>
       </div>
 
-      {/* Suivi de la livraison de la box */}
-      {subscribed && (
-        <div className="mt-6 rounded-2xl border border-black/5 bg-white p-6 shadow-card">
-          <h3 className="font-display font-bold text-brand">
-            📦 Livraison de votre box
-          </h3>
-          {!hasDeliveryAddress ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              <strong>Action requise :</strong> renseignez votre{" "}
-              <strong>adresse de livraison</strong> pour qu&apos;on puisse vous
-              envoyer votre box.
-              <div className="mt-3">
-                <Link
-                  href="/host/profil"
-                  className="inline-block rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark"
-                >
-                  Renseigner mon adresse
-                </Link>
-              </div>
-            </div>
-          ) : shippedBox ? (
-            <div className="mt-3 text-sm text-brand/70">
-              <Badge ok>Expédiée</Badge>
-              <p className="mt-2">
-                Votre box a été expédiée le{" "}
-                <strong>
-                  {shippedBox.shippedAt!.toLocaleDateString("fr-FR")}
-                </strong>
-                .
-              </p>
-              {shippedBox.shippingTrackingNumber && (
-                <p className="mt-1">
-                  Suivi&nbsp;:{" "}
-                  <span className="font-mono font-semibold text-brand">
-                    {shippedBox.shippingTrackingNumber}
-                  </span>
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="mt-3 text-sm text-brand/70">
-              <Badge>En préparation</Badge>
-              <ol className="mt-3 space-y-1.5 text-brand/70">
-                <li>✅ Abonnement actif</li>
-                <li>
-                  {hasDeliveryAddress ? "✅" : "⏳"} Adresse de livraison
-                  renseignée
-                </li>
-                <li>⏳ Préparation &amp; expédition sous 3 à 5 jours ouvrés</li>
-                <li>⏳ Réception — vous recevrez un email avec le suivi</li>
-              </ol>
-              <p className="mt-3 text-brand/50">
-                Dès que votre box part, le numéro de suivi apparaît ici et vous
-                êtes prévenu(e) par email.
-              </p>
-            </div>
-          )}
-        </div>
+      {/* Suivi livraison — discret, et masqué une fois la box expédiée
+          (le suivi continue alors par email). */}
+      {subscribed && !shippedBox && (
+        !hasDeliveryAddress ? (
+          <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span>
+              📦 Renseignez votre <strong>adresse de livraison</strong> pour
+              recevoir votre box.
+            </span>
+            <Link
+              href="/host/profil"
+              className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
+            >
+              Compléter
+            </Link>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm text-brand/70 shadow-card">
+            📦 Votre box est <strong>en préparation</strong> — expédition sous 3
+            à 5 jours ouvrés. Vous recevrez le numéro de suivi par email.
+          </div>
+        )
       )}
 
       {/* Boxes */}

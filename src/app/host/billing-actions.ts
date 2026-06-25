@@ -6,6 +6,7 @@ import { stripe } from "@/lib/stripe";
 import { getCurrentHost } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/base-url";
 import { getPlan, type PlanId } from "@/lib/plans";
+import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 
 function assertStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -38,6 +39,15 @@ export async function subscribe(formData: FormData) {
   const planId = String(formData.get("planId") ?? "") as PlanId;
   const plan = getPlan(planId);
   if (!plan) throw new Error("Formule inconnue.");
+
+  // Infos obligatoires AVANT de commander (facturation + livraison de la box).
+  const profile = await prisma.host.findUnique({
+    where: { id: host.id },
+    select: PROFILE_SELECT,
+  });
+  if (!isProfileComplete(profile)) {
+    redirect("/host/profil?incomplete=1");
+  }
 
   // Ensure a Stripe customer for this host.
   let customerId = host.stripeCustomerId;
