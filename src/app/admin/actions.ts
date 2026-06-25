@@ -36,6 +36,39 @@ export async function generateBoxCode(formData: FormData) {
   revalidatePath("/admin");
 }
 
+/** Enregistre les infos d'expédition d'une box (n° de suivi + URL étiquette).
+ *  Étape manuelle en attendant l'automatisation Mondial Relay. Admin only. */
+export async function setBoxShipping(formData: FormData) {
+  await requireAdmin();
+
+  const boxId = String(formData.get("boxId") ?? "");
+  if (!boxId) throw new Error("Box manquante.");
+
+  const tracking =
+    String(formData.get("tracking") ?? "")
+      .trim()
+      .slice(0, 100) || null;
+  const labelUrl = String(formData.get("labelUrl") ?? "").trim().slice(0, 500);
+
+  // N'accepte qu'une URL https valide pour l'étiquette (ou vide).
+  let safeLabelUrl: string | null = null;
+  if (labelUrl) {
+    try {
+      const u = new URL(labelUrl);
+      if (u.protocol !== "https:") throw new Error("https requis");
+      safeLabelUrl = u.toString();
+    } catch {
+      throw new Error("URL d'étiquette invalide (https requis).");
+    }
+  }
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { shippingTrackingNumber: tracking, shippingLabelUrl: safeLabelUrl },
+  });
+  revalidatePath("/admin");
+}
+
 /** Marque une box comme expédiée à l'hôte. Bloqué si le code n'est pas défini
  *  (impossible de régler le cadenas une fois la box partie). Admin only. */
 export async function markBoxShipped(formData: FormData) {
