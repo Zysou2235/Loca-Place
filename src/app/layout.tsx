@@ -17,7 +17,8 @@ const inter = Inter({
 
 // Domaine public officiel — sert de base aux URLs canoniques / Open Graph.
 // Surchargable via NEXT_PUBLIC_SITE_URL si besoin (préprod, etc.).
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://escalebox.fr";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.escalebox.fr";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

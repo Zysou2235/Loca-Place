@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://escalebox.fr";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.escalebox.fr";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
