@@ -16,6 +16,7 @@ const MESSAGES: Record<string, string> = {
   oauth_email: "Votre email Google n'est pas vérifié.",
   oauth_unconfigured:
     "La connexion Google n'est pas encore configurée sur ce site.",
+  verify: "Lien d'activation invalide ou expiré. Reconnectez-vous.",
 };
 
 export function OAuthError({ error }: { error?: string }) {

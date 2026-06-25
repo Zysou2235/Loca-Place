@@ -19,6 +19,15 @@ export function AuthForm({
   );
   const isSignup = mode === "signup";
 
+  if (state.pending) {
+    return (
+      <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+        Vérifiez votre boîte mail : un lien d&apos;activation vient d&apos;être
+        envoyé. Cliquez dessus pour activer votre compte (pensez aux spams).
+      </p>
+    );
+  }
+
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {isSignup && (

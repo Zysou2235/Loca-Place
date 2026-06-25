@@ -33,14 +33,22 @@ function clean(raw: FormDataEntryValue | null, max: number): string {
 const MAX_PHOTO_LEN = 2_800_000;
 
 /**
- * Accept either an imported image (data:image/...;base64) or an https URL.
- * Returns null when empty.
+ * Accept either an imported raster image (data:image/...;base64) or an https
+ * URL. Returns null when empty. On refuse explicitement les SVG et autres
+ * formats non-raster (un SVG peut embarquer du script — défense en profondeur).
  */
+const ALLOWED_IMAGE_TYPES = /^data:image\/(png|jpe?g|webp|gif|avif);/i;
+
 function cleanPhotoUrl(raw: FormDataEntryValue | null): string | null {
   const value = String(raw ?? "").trim();
   if (!value) return null;
 
-  if (value.startsWith("data:image/")) {
+  if (value.startsWith("data:")) {
+    if (!ALLOWED_IMAGE_TYPES.test(value)) {
+      throw new Error(
+        "Format d'image non supporté (PNG, JPEG, WebP, GIF ou AVIF uniquement)."
+      );
+    }
     if (value.length > MAX_PHOTO_LEN) {
       throw new Error("Image trop lourde (max ~2 Mo). Réessayez avec une photo plus légère.");
     }

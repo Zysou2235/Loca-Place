@@ -8,9 +8,15 @@ import {
   setSession,
   clearSession,
 } from "@/lib/auth";
+import {
+  sendVerificationEmail,
+  sendExistingAccountEmail,
+} from "@/lib/notify";
+import { createVerifyToken } from "@/lib/verify-token";
+import { getBaseUrl } from "@/lib/base-url";
 import { clientIp, rateLimit, MINUTE, HOUR } from "@/lib/rate-limit";
 
-export type AuthState = { error?: string };
+export type AuthState = { error?: string; pending?: boolean };
 
 export async function signup(
   _prev: AuthState,
@@ -40,17 +46,32 @@ export async function signup(
     return { error: "Le mot de passe doit faire entre 8 et 200 caractères." };
   }
 
-  const existing = await prisma.host.findUnique({ where: { email } });
-  if (existing) {
-    return { error: "Un compte existe déjà avec cet email." };
-  }
-
-  const host = await prisma.host.create({
-    data: { name, email, passwordHash: hashPassword(password) },
+  const existing = await prisma.host.findUnique({
+    where: { email },
+    select: { id: true },
   });
 
-  await setSession(host.id, host.tokenVersion);
-  redirect("/host");
+  // Anti-énumération : la réponse est IDENTIQUE que l'email existe ou non.
+  // Pas d'auto-connexion : l'utilisateur doit cliquer le lien reçu par email.
+  if (existing) {
+    await sendExistingAccountEmail(email); // best-effort
+  } else {
+    const host = await prisma.host.create({
+      data: {
+        name,
+        email,
+        passwordHash: hashPassword(password),
+        emailVerified: false,
+      },
+      select: { id: true },
+    });
+    const link = `${await getBaseUrl()}/host/verify?token=${encodeURIComponent(
+      createVerifyToken(host.id)
+    )}`;
+    await sendVerificationEmail(email, link);
+  }
+
+  return { pending: true };
 }
 
 export async function login(
@@ -80,6 +101,15 @@ export async function login(
   const host = await prisma.host.findUnique({ where: { email } });
   if (!host?.passwordHash || !verifyPassword(password, host.passwordHash)) {
     return { error: "Identifiants incorrects." };
+  }
+
+  // Compte mot de passe non vérifié : on bloque (le lien a été envoyé à
+  // l'inscription). Empêche aussi l'énumération via inscription + connexion.
+  if (!host.emailVerified) {
+    return {
+      error:
+        "Votre compte n'est pas encore activé. Cliquez sur le lien reçu par email (ou utilisez « Mot de passe oublié » pour en recevoir un nouveau).",
+    };
   }
 
   await setSession(host.id, host.tokenVersion);
