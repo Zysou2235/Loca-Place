@@ -36,6 +36,20 @@ export async function generateBoxCode(formData: FormData) {
   revalidatePath("/admin");
 }
 
+/** Active manuellement un compte hôte (email vérifié) sans passer par l'email.
+ *  Utile tant que l'envoi d'emails n'est pas configuré (pas de domaine), et
+ *  pour le support. Admin only. */
+export async function verifyHostAccount(formData: FormData) {
+  await requireAdmin();
+  const hostId = String(formData.get("hostId") ?? "");
+  if (!hostId) throw new Error("Hôte manquant.");
+  await prisma.host.update({
+    where: { id: hostId },
+    data: { emailVerified: true },
+  });
+  revalidatePath("/admin");
+}
+
 /** Enregistre les infos d'expédition d'une box (n° de suivi + URL étiquette).
  *  Étape manuelle en attendant l'automatisation Mondial Relay. Admin only. */
 export async function setBoxShipping(formData: FormData) {
