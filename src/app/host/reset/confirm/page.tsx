@@ -16,7 +16,7 @@ export default async function ResetConfirmPage({
         href="/"
         className="mb-8 text-center font-display text-2xl font-extrabold text-brand"
       >
-        éskale <span className="text-accent">box</span>
+        Escale <span className="text-accent">Box</span>
       </Link>
       <div className="rounded-3xl border border-black/5 bg-white p-8 shadow-card">
         <h1 className="font-display text-2xl font-bold text-brand">

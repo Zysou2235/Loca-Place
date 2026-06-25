@@ -35,8 +35,8 @@ export default async function AdminQrPrintPage({
 
       <div className="flex w-full flex-col items-center rounded-3xl border border-black/10 bg-white p-10 text-center shadow-card print:border-0 print:shadow-none">
         <Image
-          src="/eskale-box-logo.png"
-          alt="Eskale Box"
+          src="/escale-box-logo.png"
+          alt="Escale Box"
           width={200}
           height={200}
           priority

@@ -39,8 +39,8 @@ export default async function HostQrPrintPage({
 
       <div className="flex w-full flex-col items-center rounded-3xl border border-black/10 bg-white p-10 text-center shadow-card print:border-0 print:shadow-none">
         <Image
-          src="/eskale-box-logo.png"
-          alt="Eskale Box"
+          src="/escale-box-logo.png"
+          alt="Escale Box"
           width={200}
           height={200}
           priority
@@ -78,7 +78,7 @@ export default async function HostQrPrintPage({
       </div>
 
       <p className="mt-6 text-center text-xs text-brand/40 print:hidden">
-        Imprimez cette page et collez-la sur votre Eskale Box. Le QR code reste
+        Imprimez cette page et collez-la sur votre Escale Box. Le QR code reste
         valable indéfiniment pour cette box.
       </p>
     </main>

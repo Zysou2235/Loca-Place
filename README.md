@@ -1,4 +1,4 @@
-# Eskale Box — MVP
+# Escale Box — MVP
 
 > _La boutique autonome pour voyageurs._
 

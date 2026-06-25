@@ -88,7 +88,7 @@ export default async function SuccessPage({
             </div>
           )}
           <p className="text-sm text-neutral-500">
-            Récupérez votre produit dans l&apos;Eskale Box de votre logement
+            Récupérez votre produit dans l&apos;Escale Box de votre logement
             {customerEmail ? " (le code vous a aussi été envoyé par email)" : ""}.
           </p>
 

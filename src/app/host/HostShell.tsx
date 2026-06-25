@@ -16,7 +16,7 @@ export function HostShell({
             href="/host"
             className="font-display text-xl font-extrabold text-brand"
           >
-            éskale <span className="text-accent">box</span>
+            Escale <span className="text-accent">Box</span>
             <span className="ml-2 align-middle text-xs font-medium text-brand/40">
               espace hôte
             </span>

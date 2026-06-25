@@ -17,7 +17,7 @@ export function LegalShell({
             href="/"
             className="font-display text-xl font-extrabold text-brand"
           >
-            éskale <span className="text-accent">box</span>
+            Escale <span className="text-accent">Box</span>
           </Link>
           <Link href="/" className="text-sm font-medium text-accent">
             ← Accueil

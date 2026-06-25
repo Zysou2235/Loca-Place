@@ -180,7 +180,7 @@ export default async function ManageBoxPage({
           </>
         ) : (
           <p className="mt-2 text-sm text-amber-700">
-            ⏳ En attente d&apos;attribution du code par Eskale Box. Vous le
+            ⏳ En attente d&apos;attribution du code par Escale Box. Vous le
             verrez ici dès qu&apos;il sera défini.
           </p>
         )}

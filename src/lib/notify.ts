@@ -19,7 +19,7 @@ export async function sendAccessCodeEmail(p: CodePayload): Promise<boolean> {
     return false;
   }
 
-  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
       <h2>Merci pour votre achat 🎉</h2>
@@ -30,7 +30,7 @@ export async function sendAccessCodeEmail(p: CodePayload): Promise<boolean> {
       <p style="font-size:28px;font-weight:bold;letter-spacing:4px;background:#f4f4f5;padding:16px 24px;border-radius:12px;text-align:center">${escapeHtml(
         p.code
       )}</p>
-      <p style="color:#666">Récupérez votre produit dans l'Eskale Box de votre logement.</p>
+      <p style="color:#666">Récupérez votre produit dans l'Escale Box de votre logement.</p>
     </div>`;
 
   try {
@@ -43,7 +43,7 @@ export async function sendAccessCodeEmail(p: CodePayload): Promise<boolean> {
       body: JSON.stringify({
         from,
         to: p.email,
-        subject: `Votre code Eskale Box : ${p.code}`,
+        subject: `Votre code Escale Box : ${p.code}`,
         html,
       }),
     });
@@ -77,7 +77,7 @@ export async function sendHostSaleEmail(p: SalePayload): Promise<boolean> {
     return false;
   }
 
-  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const amount = (p.amountCents / 100).toLocaleString("fr-FR", {
     style: "currency",
     currency: (p.currency || "eur").toUpperCase(),
@@ -97,7 +97,7 @@ export async function sendHostSaleEmail(p: SalePayload): Promise<boolean> {
       )}</strong> dans votre box <strong>${escapeHtml(p.boxName)}</strong>.</p>
       <p style="font-size:22px;font-weight:bold">${escapeHtml(amount)}</p>
       ${contact}
-      <p style="color:#666">Retrouvez le détail dans votre tableau de bord Eskale Box.</p>
+      <p style="color:#666">Retrouvez le détail dans votre tableau de bord Escale Box.</p>
     </div>`;
 
   try {
@@ -135,7 +135,7 @@ export async function sendPasswordResetEmail(
     console.warn("[notify] RESEND_API_KEY absent — email reset non envoyé.");
     return false;
   }
-  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
       <h2>Réinitialisation de votre mot de passe</h2>
@@ -154,7 +154,7 @@ export async function sendPasswordResetEmail(
       body: JSON.stringify({
         from,
         to: email,
-        subject: "Réinitialisation de votre mot de passe Eskale Box",
+        subject: "Réinitialisation de votre mot de passe Escale Box",
         html,
       }),
     });
@@ -175,11 +175,11 @@ export async function sendVerificationEmail(
     console.warn("[notify] RESEND_API_KEY absent — email de vérification non envoyé.");
     return false;
   }
-  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
       <h2>Confirmez votre adresse email</h2>
-      <p>Bienvenue sur Eskale Box ! Cliquez ci-dessous pour activer votre compte.
+      <p>Bienvenue sur Escale Box ! Cliquez ci-dessous pour activer votre compte.
       Ce lien expire dans 24 heures.</p>
       <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9999px;font-weight:bold">Activer mon compte</a></p>
       <p style="color:#666">Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.</p>
@@ -194,7 +194,7 @@ export async function sendVerificationEmail(
       body: JSON.stringify({
         from,
         to: email,
-        subject: "Confirmez votre adresse — Eskale Box",
+        subject: "Confirmez votre adresse — Escale Box",
         html,
       }),
     });
@@ -209,12 +209,12 @@ export async function sendVerificationEmail(
 export async function sendExistingAccountEmail(email: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return false;
-  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
       <h2>Vous avez déjà un compte</h2>
       <p>Une tentative de création de compte vient d'avoir lieu avec cette adresse.
-      Vous possédez déjà un compte Eskale Box : connectez-vous, ou réinitialisez
+      Vous possédez déjà un compte Escale Box : connectez-vous, ou réinitialisez
       votre mot de passe si vous l'avez oublié.</p>
       <p style="color:#666">Si ce n'était pas vous, aucune action n'est requise.</p>
     </div>`;
@@ -244,7 +244,7 @@ export async function sendAccessCodeSms(p: CodePayload): Promise<boolean> {
   const from = process.env.TWILIO_FROM;
   if (!sid || !token || !from || !p.phone) return false;
 
-  const body = `Eskale Box — votre code pour ouvrir la boîte : ${p.code}. Bon séjour !`;
+  const body = `Escale Box — votre code pour ouvrir la boîte : ${p.code}. Bon séjour !`;
   try {
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
