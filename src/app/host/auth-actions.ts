@@ -8,6 +8,7 @@ import {
   setSession,
   clearSession,
 } from "@/lib/auth";
+import { clientIp, rateLimit, MINUTE, HOUR } from "@/lib/rate-limit";
 
 export type AuthState = { error?: string };
 
@@ -23,6 +24,11 @@ export async function signup(
     .toLowerCase()
     .slice(0, 200);
   const password = String(formData.get("password") ?? "");
+
+  const ip = await clientIp();
+  if (!rateLimit(`signup:${ip}`, 5, HOUR)) {
+    return { error: "Trop de tentatives. Réessayez dans une heure." };
+  }
 
   if (!name || !email || !password) {
     return { error: "Tous les champs sont requis." };
@@ -58,6 +64,17 @@ export async function login(
 
   if (!email || !password) {
     return { error: "Email et mot de passe requis." };
+  }
+
+  // Anti brute-force : par IP et par email ciblé.
+  const ip = await clientIp();
+  if (
+    !rateLimit(`login-ip:${ip}`, 10, 15 * MINUTE) ||
+    !rateLimit(`login-email:${email}`, 5, 15 * MINUTE)
+  ) {
+    return {
+      error: "Trop de tentatives de connexion. Réessayez dans quelques minutes.",
+    };
   }
 
   const host = await prisma.host.findUnique({ where: { email } });

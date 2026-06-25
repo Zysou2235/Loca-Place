@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/base-url";
+import { grantPurchaseAccess } from "@/lib/purchase-cookie";
 
 /**
  * Create a Stripe Checkout Session for a single product and redirect the
@@ -94,6 +95,10 @@ export async function createCheckoutSession(formData: FormData) {
   if (!session.url) {
     throw new Error("Impossible de créer la session de paiement.");
   }
+
+  // Marque ce navigateur comme l'acheteur : seul lui verra le code sur la page
+  // de succès (l'URL contient le session_id, qui pourrait fuiter).
+  await grantPurchaseAccess(session.id);
 
   // redirect() throws internally — keep it outside any try/catch.
   redirect(session.url);

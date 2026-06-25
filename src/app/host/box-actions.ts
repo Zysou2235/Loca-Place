@@ -6,6 +6,7 @@ import { getSessionHostId, getCurrentHost } from "@/lib/auth";
 import { makeSlug } from "@/lib/slug";
 import { maxBoxesFor } from "@/lib/plans";
 import { generateLockCode } from "@/lib/lock-code";
+import { rateLimit, HOUR } from "@/lib/rate-limit";
 
 async function requireHostId(): Promise<string> {
   const hostId = await getSessionHostId();
@@ -221,6 +222,10 @@ export async function changeBoxCode(formData: FormData) {
   const hostId = await requireHostId();
   const boxId = String(formData.get("boxId") ?? "");
   await assertBoxOwner(boxId, hostId);
+
+  if (!rateLimit(`changecode:${hostId}`, 10, HOUR)) {
+    throw new Error("Trop de changements de code. Réessayez plus tard.");
+  }
 
   const code = String(formData.get("code") ?? "").trim();
   if (!/^\d{3}$/.test(code)) {

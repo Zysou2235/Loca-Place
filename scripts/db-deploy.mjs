@@ -30,8 +30,14 @@ const binDir = path.join(process.cwd(), "node_modules", ".bin");
 // la variable DB_FORCE_RESET=true sur l'hébergeur, déployer, PUIS la retirer.
 const forceReset = /^(1|true|yes)$/i.test(process.env.DB_FORCE_RESET ?? "");
 
-const baseCmd = "prisma db push --skip-generate --accept-data-loss";
-const cmd = forceReset ? `${baseCmd} --force-reset` : baseCmd;
+// IMPORTANT : en fonctionnement normal on N'UTILISE PAS --accept-data-loss.
+// Les changements additifs (nouvelles tables/colonnes) s'appliquent ; un
+// changement destructeur échoue bruyamment au lieu d'effacer des données en
+// silence. La destruction volontaire passe par DB_FORCE_RESET ci-dessus.
+const baseCmd = "prisma db push --skip-generate";
+const cmd = forceReset
+  ? `${baseCmd} --force-reset --accept-data-loss`
+  : baseCmd;
 
 try {
   if (forceReset) {
