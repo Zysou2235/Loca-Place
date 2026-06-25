@@ -63,6 +63,14 @@ export function AuthForm({
             : "Se connecter"}
       </button>
 
+      {!isSignup && (
+        <p className="text-center text-sm">
+          <Link href="/host/reset" className="text-brand/50 hover:text-accent">
+            Mot de passe oublié ?
+          </Link>
+        </p>
+      )}
+
       <p className="text-center text-sm text-brand/60">
         {isSignup ? (
           <>
