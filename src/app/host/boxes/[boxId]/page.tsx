@@ -33,6 +33,47 @@ export default async function ManageBoxPage({
     orderBy: { createdAt: "desc" },
   });
 
+  // Tracking des scans QR + conversion en ventes, détaillé par produit présenté.
+  const [scanCount, salesCount, scansByProduct, ordersByProduct, lastScan] =
+    await Promise.all([
+      prisma.scan.count({ where: { boxId: box.id } }),
+      prisma.order.count({ where: { boxId: box.id } }),
+      prisma.scan.groupBy({
+        by: ["productName"],
+        where: { boxId: box.id },
+        _count: { _all: true },
+      }),
+      prisma.order.groupBy({
+        by: ["productName"],
+        where: { boxId: box.id },
+        _count: { _all: true },
+      }),
+      prisma.scan.findFirst({
+        where: { boxId: box.id },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+    ]);
+
+  const perProduct = new Map<string, { scans: number; sales: number }>();
+  for (const s of scansByProduct) {
+    const name = s.productName ?? "Aucun article";
+    const e = perProduct.get(name) ?? { scans: 0, sales: 0 };
+    e.scans += s._count._all;
+    perProduct.set(name, e);
+  }
+  for (const o of ordersByProduct) {
+    const name = o.productName ?? "Aucun article";
+    const e = perProduct.get(name) ?? { scans: 0, sales: 0 };
+    e.sales += o._count._all;
+    perProduct.set(name, e);
+  }
+  const productRows = [...perProduct.entries()].sort(
+    (a, b) => b[1].scans - a[1].scans || b[1].sales - a[1].sales,
+  );
+  const conversion =
+    scanCount > 0 ? Math.round((salesCount / scanCount) * 100) : 0;
+
   return (
     <HostShell hostName={host.name}>
       <Link href="/host" className="text-sm font-medium text-accent">
@@ -47,6 +88,72 @@ export default async function ManageBoxPage({
           /b/{box.qrSlug}
         </Link>
       </p>
+
+      {/* Tracking : scans du QR, ventes, conversion */}
+      <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-card">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display font-bold text-brand">
+            📊 Scans &amp; conversion
+          </h3>
+          {lastScan && (
+            <span className="text-xs text-brand/40">
+              Dernier scan&nbsp;:{" "}
+              {lastScan.createdAt.toLocaleString("fr-FR", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+          <div className="rounded-xl bg-brand/5 p-3">
+            <div className="text-2xl font-bold text-brand">{scanCount}</div>
+            <div className="text-xs text-brand/50">Scans QR</div>
+          </div>
+          <div className="rounded-xl bg-green-50 p-3">
+            <div className="text-2xl font-bold text-green-700">{salesCount}</div>
+            <div className="text-xs text-brand/50">Ventes</div>
+          </div>
+          <div className="rounded-xl bg-accent/10 p-3">
+            <div className="text-2xl font-bold text-accent-dark">
+              {conversion}%
+            </div>
+            <div className="text-xs text-brand/50">Conversion</div>
+          </div>
+        </div>
+
+        {productRows.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand/40">
+              Par article présenté
+            </div>
+            <ul className="divide-y divide-black/5 text-sm">
+              {productRows.map(([name, s]) => (
+                <li key={name} className="flex items-center justify-between py-2">
+                  <span className="min-w-0 truncate text-brand/80">{name}</span>
+                  <span className="shrink-0 text-brand/60">
+                    👁️ {s.scans} · 🛒 {s.sales}
+                    {s.scans > 0 && (
+                      <span className="ml-1 text-brand/40">
+                        ({Math.round((s.sales / s.scans) * 100)}%)
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {scanCount === 0 && (
+          <p className="mt-3 text-sm text-brand/50">
+            Aucun scan pour l&apos;instant. Flashez le QR code pour tester&nbsp;!
+          </p>
+        )}
+      </div>
 
       {/* Code de la box (lecture seule) — pour recharger la boîte */}
       <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-card">

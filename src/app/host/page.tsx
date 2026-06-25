@@ -38,7 +38,10 @@ export default async function HostDashboard({
   const boxes = await prisma.box.findMany({
     where: { hostId: host.id },
     orderBy: { createdAt: "desc" },
-    include: { selectedProduct: { select: { name: true } } },
+    include: {
+      selectedProduct: { select: { name: true } },
+      _count: { select: { scans: true, orders: true } },
+    },
   });
 
   const plan = getPlan(host.subscriptionPlan);
@@ -166,6 +169,20 @@ export default async function HostDashboard({
                 <span className="ml-auto shrink-0 text-brand/30 transition group-hover:text-accent">
                   →
                 </span>
+              </div>
+              {/* Scans / ventes / conversion */}
+              <div className="pointer-events-none mt-3 flex gap-2 text-xs">
+                <span className="rounded-full bg-brand/5 px-2.5 py-1 font-medium text-brand/70">
+                  👁️ {box._count.scans} scan{box._count.scans > 1 ? "s" : ""}
+                </span>
+                <span className="rounded-full bg-green-100 px-2.5 py-1 font-medium text-green-700">
+                  🛒 {box._count.orders} vente{box._count.orders > 1 ? "s" : ""}
+                </span>
+                {box._count.scans > 0 && (
+                  <span className="rounded-full bg-accent/10 px-2.5 py-1 font-medium text-accent-dark">
+                    {Math.round((box._count.orders / box._count.scans) * 100)}% conv.
+                  </span>
+                )}
               </div>
               {/* Supprimer — au-dessus du lien */}
               <form

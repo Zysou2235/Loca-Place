@@ -2,6 +2,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
+import { recordScan } from "@/lib/scans";
 import { createCheckoutSession } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,13 @@ export default async function BoxPage({
     box.selectedProduct && box.selectedProduct.active
       ? box.selectedProduct
       : null;
+
+  // Trace le scan du QR code (instantané du produit présenté), best-effort.
+  await recordScan({
+    boxId: box.id,
+    productId: product?.id,
+    productName: product?.name,
+  });
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">

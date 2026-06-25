@@ -58,6 +58,73 @@ export async function sendAccessCodeEmail(p: CodePayload): Promise<boolean> {
   }
 }
 
+interface SalePayload {
+  hostEmail: string;
+  hostName?: string | null;
+  boxName: string;
+  productName: string;
+  amountCents: number;
+  currency: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+}
+
+/** Prévient l'hôte qu'un voyageur vient d'acheter dans l'une de ses box. */
+export async function sendHostSaleEmail(p: SalePayload): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !p.hostEmail) {
+    if (!apiKey) console.warn("[notify] RESEND_API_KEY absent — email hôte non envoyé.");
+    return false;
+  }
+
+  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const amount = (p.amountCents / 100).toLocaleString("fr-FR", {
+    style: "currency",
+    currency: (p.currency || "eur").toUpperCase(),
+  });
+  const contact =
+    p.customerEmail || p.customerPhone
+      ? `<p style="color:#666">Contact voyageur : ${escapeHtml(
+          p.customerEmail ?? p.customerPhone ?? ""
+        )}</p>`
+      : "";
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:auto">
+      <h2>Nouvelle vente 🎉</h2>
+      <p>Bonjour ${escapeHtml(p.hostName ?? "")},</p>
+      <p>Un voyageur vient d'acheter <strong>${escapeHtml(
+        p.productName
+      )}</strong> dans votre box <strong>${escapeHtml(p.boxName)}</strong>.</p>
+      <p style="font-size:22px;font-weight:bold">${escapeHtml(amount)}</p>
+      ${contact}
+      <p style="color:#666">Retrouvez le détail dans votre tableau de bord Eskale Box.</p>
+    </div>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: p.hostEmail,
+        subject: `Nouvelle vente : ${p.productName} (${amount})`,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      console.error("[notify] Resend (hôte) error", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[notify] Resend (hôte) request failed", err);
+    return false;
+  }
+}
+
 export async function sendAccessCodeSms(p: CodePayload): Promise<boolean> {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
