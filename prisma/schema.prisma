@@ -15,6 +15,14 @@ model Host {
   name         String
   email        String   @unique
   passwordHash String?
+  // Vérifié = email prouvé (connexion Google, ou lien de réinitialisation).
+  // L'accès admin EXIGE un email vérifié (empêche de revendiquer un email admin
+  // par simple inscription mot de passe).
+  emailVerified Boolean @default(false)
+  image         String?
+  // Incrémenté pour invalider toutes les sessions existantes (ex. après reset
+  // du mot de passe). La session signée embarque cette version.
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
 
   // Stripe Connect Express account (acct_...) — receives the product sales.

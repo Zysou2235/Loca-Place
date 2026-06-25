@@ -125,6 +125,46 @@ export async function sendHostSaleEmail(p: SalePayload): Promise<boolean> {
   }
 }
 
+/** Envoie le lien de réinitialisation du mot de passe à l'hôte. */
+export async function sendPasswordResetEmail(
+  email: string,
+  link: string
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("[notify] RESEND_API_KEY absent — email reset non envoyé.");
+    return false;
+  }
+  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:auto">
+      <h2>Réinitialisation de votre mot de passe</h2>
+      <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
+      Ce lien expire dans 1 heure.</p>
+      <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9999px;font-weight:bold">Choisir un nouveau mot de passe</a></p>
+      <p style="color:#666">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+    </div>`;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject: "Réinitialisation de votre mot de passe Eskale Box",
+        html,
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("[notify] Resend (reset) request failed", err);
+    return false;
+  }
+}
+
 export async function sendAccessCodeSms(p: CodePayload): Promise<boolean> {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;

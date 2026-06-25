@@ -49,7 +49,7 @@ export async function signup(
     data: { name, email, passwordHash: hashPassword(password) },
   });
 
-  await setSession(host.id);
+  await setSession(host.id, host.tokenVersion);
   redirect("/host");
 }
 
@@ -82,7 +82,7 @@ export async function login(
     return { error: "Identifiants incorrects." };
   }
 
-  await setSession(host.id);
+  await setSession(host.id, host.tokenVersion);
   redirect("/host");
 }
 

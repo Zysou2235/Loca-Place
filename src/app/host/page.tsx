@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { getPlan, maxBoxesFor } from "@/lib/plans";
-import { isAdminEmail } from "@/lib/admin";
+import { isEffectiveAdmin } from "@/lib/admin";
 import { HostShell } from "./HostShell";
 import { createBox, deleteBox } from "./box-actions";
 import {
@@ -57,7 +57,7 @@ export default async function HostDashboard({
         <h1 className="font-display text-2xl font-bold text-brand">
           Bonjour {host.name.split(" ")[0]} 👋
         </h1>
-        {isAdminEmail(host.email) && (
+        {isEffectiveAdmin(host) && (
           <Link
             href="/admin"
             className="rounded-full border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
