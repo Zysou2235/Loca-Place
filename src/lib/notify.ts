@@ -165,6 +165,79 @@ export async function sendPasswordResetEmail(
   }
 }
 
+/** Email de vérification à l'inscription par mot de passe. */
+export async function sendVerificationEmail(
+  email: string,
+  link: string
+): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("[notify] RESEND_API_KEY absent — email de vérification non envoyé.");
+    return false;
+  }
+  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:auto">
+      <h2>Confirmez votre adresse email</h2>
+      <p>Bienvenue sur Eskale Box ! Cliquez ci-dessous pour activer votre compte.
+      Ce lien expire dans 24 heures.</p>
+      <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9999px;font-weight:bold">Activer mon compte</a></p>
+      <p style="color:#666">Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.</p>
+    </div>`;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject: "Confirmez votre adresse — Eskale Box",
+        html,
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("[notify] Resend (verify) request failed", err);
+    return false;
+  }
+}
+
+/** Heads-up envoyé quand quelqu'un tente de re-créer un compte existant. */
+export async function sendExistingAccountEmail(email: string): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return false;
+  const from = process.env.RESEND_FROM ?? "Eskale Box <onboarding@resend.dev>";
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:auto">
+      <h2>Vous avez déjà un compte</h2>
+      <p>Une tentative de création de compte vient d'avoir lieu avec cette adresse.
+      Vous possédez déjà un compte Eskale Box : connectez-vous, ou réinitialisez
+      votre mot de passe si vous l'avez oublié.</p>
+      <p style="color:#666">Si ce n'était pas vous, aucune action n'est requise.</p>
+    </div>`;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject: "Tentative d'inscription — vous avez déjà un compte",
+        html,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function sendAccessCodeSms(p: CodePayload): Promise<boolean> {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
