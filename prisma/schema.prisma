@@ -35,6 +35,21 @@ model Host {
   subscriptionStatus String  @default("none") // none | trialing | active | past_due | canceled
   subscriptionPlan   String? // essentiel | duo | pro
 
+  // Informations légales / facturation (pour la facture + obligations légales).
+  companyName    String?
+  siret          String?
+  billingLine1   String?
+  billingZip     String?
+  billingCity    String?
+  billingCountry String? @default("France")
+
+  // Adresse de livraison de la box (peut différer de la facturation).
+  deliveryName    String?
+  deliveryLine1   String?
+  deliveryZip     String?
+  deliveryCity    String?
+  deliveryCountry String? @default("France")
+
   boxes    Box[]
   products Product[] // catalogue d'articles réutilisables de l'hôte
 }

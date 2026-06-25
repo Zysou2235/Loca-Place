@@ -51,6 +51,16 @@ export default async function HostDashboard({
   const limit = maxBoxesFor(host.subscriptionPlan);
   const canCreate = subscribed && boxes.length < limit;
 
+  // Suivi livraison : adresse renseignée ? box expédiée ?
+  const profile = await prisma.host.findUnique({
+    where: { id: host.id },
+    select: { deliveryLine1: true, deliveryZip: true, deliveryCity: true },
+  });
+  const hasDeliveryAddress = Boolean(
+    profile?.deliveryLine1 && profile?.deliveryZip && profile?.deliveryCity
+  );
+  const shippedBox = boxes.find((b) => b.shippedAt);
+
   return (
     <HostShell hostName={host.name}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -120,6 +130,66 @@ export default async function HostDashboard({
           )}
         </Card>
       </div>
+
+      {/* Suivi de la livraison de la box */}
+      {subscribed && (
+        <div className="mt-6 rounded-2xl border border-black/5 bg-white p-6 shadow-card">
+          <h3 className="font-display font-bold text-brand">
+            📦 Livraison de votre box
+          </h3>
+          {!hasDeliveryAddress ? (
+            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <strong>Action requise :</strong> renseignez votre{" "}
+              <strong>adresse de livraison</strong> pour qu&apos;on puisse vous
+              envoyer votre box.
+              <div className="mt-3">
+                <Link
+                  href="/host/profil"
+                  className="inline-block rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark"
+                >
+                  Renseigner mon adresse
+                </Link>
+              </div>
+            </div>
+          ) : shippedBox ? (
+            <div className="mt-3 text-sm text-brand/70">
+              <Badge ok>Expédiée</Badge>
+              <p className="mt-2">
+                Votre box a été expédiée le{" "}
+                <strong>
+                  {shippedBox.shippedAt!.toLocaleDateString("fr-FR")}
+                </strong>
+                .
+              </p>
+              {shippedBox.shippingTrackingNumber && (
+                <p className="mt-1">
+                  Suivi&nbsp;:{" "}
+                  <span className="font-mono font-semibold text-brand">
+                    {shippedBox.shippingTrackingNumber}
+                  </span>
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="mt-3 text-sm text-brand/70">
+              <Badge>En préparation</Badge>
+              <ol className="mt-3 space-y-1.5 text-brand/70">
+                <li>✅ Abonnement actif</li>
+                <li>
+                  {hasDeliveryAddress ? "✅" : "⏳"} Adresse de livraison
+                  renseignée
+                </li>
+                <li>⏳ Préparation &amp; expédition sous 3 à 5 jours ouvrés</li>
+                <li>⏳ Réception — vous recevrez un email avec le suivi</li>
+              </ol>
+              <p className="mt-3 text-brand/50">
+                Dès que votre box part, le numéro de suivi apparaît ici et vous
+                êtes prévenu(e) par email.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Boxes */}
       <div className="mt-10 flex items-center justify-between">

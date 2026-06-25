@@ -43,6 +43,12 @@ export function HostShell({
             >
               Abonnement
             </Link>
+            <Link
+              href="/host/profil"
+              className="font-medium text-brand/70 hover:text-brand"
+            >
+              Mes infos
+            </Link>
             <span className="hidden text-brand/40 sm:inline">·</span>
             <span className="hidden text-brand/60 sm:inline">{hostName}</span>
             <form action={logout}>
