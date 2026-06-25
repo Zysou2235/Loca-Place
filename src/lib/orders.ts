@@ -1,6 +1,10 @@
 import type Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
-import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
+import {
+  sendAccessCodeEmail,
+  sendAccessCodeSms,
+  sendHostSaleEmail,
+} from "@/lib/notify";
 
 /**
  * Record a traveler order and deliver the box access code by email/SMS.
@@ -21,7 +25,11 @@ export async function deliverBoxCode(session: Stripe.Checkout.Session) {
 
   const box = await prisma.box.findUnique({
     where: { id: boxId },
-    select: { accessCode: true, name: true },
+    select: {
+      accessCode: true,
+      name: true,
+      host: { select: { email: true, name: true } },
+    },
   });
   const product = productId
     ? await prisma.product.findUnique({
@@ -68,5 +76,19 @@ export async function deliverBoxCode(session: Stripe.Checkout.Session) {
         data: { codeSent: true },
       });
     }
+  }
+
+  // Prévient l'hôte de la vente (best-effort, n'interrompt jamais la livraison).
+  if (box?.host?.email) {
+    await sendHostSaleEmail({
+      hostEmail: box.host.email,
+      hostName: box.host.name,
+      boxName: box?.name ?? "votre box",
+      productName,
+      amountCents: session.amount_total ?? 0,
+      currency: session.currency ?? "eur",
+      customerEmail: email,
+      customerPhone: phone,
+    });
   }
 }
