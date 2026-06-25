@@ -5,6 +5,7 @@ import { getCurrentHost } from "@/lib/auth";
 import { formatPrice } from "@/lib/money";
 import { ImageDropInput } from "@/components/ImageDropInput";
 import { HostShell } from "../../HostShell";
+import { ChangeCodeForm } from "./ChangeCodeForm";
 import {
   assignProductToBox,
   createProduct,
@@ -170,6 +171,12 @@ export default async function ManageBoxPage({
               <strong>recharger</strong>. C&apos;est aussi celui envoyé au
               voyageur après son achat.
             </p>
+            <p className="mt-2 text-sm text-brand/60">
+              Pour la sécurité, vous pouvez le changer quand vous voulez (par
+              exemple après le départ d&apos;un voyageur). Réglez d&apos;abord le
+              cadenas, puis saisissez le nouveau code ici.
+            </p>
+            <ChangeCodeForm boxId={box.id} />
           </>
         ) : (
           <p className="mt-2 text-sm text-amber-700">

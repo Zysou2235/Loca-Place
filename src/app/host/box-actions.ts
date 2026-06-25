@@ -211,3 +211,28 @@ export async function removeProductFromBox(formData: FormData) {
   });
   revalidatePath(`/host/boxes/${boxId}`);
 }
+
+/**
+ * L'hôte change lui-même le code du cadenas de sa box. Le code saisi doit
+ * correspondre à la combinaison physiquement réglée sur le cadenas (3 chiffres).
+ * On exige une confirmation explicite que le cadenas a bien été réglé.
+ */
+export async function changeBoxCode(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
+  await assertBoxOwner(boxId, hostId);
+
+  const code = String(formData.get("code") ?? "").trim();
+  if (!/^\d{3}$/.test(code)) {
+    throw new Error("Le code doit comporter exactement 3 chiffres (000–999).");
+  }
+  if (formData.get("confirmed") !== "on") {
+    throw new Error("Confirmez d'abord avoir réglé le cadenas sur ce code.");
+  }
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { accessCode: code },
+  });
+  revalidatePath(`/host/boxes/${boxId}`);
+}
