@@ -1,4 +1,4 @@
-// Eskale Box — Host, Box, Product (+ host auth, abonnement, Stripe Connect)
+// Escale Box — Host, Box, Product (+ host auth, abonnement, Stripe Connect)
 // Database: PostgreSQL (Neon / Supabase / Vercel Postgres) for production on Vercel.
 
 generator client {

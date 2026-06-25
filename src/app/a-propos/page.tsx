@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = {
-  title: "À propos — Eskale Box",
+  title: "À propos — Escale Box",
   description:
     "Notre histoire : d'un Airbnb à une nouvelle expérience voyageur qui génère du chiffre d'affaires additionnel pour les hôtes.",
 };
@@ -15,8 +15,8 @@ export default function AProposPage() {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-4">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/eskale-box-logo.png"
-              alt="Eskale Box"
+              src="/escale-box-logo.png"
+              alt="Escale Box"
               width={120}
               height={120}
               className="h-10 w-auto"
@@ -40,7 +40,7 @@ export default function AProposPage() {
           Né dans nos propres Airbnb, pour nos voyageurs
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-white/80">
-          Eskale Box, ce n&apos;est pas une idée sortie d&apos;un bureau. C&apos;est
+          Escale Box, ce n&apos;est pas une idée sortie d&apos;un bureau. C&apos;est
           la solution qu&apos;on a construite pour nous-mêmes — et qui marche.
         </p>
       </section>
@@ -66,14 +66,14 @@ export default function AProposPage() {
           <Step
             num="✓"
             title="Aujourd'hui"
-            text="Cette idée a fait grimper le chiffre d'affaires de nos propres Airbnb. Et nous ne sommes plus seuls : plusieurs hôtes nous font déjà confiance et équipent leurs logements avec Eskale Box."
+            text="Cette idée a fait grimper le chiffre d'affaires de nos propres Airbnb. Et nous ne sommes plus seuls : plusieurs hôtes nous font déjà confiance et équipent leurs logements avec Escale Box."
             highlight
           />
         </div>
 
         {/* Values */}
         <div className="mt-16 grid gap-5 sm:grid-cols-3">
-          <Value title="Testé par nous" text="On utilise Eskale Box dans nos propres logements, tous les jours." />
+          <Value title="Testé par nous" text="On utilise Escale Box dans nos propres logements, tous les jours." />
           <Value title="0% de commission" text="L'hôte garde 100% de ses ventes. On se rémunère sur l'abonnement, point." />
           <Value title="Simple, vraiment" text="Installation en 5 minutes, aucune gestion quotidienne." />
         </div>

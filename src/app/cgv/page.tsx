@@ -1,6 +1,6 @@
 import { LegalShell, LegalSection } from "@/components/LegalShell";
 
-export const metadata = { title: "CGV — Eskale Box" };
+export const metadata = { title: "CGV — Escale Box" };
 
 export default function CgvPage() {
   return (
@@ -13,8 +13,8 @@ export default function CgvPage() {
       <LegalSection title="1. Objet">
         <p>
           Les présentes CGV régissent les ventes de produits proposés par les
-          hôtes via les boîtes Eskale Box et achetés par les voyageurs sur le
-          site. L&apos;hôte est le vendeur ; Eskale Box fournit la plateforme
+          hôtes via les boîtes Escale Box et achetés par les voyageurs sur le
+          site. L&apos;hôte est le vendeur ; Escale Box fournit la plateforme
           technique et l&apos;encaissement via Stripe.
         </p>
       </LegalSection>
@@ -54,7 +54,7 @@ export default function CgvPage() {
       <LegalSection title="6. Responsabilité">
         <p>
           L&apos;hôte est responsable de la conformité, de la qualité et de la
-          disponibilité des produits proposés. Eskale Box ne saurait être tenu
+          disponibilité des produits proposés. Escale Box ne saurait être tenu
           responsable du contenu des boîtes.
         </p>
       </LegalSection>

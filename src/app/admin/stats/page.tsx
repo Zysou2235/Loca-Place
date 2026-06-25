@@ -27,7 +27,7 @@ export default async function AdminStatsPage() {
       <header className="border-b border-black/5 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <span className="font-display text-xl font-extrabold text-brand">
-            éskale <span className="text-accent">box</span>
+            Escale <span className="text-accent">Box</span>
             <span className="ml-2 align-middle text-xs font-medium text-red-500">
               admin
             </span>

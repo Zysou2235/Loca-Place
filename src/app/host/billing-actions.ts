@@ -66,7 +66,7 @@ export async function subscribe(formData: FormData) {
           currency: plan.currency,
           unit_amount: plan.priceCents,
           recurring: { interval: "month" },
-          product_data: { name: `Eskale Box — ${plan.name}` },
+          product_data: { name: `Escale Box — ${plan.name}` },
         },
       },
     ],

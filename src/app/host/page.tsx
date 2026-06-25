@@ -145,7 +145,7 @@ export default async function HostDashboard({
               />
               <div className="pointer-events-none flex items-center gap-4">
                 <Image
-                  src="/eskale-box-logo.png"
+                  src="/escale-box-logo.png"
                   alt=""
                   width={56}
                   height={56}

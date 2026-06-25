@@ -16,11 +16,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Eskale Box — La boutique autonome pour voyageurs",
+  title: "Escale Box — La boutique autonome pour voyageurs",
   description:
     "La box transparente avec QR code qui permet aux hôtes de vendre des produits à leurs voyageurs. Paiement direct, 0% de commission, installation en 5 minutes.",
   openGraph: {
-    title: "Eskale Box — La boutique autonome pour voyageurs",
+    title: "Escale Box — La boutique autonome pour voyageurs",
     description:
       "Transformez votre logement en boutique autonome. Vos voyageurs scannent, paient, se servent. Vous encaissez.",
     type: "website",

@@ -2,13 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = {
-  title: "Eskale Box — Générez du CA additionnel dans vos locations",
+  title: "Escale Box — Générez du CA additionnel dans vos locations",
   description:
     "La boutique autonome qui transforme vos gîtes et locations en source de revenus. Abonnez-vous, installez en 5 minutes, encaissez sur chaque séjour. 0% de commission sur vos ventes.",
 };
 
 // Adresse de contact à personnaliser.
-const CONTACT_EMAIL = "contact@eskalebox.fr";
+const CONTACT_EMAIL = "contact@escalebox.fr";
 
 export default function Home() {
   return (
@@ -39,8 +39,8 @@ function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/eskale-box-logo.png"
-            alt="Eskale Box"
+            src="/escale-box-logo.png"
+            alt="Escale Box"
             width={120}
             height={120}
             priority
@@ -104,7 +104,7 @@ function Hero() {
             dans chacune de vos locations.
           </h1>
           <p className="mt-5 max-w-md text-lg text-white/80">
-            Eskale Box équipe vos gîtes et logements d&apos;une boutique
+            Escale Box équipe vos gîtes et logements d&apos;une boutique
             autonome. Vos voyageurs achètent en autonomie, vous encaissez sur
             chaque séjour —{" "}
             <strong className="text-white">sans rien gérer au quotidien</strong>.
@@ -141,8 +141,8 @@ function Hero() {
         <div className="relative">
           <div className="mx-auto flex max-w-sm flex-col items-center rounded-3xl bg-white/95 p-8 text-brand shadow-soft">
             <Image
-              src="/eskale-box-logo.png"
-              alt="Eskale Box"
+              src="/escale-box-logo.png"
+              alt="Escale Box"
               width={320}
               height={320}
               priority
@@ -200,7 +200,7 @@ function Audience() {
         <SectionHeading
           eyebrow="Pour qui ?"
           title="Pensé pour les professionnels de l'hébergement"
-          subtitle="Que vous gériez un seul gîte ou une flotte de logements, Eskale Box s'intègre à votre activité."
+          subtitle="Que vous gériez un seul gîte ou une flotte de logements, Escale Box s'intègre à votre activité."
         />
 
         <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-4 md:grid-cols-4">
@@ -303,7 +303,7 @@ function Benefits() {
     {
       icon: <IconZero />,
       title: "0% de commission",
-      text: "Vous gardez l'intégralité de vos ventes. Eskale Box, c'est un abonnement simple, point.",
+      text: "Vous gardez l'intégralité de vos ventes. Escale Box, c'est un abonnement simple, point.",
     },
     {
       icon: <IconBolt />,
@@ -331,7 +331,7 @@ function Benefits() {
     <section id="avantages" className="bg-white py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5">
         <SectionHeading
-          eyebrow="Pourquoi Eskale Box"
+          eyebrow="Pourquoi Escale Box"
           title="Plus de revenus, moins de gestion"
           subtitle="Un levier de rentabilité pensé pour les professionnels de la location courte durée."
         />
@@ -551,7 +551,7 @@ function Pricing() {
 
               {plan.name === "Conciergerie" ? (
                 <a
-                  href={`mailto:${CONTACT_EMAIL}?subject=Eskale Box - Conciergerie`}
+                  href={`mailto:${CONTACT_EMAIL}?subject=Escale Box - Conciergerie`}
                   className={`mt-8 block rounded-full px-6 py-3 text-center font-semibold transition ${
                     plan.highlighted
                       ? "bg-accent text-white hover:bg-accent-dark"
@@ -708,7 +708,7 @@ function FinalCta() {
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-white/80">
             Rejoignez les hôtes et conciergeries qui génèrent un revenu
-            additionnel grâce à Eskale Box.
+            additionnel grâce à Escale Box.
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-4">
             <Link
@@ -738,7 +738,7 @@ function Footer() {
       <div className="mx-auto grid max-w-6xl gap-8 px-5 py-12 sm:grid-cols-2 md:grid-cols-4">
         <div className="sm:col-span-2 md:col-span-1">
           <span className="font-display text-2xl font-extrabold text-white">
-            éskale <span className="text-accent">box</span>
+            Escale <span className="text-accent">Box</span>
           </span>
           <p className="mt-4 max-w-xs text-sm">
             La boutique autonome qui génère du revenu dans vos locations.
@@ -773,7 +773,7 @@ function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-6xl px-5 py-6 text-center text-sm text-white/50">
-          © {new Date().getFullYear()} Eskale Box. Tous droits réservés.
+          © {new Date().getFullYear()} Escale Box. Tous droits réservés.
         </div>
       </div>
     </footer>

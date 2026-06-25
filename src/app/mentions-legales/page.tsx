@@ -1,6 +1,6 @@
 import { LegalShell, LegalSection } from "@/components/LegalShell";
 
-export const metadata = { title: "Mentions légales — Eskale Box" };
+export const metadata = { title: "Mentions légales — Escale Box" };
 
 export default function MentionsLegalesPage() {
   return (
@@ -12,7 +12,7 @@ export default function MentionsLegalesPage() {
 
       <LegalSection title="Éditeur du site">
         <p>
-          Le site Eskale Box est édité par [Raison sociale], [forme juridique]
+          Le site Escale Box est édité par [Raison sociale], [forme juridique]
           au capital de [montant] €, immatriculée au RCS de [ville] sous le
           numéro [SIREN/SIRET].
         </p>
@@ -43,7 +43,7 @@ export default function MentionsLegalesPage() {
 
       <LegalSection title="Paiements">
         <p>
-          Les paiements sont traités de manière sécurisée par Stripe. Eskale Box
+          Les paiements sont traités de manière sécurisée par Stripe. Escale Box
           ne stocke aucune donnée de carte bancaire.
         </p>
       </LegalSection>

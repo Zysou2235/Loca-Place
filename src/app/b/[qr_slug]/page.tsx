@@ -39,8 +39,8 @@ export default async function BoxPage({
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">
       <header className="border-b border-neutral-200 pb-5">
         <Image
-          src="/eskale-box-logo.png"
-          alt="Eskale Box"
+          src="/escale-box-logo.png"
+          alt="Escale Box"
           width={120}
           height={120}
           priority

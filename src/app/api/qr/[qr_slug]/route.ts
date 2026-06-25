@@ -15,7 +15,7 @@ function baseUrlFrom(req: NextRequest): string {
 
 /**
  * GET /api/qr/[qr_slug] → PNG QR code pointing to the public box URL /b/[qr_slug].
- * This is what gets printed and stuck on the physical Eskale Box.
+ * This is what gets printed and stuck on the physical Escale Box.
  */
 export async function GET(
   req: NextRequest,

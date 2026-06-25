@@ -33,12 +33,12 @@ async function main() {
   const box = await prisma.box.upsert({
     where: { qrSlug: "demo" },
     update: {
-      name: "Eskale Box — Appartement Bellecour",
+      name: "Escale Box — Appartement Bellecour",
       location: "Appartement Bellecour, Lyon",
     },
     create: {
       qrSlug: "demo",
-      name: "Eskale Box — Appartement Bellecour",
+      name: "Escale Box — Appartement Bellecour",
       location: "Appartement Bellecour, Lyon",
       hostId: host.id,
       accessCode: "482",

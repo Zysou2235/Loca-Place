@@ -1,6 +1,6 @@
 import { LegalShell, LegalSection } from "@/components/LegalShell";
 
-export const metadata = { title: "Politique de confidentialité — Eskale Box" };
+export const metadata = { title: "Politique de confidentialité — Escale Box" };
 
 export default function ConfidentialitePage() {
   return (
@@ -23,7 +23,7 @@ export default function ConfidentialitePage() {
           <strong>Voyageurs</strong> : email et, le cas échéant, numéro de
           téléphone, afin de délivrer le code d&apos;accès. Les données de
           paiement sont traitées directement par Stripe et ne sont pas stockées
-          par Eskale Box.
+          par Escale Box.
         </p>
       </LegalSection>
 
