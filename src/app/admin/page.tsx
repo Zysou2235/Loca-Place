@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPlan } from "@/lib/plans";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
-import { markBoxShipped, unmarkBoxShipped } from "./actions";
+import { markBoxShipped, unmarkBoxShipped, setBoxShipping } from "./actions";
 import { GenerateCodeButton } from "./GenerateCodeButton";
 
 export const dynamic = "force-dynamic";
@@ -342,6 +342,43 @@ export default async function AdminPage({
                               </span>
                             )}
                           </div>
+
+                          {/* Expédition Mondial Relay — saisie manuelle du
+                              suivi + étiquette (automatisation API à venir). */}
+                          <form
+                            action={setBoxShipping}
+                            className="mt-2 flex flex-wrap items-center gap-2 border-t border-black/5 pt-2"
+                          >
+                            <input type="hidden" name="boxId" value={box.id} />
+                            <input
+                              name="tracking"
+                              defaultValue={box.shippingTrackingNumber ?? ""}
+                              placeholder="N° de suivi"
+                              className="w-36 rounded-lg border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                            />
+                            <input
+                              name="labelUrl"
+                              defaultValue={box.shippingLabelUrl ?? ""}
+                              placeholder="URL étiquette (https)"
+                              className="w-48 rounded-lg border border-black/10 px-3 py-1.5 text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                            />
+                            <button
+                              type="submit"
+                              className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-black/5"
+                            >
+                              Enregistrer le suivi
+                            </button>
+                            {box.shippingLabelUrl && (
+                              <a
+                                href={box.shippingLabelUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-dark"
+                              >
+                                🏷️ Étiquette
+                              </a>
+                            )}
+                          </form>
                         </li>
                       ))}
                     </ul>
