@@ -334,11 +334,15 @@ export default async function ManageBoxPage({
         <h3 className="font-display font-bold text-brand">
           Nouvel article (placé dans cette box)
         </h3>
+        <p className="mt-1 text-sm text-red-600">
+          ⚠️ Un seul article est vendu à la fois. Pour plusieurs produits, créez
+          un «&nbsp;Pack&nbsp;» et détaillez son contenu dans la description.
+        </p>
         <form action={createProduct} className="mt-4 grid gap-3 sm:grid-cols-2">
           <input type="hidden" name="boxId" value={box.id} />
           <input
             name="name"
-            placeholder="Nom de l'article"
+            placeholder="Nom de l'article (ou « Pack apéro »)"
             required
             className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
@@ -352,7 +356,7 @@ export default async function ManageBoxPage({
           <ImageDropInput />
           <textarea
             name="description"
-            placeholder="Description (optionnel)"
+            placeholder="Description — pour un pack, listez chaque article (ex. 1 bière, chips, saucisson)"
             rows={2}
             className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 sm:col-span-2"
           />

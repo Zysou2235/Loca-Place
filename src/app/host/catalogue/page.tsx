@@ -28,6 +28,19 @@ export default async function CataloguePage() {
         box) pour le mettre en vente.
       </p>
 
+      {/* Avertissement anti-erreur : 1 seule référence vendue par box */}
+      <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <strong>⚠️ Une seule référence est vendue par box à la fois.</strong>{" "}
+        Pour proposer <strong>plusieurs produits ensemble</strong>, ne créez
+        pas plusieurs articles : créez <strong>un seul article nommé «&nbsp;Pack
+        …&nbsp;»</strong> et listez son contenu dans la description.
+        <br />
+        <span className="text-red-700/80">
+          Exemple : «&nbsp;Pack apéro&nbsp;» — description : «&nbsp;1 bière
+          locale, 1 sachet de chips, 1 saucisson&nbsp;».
+        </span>
+      </div>
+
       {/* Liste */}
       <div className="mt-8 space-y-3">
         {products.length === 0 ? (
@@ -125,10 +138,14 @@ export default async function CataloguePage() {
       {/* Ajouter */}
       <div className="mt-6 rounded-2xl border border-black/5 bg-white p-6 shadow-card">
         <h3 className="font-display font-bold text-brand">Ajouter un article</h3>
+        <p className="mt-1 text-sm text-brand/50">
+          Plusieurs produits&nbsp;? Créez un seul «&nbsp;Pack&nbsp;» et
+          détaillez son contenu dans la description.
+        </p>
         <form action={createProduct} className="mt-4 grid gap-3 sm:grid-cols-2">
           <input
             name="name"
-            placeholder="Nom de l'article"
+            placeholder="Nom de l'article (ou « Pack apéro »)"
             required
             className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
@@ -142,7 +159,7 @@ export default async function CataloguePage() {
           <ImageDropInput />
           <textarea
             name="description"
-            placeholder="Description (optionnel)"
+            placeholder="Description — pour un pack, listez chaque article (ex. 1 bière, chips, saucisson)"
             rows={2}
             className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 sm:col-span-2"
           />

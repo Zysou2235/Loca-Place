@@ -30,6 +30,10 @@ export async function signup(
     .toLowerCase()
     .slice(0, 200);
   const password = String(formData.get("password") ?? "");
+  const phone =
+    String(formData.get("phone") ?? "")
+      .trim()
+      .slice(0, 30) || null;
 
   const ip = await clientIp();
   if (!rateLimit(`signup:${ip}`, 5, HOUR)) {
@@ -60,6 +64,7 @@ export async function signup(
       data: {
         name,
         email,
+        phone,
         passwordHash: hashPassword(password),
         emailVerified: false,
       },

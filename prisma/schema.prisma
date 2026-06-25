@@ -14,6 +14,7 @@ model Host {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
+  phone        String? // téléphone (optionnel) — contact + recherche admin
   passwordHash String?
   // Vérifié = email prouvé (connexion Google, ou lien de réinitialisation).
   // L'accès admin EXIGE un email vérifié (empêche de revendiquer un email admin
@@ -50,6 +51,9 @@ model Box {
   // Date d'expédition vers l'hôte. Ne peut être posée que si accessCode existe
   // (le code du cadenas ne peut plus être réglé une fois la box partie).
   shippedAt  DateTime?
+  // Expédition (Mondial Relay ou manuel) : suivi + URL de l'étiquette prépayée.
+  shippingTrackingNumber String?
+  shippingLabelUrl       String?
   createdAt DateTime @default(now())
 
   hostId String
