@@ -13,6 +13,21 @@ function assertStripe() {
   }
 }
 
+// Anti-martèlement : le tableau de bord hôte appelle les refresh Stripe à
+// chaque chargement. On limite à 1 appel / 10 min par hôte (en mémoire process)
+// pour éviter coût et rate-limit Stripe. Le retour de Checkout (session_id)
+// passe, lui, par syncSubscriptionFromCheckout qui n'est pas limité.
+const REFRESH_TTL_MS = 10 * 60 * 1000;
+const lastRefreshAt = new Map<string, number>();
+
+function shouldRefresh(key: string): boolean {
+  const now = Date.now();
+  const last = lastRefreshAt.get(key) ?? 0;
+  if (now - last < REFRESH_TTL_MS) return false;
+  lastRefreshAt.set(key, now);
+  return true;
+}
+
 /* ----------------------------------------------------- Subscriptions */
 
 export async function subscribe(formData: FormData) {
@@ -102,6 +117,7 @@ export async function refreshSubscriptionStatus() {
   if (!process.env.STRIPE_SECRET_KEY) return;
   const host = await getCurrentHost();
   if (!host?.stripeCustomerId) return;
+  if (!shouldRefresh(`sub:${host.id}`)) return;
 
   try {
     const subs = await stripe.subscriptions.list({
@@ -175,6 +191,7 @@ export async function refreshConnectStatus() {
   if (!process.env.STRIPE_SECRET_KEY) return;
   const host = await getCurrentHost();
   if (!host?.stripeAccountId) return;
+  if (!shouldRefresh(`acct:${host.id}`)) return;
   try {
     const account = await stripe.accounts.retrieve(host.stripeAccountId);
     await prisma.host.update({

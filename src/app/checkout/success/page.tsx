@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
 import { deliverBoxCode } from "@/lib/orders";
+import { hasPurchaseAccess } from "@/lib/purchase-cookie";
 import { resendForSession } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +34,10 @@ export default async function SuccessPage({
       if (paid) {
         // Fallback delivery (works even without a configured webhook).
         await deliverBoxCode(session);
+        // On ne révèle le code qu'au navigateur qui a initié l'achat — pas à
+        // quiconque détiendrait l'URL (le code ouvre une box physique).
         const boxId = session.metadata?.boxId;
-        if (boxId) {
+        if (boxId && (await hasPurchaseAccess(session_id!))) {
           const box = await prisma.box.findUnique({
             where: { id: boxId },
             select: { accessCode: true },

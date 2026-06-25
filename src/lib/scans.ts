@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 /**
  * Enregistre un scan (visite de la page publique d'une box). Best-effort :
@@ -17,6 +18,13 @@ export async function recordScan(params: {
     const referer = h.get("referer");
 
     if (userAgent && /bot|crawler|spider|preview|facebookexternalhit/i.test(userAgent)) {
+      return;
+    }
+
+    // Anti-gonflage : un même visiteur qui recharge la page ne compte qu'une
+    // fois par tranche de 30 s (et borne la croissance de la table).
+    const ip = await clientIp();
+    if (!rateLimit(`scan:${ip}:${params.boxId}`, 1, 30 * 1000)) {
       return;
     }
 

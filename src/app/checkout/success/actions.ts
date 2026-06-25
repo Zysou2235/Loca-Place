@@ -4,11 +4,22 @@ import { redirect } from "next/navigation";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
+import { clientIp, rateLimit, HOUR } from "@/lib/rate-limit";
 
 /** Traveler-triggered resend of the box code for a paid checkout session. */
 export async function resendForSession(formData: FormData) {
   const sessionId = String(formData.get("sessionId") ?? "");
   if (!sessionId) redirect("/");
+
+  // Anti-spam : le renvoi déclenche un email + SMS (coût). On plafonne par
+  // session et par IP.
+  const ip = await clientIp();
+  if (
+    !rateLimit(`resend-session:${sessionId}`, 3, HOUR) ||
+    !rateLimit(`resend-ip:${ip}`, 10, HOUR)
+  ) {
+    redirect(`/checkout/success?session_id=${sessionId}&resent=1`);
+  }
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
