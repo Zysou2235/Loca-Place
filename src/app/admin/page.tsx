@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPlan } from "@/lib/plans";
+import { formatPrice } from "@/lib/money";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
 import {
@@ -99,6 +100,20 @@ export default async function AdminPage({
   const totalBoxes = hosts.reduce((n, h) => n + h.boxes.length, 0);
   const activeSubs = counts.abonnes;
 
+  // KPIs société : MRR (revenu récurrent plateforme) + volume de ventes (GMV).
+  const [activeHosts, gmvAgg] = await Promise.all([
+    prisma.host.findMany({
+      where: { subscriptionStatus: { in: ACTIVE_STATUSES } },
+      select: { subscriptionPlan: true },
+    }),
+    prisma.order.aggregate({ _sum: { amountCents: true } }),
+  ]);
+  const mrrCents = activeHosts.reduce(
+    (n, h) => n + (getPlan(h.subscriptionPlan)?.priceCents ?? 0),
+    0
+  );
+  const gmvCents = gmvAgg._sum.amountCents ?? 0;
+
   return (
     <div className="min-h-screen bg-cream">
       <header className="border-b border-black/5 bg-white">
@@ -148,12 +163,19 @@ export default async function AdminPage({
           Tous les comptes, abonnements et box de la plateforme.
         </p>
 
-        {/* Stats */}
-        <div className="mt-6 grid grid-cols-3 gap-4">
+        {/* KPIs société */}
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Hôtes" value={counts.tous} />
-          <Stat label="Abonnements actifs" value={activeSubs} />
-          <Stat label="Box affichées" value={totalBoxes} />
+          <Stat label="Abonnés actifs" value={activeSubs} />
+          <Stat label="MRR (récurrent)" value={formatPrice(mrrCents)} />
+          <Stat label="Volume de ventes" value={formatPrice(gmvCents)} />
         </div>
+        <p className="mt-2 text-right text-xs text-brand/40">
+          {totalBoxes} box affichées ·{" "}
+          <a href="/admin/hosts/export" className="font-medium text-accent hover:underline">
+            ⬇ Exporter les clients (CSV)
+          </a>
+        </p>
 
         {/* Recherche */}
         <form method="GET" className="mt-8 flex gap-2">
@@ -208,7 +230,12 @@ export default async function AdminPage({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 font-semibold text-brand">
-                      {host.name}
+                      <Link
+                        href={`/admin/hosts/${host.id}`}
+                        className="hover:text-accent hover:underline"
+                      >
+                        {host.name}
+                      </Link>
                       {host.emailVerified ? (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
                           email vérifié
@@ -445,7 +472,7 @@ function FilterTab({
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="rounded-2xl border border-black/5 bg-white p-5 text-center shadow-card">
       <div className="font-display text-3xl font-extrabold text-brand">

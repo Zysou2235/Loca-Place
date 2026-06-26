@@ -36,6 +36,16 @@ export async function generateBoxCode(formData: FormData) {
   revalidatePath("/admin");
 }
 
+/** Enregistre les notes internes d'un hôte (support/suivi). Admin only. */
+export async function saveHostNotes(formData: FormData) {
+  await requireAdmin();
+  const hostId = String(formData.get("hostId") ?? "");
+  if (!hostId) throw new Error("Hôte manquant.");
+  const notes = String(formData.get("notes") ?? "").slice(0, 5000) || null;
+  await prisma.host.update({ where: { id: hostId }, data: { adminNotes: notes } });
+  revalidatePath(`/admin/hosts/${hostId}`);
+}
+
 /** Active manuellement un compte hôte (email vérifié) sans passer par l'email.
  *  Utile tant que l'envoi d'emails n'est pas configuré (pas de domaine), et
  *  pour le support. Admin only. */
