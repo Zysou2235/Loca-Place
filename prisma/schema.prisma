@@ -50,6 +50,10 @@ model Host {
   deliveryCity    String?
   deliveryCountry String? @default("France")
 
+  // Point Relais Mondial Relay choisi lors de la commande d'abonnement.
+  deliveryRelayId    String?
+  deliveryRelayLabel String?
+
   // Notes internes (visibles admin uniquement) pour le suivi/support.
   adminNotes String?
 

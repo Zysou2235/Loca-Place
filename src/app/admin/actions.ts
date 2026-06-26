@@ -72,7 +72,6 @@ export async function generateMondialRelayLabel(formData: FormData) {
   const box = await prisma.box.findUnique({
     where: { id: boxId },
     select: {
-      relayId: true,
       host: {
         select: {
           name: true,
@@ -83,6 +82,7 @@ export async function generateMondialRelayLabel(formData: FormData) {
           deliveryZip: true,
           deliveryCity: true,
           deliveryCountry: true,
+          deliveryRelayId: true,
         },
       },
     },
@@ -90,7 +90,10 @@ export async function generateMondialRelayLabel(formData: FormData) {
   if (!box) throw new Error("Box introuvable.");
 
   const h = box.host;
-  if (!box.relayId && !(h.deliveryLine1 && h.deliveryZip && h.deliveryCity)) {
+  if (
+    !h.deliveryRelayId &&
+    !(h.deliveryLine1 && h.deliveryZip && h.deliveryCity)
+  ) {
     throw new Error(
       "Aucun Point Relais ni adresse de livraison renseignés pour cet hôte."
     );
@@ -104,7 +107,7 @@ export async function generateMondialRelayLabel(formData: FormData) {
     destCountry: h.deliveryCountry ?? "FR",
     destPhone: h.phone ?? undefined,
     destEmail: h.email,
-    relayId: box.relayId,
+    relayId: h.deliveryRelayId,
     ref: boxId.slice(-12),
   });
 

@@ -390,8 +390,8 @@ export default async function AdminPage({
                           {/* Mondial Relay : génération automatique de l'étiquette */}
                           <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-black/5 pt-2">
                             <span className="text-xs text-brand/50">
-                              {box.relayId
-                                ? `📍 Relais ${box.relayId}`
+                              {host.deliveryRelayId
+                                ? `📍 Relais ${host.deliveryRelayId}`
                                 : "📍 Pas de Point Relais (→ domicile)"}
                             </span>
                             <form action={generateMondialRelayLabel}>
