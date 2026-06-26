@@ -31,7 +31,7 @@ function shouldRefresh(key: string): boolean {
 
 /* ----------------------------------------------------- Subscriptions */
 
-export async function subscribe(formData: FormData) {
+export async function placeSubscriptionOrder(formData: FormData) {
   assertStripe();
   const host = await getCurrentHost();
   if (!host) throw new Error("Non authentifié.");
@@ -40,7 +40,7 @@ export async function subscribe(formData: FormData) {
   const plan = getPlan(planId);
   if (!plan) throw new Error("Formule inconnue.");
 
-  // Infos obligatoires AVANT de commander (facturation + livraison de la box).
+  // Infos obligatoires AVANT de commander (facturation + adresse).
   const profile = await prisma.host.findUnique({
     where: { id: host.id },
     select: PROFILE_SELECT,
@@ -48,6 +48,18 @@ export async function subscribe(formData: FormData) {
   if (!isProfileComplete(profile)) {
     redirect("/host/profil?incomplete=1");
   }
+
+  // Étape livraison du tunnel : Point Relais obligatoire avant paiement.
+  const relayId = String(formData.get("relayId") ?? "").trim().slice(0, 20);
+  const relayLabel =
+    String(formData.get("relayLabel") ?? "").trim().slice(0, 120) || null;
+  if (!relayId) {
+    redirect(`/host/billing/commande?plan=${planId}&error=relay`);
+  }
+  await prisma.host.update({
+    where: { id: host.id },
+    data: { deliveryRelayId: relayId, deliveryRelayLabel: relayLabel },
+  });
 
   // Ensure a Stripe customer for this host.
   let customerId = host.stripeCustomerId;

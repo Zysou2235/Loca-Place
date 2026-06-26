@@ -5,7 +5,6 @@ import { getCurrentHost } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 import { HostShell } from "../HostShell";
-import { subscribe } from "../billing-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -104,31 +103,25 @@ export default async function BillingPage() {
                 <div className="mt-6 rounded-full bg-green-100 px-5 py-3 text-center text-sm font-semibold text-green-700">
                   Formule actuelle
                 </div>
-              ) : !profileComplete ? (
+              ) : (
                 <Link
-                  href="/host/profil"
+                  href={
+                    profileComplete
+                      ? `/host/billing/commande?plan=${plan.id}`
+                      : "/host/profil"
+                  }
                   className={`mt-6 block rounded-full px-5 py-3 text-center font-semibold transition ${
                     plan.highlighted
                       ? "bg-accent text-white hover:bg-accent-dark"
                       : "bg-brand text-white hover:bg-brand-dark"
                   }`}
                 >
-                  Compléter mes infos pour commander
+                  {!profileComplete
+                    ? "Compléter mes infos pour commander"
+                    : subscribed
+                      ? "Changer pour cette formule"
+                      : "S'abonner"}
                 </Link>
-              ) : (
-                <form action={subscribe} className="mt-6">
-                  <input type="hidden" name="planId" value={plan.id} />
-                  <button
-                    type="submit"
-                    className={`w-full rounded-full px-5 py-3 text-center font-semibold transition ${
-                      plan.highlighted
-                        ? "bg-accent text-white hover:bg-accent-dark"
-                        : "bg-brand text-white hover:bg-brand-dark"
-                    }`}
-                  >
-                    {subscribed ? "Changer pour cette formule" : "S'abonner"}
-                  </button>
-                </form>
               )}
             </div>
           );
