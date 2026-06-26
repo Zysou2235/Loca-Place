@@ -50,6 +50,9 @@ model Host {
   deliveryCity    String?
   deliveryCountry String? @default("France")
 
+  // Notes internes (visibles admin uniquement) pour le suivi/support.
+  adminNotes String?
+
   boxes    Box[]
   products Product[] // catalogue d'articles réutilisables de l'hôte
 }
