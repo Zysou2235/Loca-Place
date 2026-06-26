@@ -50,7 +50,8 @@ model Host {
   deliveryCity    String?
   deliveryCountry String? @default("France")
 
-  // Point Relais Mondial Relay choisi lors de la commande d'abonnement.
+  // Livraison choisie dans le tunnel : transporteur + (si relais) point relais.
+  deliveryCarrier    String? // mondial_relay | dpd | chronopost
   deliveryRelayId    String?
   deliveryRelayLabel String?
 

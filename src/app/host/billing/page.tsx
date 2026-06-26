@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
-import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 import { HostShell } from "../HostShell";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +14,6 @@ export default async function BillingPage() {
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";
 
-  const profile = await prisma.host.findUnique({
-    where: { id: host.id },
-    select: PROFILE_SELECT,
-  });
-  const profileComplete = isProfileComplete(profile);
-
   return (
     <HostShell hostName={host.name}>
       <h1 className="font-display text-2xl font-bold text-brand">
@@ -31,22 +23,6 @@ export default async function BillingPage() {
         Sans engagement, résiliable à tout moment. 0% de commission sur vos
         ventes.
       </p>
-
-      {!profileComplete && !subscribed && (
-        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <strong>Avant de vous abonner :</strong> renseignez vos informations
-          de facturation et votre adresse de livraison (nécessaires pour vous
-          envoyer la box).
-          <div className="mt-3">
-            <Link
-              href="/host/profil"
-              className="inline-block rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark"
-            >
-              Compléter mes informations
-            </Link>
-          </div>
-        </div>
-      )}
 
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PLANS.map((plan) => {
@@ -105,22 +81,14 @@ export default async function BillingPage() {
                 </div>
               ) : (
                 <Link
-                  href={
-                    profileComplete
-                      ? `/host/billing/commande?plan=${plan.id}`
-                      : "/host/profil"
-                  }
+                  href={`/host/billing/commande?plan=${plan.id}`}
                   className={`mt-6 block rounded-full px-5 py-3 text-center font-semibold transition ${
                     plan.highlighted
                       ? "bg-accent text-white hover:bg-accent-dark"
                       : "bg-brand text-white hover:bg-brand-dark"
                   }`}
                 >
-                  {!profileComplete
-                    ? "Compléter mes infos pour commander"
-                    : subscribed
-                      ? "Changer pour cette formule"
-                      : "S'abonner"}
+                  {subscribed ? "Changer pour cette formule" : "S'abonner"}
                 </Link>
               )}
             </div>
