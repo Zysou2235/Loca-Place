@@ -221,6 +221,23 @@ export async function removeProductFromBox(formData: FormData) {
   revalidatePath(`/host/boxes/${boxId}`);
 }
 
+/** L'hôte enregistre le Point Relais Mondial Relay où recevoir sa box. */
+export async function setBoxRelay(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
+  await assertBoxOwner(boxId, hostId);
+
+  const relayId = String(formData.get("relayId") ?? "").trim().slice(0, 20) || null;
+  const relayLabel =
+    String(formData.get("relayLabel") ?? "").trim().slice(0, 120) || null;
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { relayId, relayLabel },
+  });
+  revalidatePath(`/host/boxes/${boxId}`);
+}
+
 /**
  * L'hôte change lui-même le code du cadenas de sa box. Le code saisi doit
  * correspondre à la combinaison physiquement réglée sur le cadenas (3 chiffres).
