@@ -72,6 +72,9 @@ model Box {
   // Expédition (Mondial Relay ou manuel) : suivi + URL de l'étiquette prépayée.
   shippingTrackingNumber String?
   shippingLabelUrl       String?
+  // Point Relais Mondial Relay choisi par l'hôte (livraison de la box).
+  relayId    String? // numéro du Point Relais (ex. "FR-012345")
+  relayLabel String? // libellé lisible (nom + ville) pour l'affichage
   createdAt DateTime @default(now())
 
   hostId String

@@ -10,6 +10,7 @@ import {
   assignProductToBox,
   createProduct,
   removeProductFromBox,
+  setBoxRelay,
 } from "../../box-actions";
 
 export const dynamic = "force-dynamic";
@@ -211,6 +212,53 @@ export default async function ManageBoxPage({
             🖨️ Voir / imprimer le QR
           </Link>
         </div>
+      </div>
+
+      {/* Point Relais de livraison (Mondial Relay) */}
+      <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-card">
+        <h3 className="font-display font-bold text-brand">
+          📍 Point Relais de livraison
+        </h3>
+        <p className="mt-1 text-sm text-brand/60">
+          Choisissez le Point Relais Mondial Relay où vous souhaitez recevoir
+          votre box.{" "}
+          <a
+            href="https://www.mondialrelay.fr/trouver-le-point-relais-le-plus-proche/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-accent hover:underline"
+          >
+            Trouver un Point Relais
+          </a>{" "}
+          puis recopiez son numéro ci-dessous.
+        </p>
+        {box.relayId && (
+          <p className="mt-2 text-sm text-green-700">
+            ✓ Point Relais enregistré : <strong>{box.relayId}</strong>
+            {box.relayLabel ? ` — ${box.relayLabel}` : ""}
+          </p>
+        )}
+        <form action={setBoxRelay} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <input type="hidden" name="boxId" value={box.id} />
+          <input
+            name="relayId"
+            defaultValue={box.relayId ?? ""}
+            placeholder="N° du Point Relais (ex. 012345)"
+            className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+          <input
+            name="relayLabel"
+            defaultValue={box.relayLabel ?? ""}
+            placeholder="Nom / ville du relais (optionnel)"
+            className="rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          />
+          <button
+            type="submit"
+            className="rounded-full bg-brand px-5 py-2.5 font-semibold text-white transition hover:bg-brand-dark sm:col-span-2"
+          >
+            Enregistrer le Point Relais
+          </button>
+        </form>
       </div>
 
       {/* Article actuellement dans la box */}

@@ -10,6 +10,7 @@ import {
   unmarkBoxShipped,
   setBoxShipping,
   verifyHostAccount,
+  generateMondialRelayLabel,
 } from "./actions";
 import { GenerateCodeButton } from "./GenerateCodeButton";
 
@@ -386,8 +387,25 @@ export default async function AdminPage({
                             )}
                           </div>
 
-                          {/* Expédition Mondial Relay — saisie manuelle du
-                              suivi + étiquette (automatisation API à venir). */}
+                          {/* Mondial Relay : génération automatique de l'étiquette */}
+                          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-black/5 pt-2">
+                            <span className="text-xs text-brand/50">
+                              {box.relayId
+                                ? `📍 Relais ${box.relayId}`
+                                : "📍 Pas de Point Relais (→ domicile)"}
+                            </span>
+                            <form action={generateMondialRelayLabel}>
+                              <input type="hidden" name="boxId" value={box.id} />
+                              <button
+                                type="submit"
+                                className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
+                              >
+                                🏷️ Générer l&apos;étiquette Mondial Relay
+                              </button>
+                            </form>
+                          </div>
+
+                          {/* Expédition — saisie manuelle (repli si besoin) */}
                           <form
                             action={setBoxShipping}
                             className="mt-2 flex flex-wrap items-center gap-2 border-t border-black/5 pt-2"

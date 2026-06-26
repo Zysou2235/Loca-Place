@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
 import { generateLockCode } from "@/lib/lock-code";
+import { createMondialRelayLabel } from "@/lib/mondial-relay";
 
 /**
  * Génère (ou régénère) le code du cadenas d'une box. Admin only.
@@ -56,6 +57,63 @@ export async function verifyHostAccount(formData: FormData) {
   await prisma.host.update({
     where: { id: hostId },
     data: { emailVerified: true },
+  });
+  revalidatePath("/admin");
+}
+
+/** Génère l'étiquette Mondial Relay d'une box (API WSI) et stocke suivi + PDF.
+ *  Livraison en Point Relais si la box en a un, sinon au domicile de l'hôte.
+ *  Admin only. */
+export async function generateMondialRelayLabel(formData: FormData) {
+  await requireAdmin();
+  const boxId = String(formData.get("boxId") ?? "");
+  if (!boxId) throw new Error("Box manquante.");
+
+  const box = await prisma.box.findUnique({
+    where: { id: boxId },
+    select: {
+      relayId: true,
+      host: {
+        select: {
+          name: true,
+          phone: true,
+          email: true,
+          deliveryName: true,
+          deliveryLine1: true,
+          deliveryZip: true,
+          deliveryCity: true,
+          deliveryCountry: true,
+        },
+      },
+    },
+  });
+  if (!box) throw new Error("Box introuvable.");
+
+  const h = box.host;
+  if (!box.relayId && !(h.deliveryLine1 && h.deliveryZip && h.deliveryCity)) {
+    throw new Error(
+      "Aucun Point Relais ni adresse de livraison renseignés pour cet hôte."
+    );
+  }
+
+  const result = await createMondialRelayLabel({
+    destName: h.deliveryName || h.name,
+    destAddress: h.deliveryLine1 ?? "",
+    destZip: h.deliveryZip ?? "",
+    destCity: h.deliveryCity ?? "",
+    destCountry: h.deliveryCountry ?? "FR",
+    destPhone: h.phone ?? undefined,
+    destEmail: h.email,
+    relayId: box.relayId,
+    ref: boxId.slice(-12),
+  });
+
+  await prisma.box.update({
+    where: { id: boxId },
+    data: {
+      shippingTrackingNumber: result.expeditionNumber,
+      shippingLabelUrl: result.labelUrl,
+    },
   });
   revalidatePath("/admin");
 }
