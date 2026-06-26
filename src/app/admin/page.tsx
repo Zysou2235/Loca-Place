@@ -387,22 +387,29 @@ export default async function AdminPage({
                             )}
                           </div>
 
-                          {/* Mondial Relay : génération automatique de l'étiquette */}
+                          {/* Transporteur choisi + génération d'étiquette */}
                           <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-black/5 pt-2">
                             <span className="text-xs text-brand/50">
-                              {host.deliveryRelayId
-                                ? `📍 Relais ${host.deliveryRelayId}`
-                                : "📍 Pas de Point Relais (→ domicile)"}
+                              🚚{" "}
+                              {host.deliveryCarrier === "mondial_relay"
+                                ? `Mondial Relay${host.deliveryRelayId ? ` · relais ${host.deliveryRelayId}` : ""}`
+                                : host.deliveryCarrier === "dpd"
+                                  ? "DPD (domicile)"
+                                  : host.deliveryCarrier === "chronopost"
+                                    ? "Chronopost (domicile)"
+                                    : "Transporteur non choisi"}
                             </span>
-                            <form action={generateMondialRelayLabel}>
-                              <input type="hidden" name="boxId" value={box.id} />
-                              <button
-                                type="submit"
-                                className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
-                              >
-                                🏷️ Générer l&apos;étiquette Mondial Relay
-                              </button>
-                            </form>
+                            {host.deliveryCarrier === "mondial_relay" && (
+                              <form action={generateMondialRelayLabel}>
+                                <input type="hidden" name="boxId" value={box.id} />
+                                <button
+                                  type="submit"
+                                  className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
+                                >
+                                  🏷️ Générer l&apos;étiquette Mondial Relay
+                                </button>
+                              </form>
+                            )}
                           </div>
 
                           {/* Expédition — saisie manuelle (repli si besoin) */}

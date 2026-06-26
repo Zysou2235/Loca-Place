@@ -40,26 +40,24 @@ export async function placeSubscriptionOrder(formData: FormData) {
   const plan = getPlan(planId);
   if (!plan) throw new Error("Formule inconnue.");
 
-  // Infos obligatoires AVANT de commander (facturation + adresse).
+  // Tunnel : chaque étape doit être complétée avant le paiement.
   const profile = await prisma.host.findUnique({
     where: { id: host.id },
-    select: PROFILE_SELECT,
+    select: {
+      ...PROFILE_SELECT,
+      deliveryCarrier: true,
+      deliveryRelayId: true,
+    },
   });
   if (!isProfileComplete(profile)) {
-    redirect("/host/profil?incomplete=1");
+    redirect(`/host/billing/commande?plan=${planId}&step=infos`);
   }
-
-  // Étape livraison du tunnel : Point Relais obligatoire avant paiement.
-  const relayId = String(formData.get("relayId") ?? "").trim().slice(0, 20);
-  const relayLabel =
-    String(formData.get("relayLabel") ?? "").trim().slice(0, 120) || null;
-  if (!relayId) {
-    redirect(`/host/billing/commande?plan=${planId}&error=relay`);
+  if (!profile?.deliveryCarrier) {
+    redirect(`/host/billing/commande?plan=${planId}&step=livraison`);
   }
-  await prisma.host.update({
-    where: { id: host.id },
-    data: { deliveryRelayId: relayId, deliveryRelayLabel: relayLabel },
-  });
+  if (profile.deliveryCarrier === "mondial_relay" && !profile.deliveryRelayId) {
+    redirect(`/host/billing/commande?plan=${planId}&step=livraison&error=relay`);
+  }
 
   // Ensure a Stripe customer for this host.
   let customerId = host.stripeCustomerId;
