@@ -38,6 +38,12 @@ export default async function LoginPage({
         <GoogleButton label="Continuer avec Google" />
         <Divider />
         <AuthForm mode="login" action={login} />
+        <p className="mt-4 text-center text-sm text-brand/50">
+          Email d&apos;activation non reçu ?{" "}
+          <Link href="/host/activer" className="font-medium text-accent">
+            Le renvoyer
+          </Link>
+        </p>
       </div>
     </main>
   );

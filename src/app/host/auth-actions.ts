@@ -121,6 +121,40 @@ export async function login(
   redirect("/host");
 }
 
+export type ResendState = { error?: string; sent?: boolean };
+
+/** Renvoie l'email d'activation (compte mot de passe non vérifié). Générique. */
+export async function resendActivation(
+  _prev: ResendState,
+  formData: FormData
+): Promise<ResendState> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase();
+
+  const ip = await clientIp();
+  if (!rateLimit(`resend-activation:${ip}`, 5, HOUR)) {
+    return { error: "Trop de demandes. Réessayez dans une heure." };
+  }
+
+  if (email) {
+    const host = await prisma.host.findUnique({
+      where: { email },
+      select: { id: true, emailVerified: true, passwordHash: true },
+    });
+    // On n'envoie un lien que si le compte existe, a un mot de passe et n'est
+    // pas encore vérifié — sans jamais le révéler dans la réponse.
+    if (host?.passwordHash && !host.emailVerified) {
+      const link = `${await getBaseUrl()}/host/verify?token=${encodeURIComponent(
+        createVerifyToken(host.id)
+      )}`;
+      await sendVerificationEmail(email, link);
+    }
+  }
+
+  return { sent: true };
+}
+
 export async function logout(): Promise<void> {
   await clearSession();
   redirect("/");
