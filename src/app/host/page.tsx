@@ -52,16 +52,6 @@ export default async function HostDashboard({
   const canCreate = subscribed && boxes.length < limit;
   const justSubscribed = Boolean(session_id) && subscribed;
 
-  // Suivi livraison : adresse renseignée ? box expédiée ?
-  const profile = await prisma.host.findUnique({
-    where: { id: host.id },
-    select: { deliveryLine1: true, deliveryZip: true, deliveryCity: true },
-  });
-  const hasDeliveryAddress = Boolean(
-    profile?.deliveryLine1 && profile?.deliveryZip && profile?.deliveryCity
-  );
-  const shippedBox = boxes.find((b) => b.shippedAt);
-
   return (
     <HostShell hostName={host.name}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -147,30 +137,6 @@ export default async function HostDashboard({
           )}
         </Card>
       </div>
-
-      {/* Suivi livraison — discret, et masqué une fois la box expédiée
-          (le suivi continue alors par email). */}
-      {subscribed && !shippedBox && (
-        !hasDeliveryAddress ? (
-          <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <span>
-              📦 Renseignez votre <strong>adresse de livraison</strong> pour
-              recevoir votre box.
-            </span>
-            <Link
-              href="/host/profil"
-              className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
-            >
-              Compléter
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-6 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm text-brand/70 shadow-card">
-            📦 Votre box est <strong>en préparation</strong> — expédition sous 3
-            à 5 jours ouvrés. Vous recevrez le numéro de suivi par email.
-          </div>
-        )
-      )}
 
       {/* Boxes */}
       <div className="mt-10 flex items-center justify-between">
