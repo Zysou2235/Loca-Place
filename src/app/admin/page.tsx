@@ -9,7 +9,6 @@ import {
   markBoxShipped,
   unmarkBoxShipped,
   setBoxShipping,
-  verifyHostAccount,
   generateMondialRelayLabel,
 } from "./actions";
 import { GenerateCodeButton } from "./GenerateCodeButton";
@@ -245,17 +244,6 @@ export default async function AdminPage({
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
                           non vérifié
                         </span>
-                      )}
-                      {!host.emailVerified && (
-                        <form action={verifyHostAccount}>
-                          <input type="hidden" name="hostId" value={host.id} />
-                          <button
-                            type="submit"
-                            className="rounded-full border border-green-300 px-2 py-0.5 text-[10px] font-semibold text-green-700 transition hover:bg-green-50"
-                          >
-                            ✓ Activer le compte
-                          </button>
-                        </form>
                       )}
                     </div>
                     <div className="text-sm text-brand/50">{host.email}</div>
