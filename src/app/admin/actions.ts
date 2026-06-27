@@ -6,6 +6,29 @@ import { requireAdmin } from "@/lib/admin";
 import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
 import { generateLockCode } from "@/lib/lock-code";
 import { createMondialRelayLabel } from "@/lib/mondial-relay";
+import { deleteHostAccount } from "@/lib/account";
+import { redirect } from "next/navigation";
+
+/** Active manuellement un compte hôte (filet de sécurité support). Admin only. */
+export async function verifyHostAccount(formData: FormData) {
+  await requireAdmin();
+  const hostId = String(formData.get("hostId") ?? "");
+  if (!hostId) throw new Error("Hôte manquant.");
+  await prisma.host.update({
+    where: { id: hostId },
+    data: { emailVerified: true },
+  });
+  revalidatePath(`/admin/hosts/${hostId}`);
+}
+
+/** Suppression d'un compte hôte par l'admin (RGPD / support). Admin only. */
+export async function deleteHostByAdmin(formData: FormData) {
+  await requireAdmin();
+  const hostId = String(formData.get("hostId") ?? "");
+  if (!hostId) throw new Error("Hôte manquant.");
+  await deleteHostAccount(hostId);
+  redirect("/admin");
+}
 
 /**
  * Génère (ou régénère) le code du cadenas d'une box. Admin only.

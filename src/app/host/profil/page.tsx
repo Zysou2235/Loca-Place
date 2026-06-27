@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { HostShell } from "../HostShell";
 import { ProfileForm } from "./ProfileForm";
+import { DangerZone } from "./DangerZone";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,7 @@ export default async function ProfilePage({
       <div className="mt-8">
         <ProfileForm defaults={defaults} />
       </div>
+      <DangerZone />
     </HostShell>
   );
 }

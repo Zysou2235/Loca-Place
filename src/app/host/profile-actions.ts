@@ -1,8 +1,10 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getCurrentHost } from "@/lib/auth";
+import { getCurrentHost, clearSession } from "@/lib/auth";
+import { deleteHostAccount } from "@/lib/account";
 
 export type ProfileState = { ok?: boolean; error?: string };
 
@@ -64,4 +66,13 @@ export async function updateHostProfile(
   revalidatePath("/host/profil");
   revalidatePath("/host");
   return { ok: true };
+}
+
+/** Droit à l'effacement (RGPD) : l'hôte supprime lui-même son compte. */
+export async function deleteOwnAccount() {
+  const host = await getCurrentHost();
+  if (!host) redirect("/host/login");
+  await deleteHostAccount(host!.id);
+  await clearSession();
+  redirect("/?compte_supprime=1");
 }
