@@ -40,6 +40,22 @@ export async function placeSubscriptionOrder(formData: FormData) {
   const plan = getPlan(planId);
   if (!plan) throw new Error("Formule inconnue.");
 
+  // Déjà abonné : pas de 2e souscription — on renvoie vers le portail Stripe
+  // (changement/résiliation de formule s'y font proprement).
+  if (
+    host.subscriptionStatus === "active" ||
+    host.subscriptionStatus === "trialing"
+  ) {
+    if (host.stripeCustomerId) {
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: host.stripeCustomerId,
+        return_url: `${await getBaseUrl()}/host`,
+      });
+      redirect(portal.url);
+    }
+    redirect("/host");
+  }
+
   // Tunnel : chaque étape doit être complétée avant le paiement.
   const profile = await prisma.host.findUnique({
     where: { id: host.id },

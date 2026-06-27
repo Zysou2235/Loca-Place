@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentHost } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
 import { HostShell } from "../HostShell";
+import { openBillingPortal } from "../billing-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,21 @@ export default async function BillingPage() {
                 <div className="mt-6 rounded-full bg-green-100 px-5 py-3 text-center text-sm font-semibold text-green-700">
                   Formule actuelle
                 </div>
+              ) : subscribed ? (
+                // Déjà abonné : on passe par le portail Stripe pour changer de
+                // formule (évite de créer une 2e souscription = double facturation).
+                <form action={openBillingPortal} className="mt-6">
+                  <button
+                    type="submit"
+                    className={`w-full rounded-full px-5 py-3 text-center font-semibold transition ${
+                      plan.highlighted
+                        ? "bg-accent text-white hover:bg-accent-dark"
+                        : "bg-brand text-white hover:bg-brand-dark"
+                    }`}
+                  >
+                    Changer pour cette formule
+                  </button>
+                </form>
               ) : (
                 <Link
                   href={`/host/billing/commande?plan=${plan.id}`}
@@ -88,7 +104,7 @@ export default async function BillingPage() {
                       : "bg-brand text-white hover:bg-brand-dark"
                   }`}
                 >
-                  {subscribed ? "Changer pour cette formule" : "S'abonner"}
+                  S&apos;abonner
                 </Link>
               )}
             </div>
