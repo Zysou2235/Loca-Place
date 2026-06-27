@@ -50,6 +50,7 @@ export default async function HostDashboard({
     host.subscriptionStatus === "trialing";
   const limit = maxBoxesFor(host.subscriptionPlan);
   const canCreate = subscribed && boxes.length < limit;
+  const justSubscribed = Boolean(session_id) && subscribed;
 
   // Suivi livraison : adresse renseignée ? box expédiée ?
   const profile = await prisma.host.findUnique({
@@ -79,6 +80,22 @@ export default async function HostDashboard({
       <p className="mt-1 text-brand/60">
         Pilotez vos box, vos produits et votre abonnement.
       </p>
+
+      {justSubscribed && (
+        <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+          <h2 className="font-display text-lg font-bold text-green-800">
+            🎉 Merci, votre abonnement est actif !
+          </h2>
+          <p className="mt-1 text-sm text-green-700">
+            Nous préparons votre box et l&apos;expédions sous 3 à 5 jours ouvrés.
+            Vous recevrez un email avec le numéro de suivi. En attendant, vous
+            pouvez créer votre première box et votre catalogue de produits.
+          </p>
+          <p className="mt-1 text-xs text-green-700/70">
+            Un reçu de paiement vous est envoyé par Stripe.
+          </p>
+        </div>
+      )}
 
       {/* Status cards */}
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
