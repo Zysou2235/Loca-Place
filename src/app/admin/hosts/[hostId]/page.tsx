@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { getPlan } from "@/lib/plans";
 import { formatPrice } from "@/lib/money";
-import { saveHostNotes } from "../../actions";
+import { saveHostNotes, verifyHostAccount } from "../../actions";
+import { DeleteHostButton } from "./DeleteHostButton";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,17 @@ export default async function HostDetailPage({
               label="Inscrit le"
               value={host.createdAt.toLocaleDateString("fr-FR")}
             />
+            {!host.emailVerified && (
+              <form action={verifyHostAccount} className="mt-3">
+                <input type="hidden" name="hostId" value={host.id} />
+                <button
+                  type="submit"
+                  className="rounded-full border border-green-300 px-3 py-1.5 text-xs font-semibold text-green-700 transition hover:bg-green-50"
+                >
+                  ✓ Activer manuellement le compte
+                </button>
+              </form>
+            )}
           </Section>
 
           {/* Abonnement & Stripe */}
@@ -196,6 +208,15 @@ export default async function HostDetailPage({
               Enregistrer les notes
             </button>
           </form>
+        </Section>
+
+        {/* Zone de danger — suppression RGPD */}
+        <Section title="Zone de danger" className="mt-5 border-red-200">
+          <p className="mb-3 text-sm text-brand/60">
+            Supprime définitivement ce compte et toutes ses données (box, ventes,
+            scans) et résilie son abonnement. Irréversible.
+          </p>
+          <DeleteHostButton hostId={host.id} hostName={host.name} />
         </Section>
       </div>
     </div>
