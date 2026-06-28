@@ -4,6 +4,7 @@ import { getCurrentHost } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
 import { HostShell } from "../HostShell";
 import { openBillingPortal } from "../billing-actions";
+import { MultiPlanCard } from "./MultiPlanCard";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,12 @@ export default async function BillingPage() {
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PLANS.map((plan) => {
           const current = subscribed && host.subscriptionPlan === plan.id;
+          // La formule Multi a son propre composant (sélecteur de box + prix dynamique).
+          if (plan.id === "multi") {
+            return (
+              <MultiPlanCard key={plan.id} current={current} subscribed={subscribed} />
+            );
+          }
           return (
             <div
               key={plan.id}

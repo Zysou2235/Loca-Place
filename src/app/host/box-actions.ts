@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSessionHostId, getCurrentHost } from "@/lib/auth";
 import { makeSlug } from "@/lib/slug";
-import { maxBoxesFor } from "@/lib/plans";
 import { generateLockCode } from "@/lib/lock-code";
 import { rateLimit, HOUR } from "@/lib/rate-limit";
 
@@ -73,7 +72,7 @@ export async function createBox(formData: FormData) {
   if (!host) throw new Error("Non authentifié.");
 
   // Enforce the subscription limit (and require an active subscription).
-  const limit = maxBoxesFor(host.subscriptionPlan);
+  const limit = host.boxQuota;
   const isActive =
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";

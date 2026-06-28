@@ -33,7 +33,8 @@ model Host {
   // Subscription billing (the platform's revenue).
   stripeCustomerId   String?
   subscriptionStatus String  @default("none") // none | trialing | active | past_due | canceled
-  subscriptionPlan   String? // essentiel | duo | pro
+  subscriptionPlan   String? // essentiel | duo | multi
+  boxQuota           Int     @default(0) // nb de box autorisées par l'abonnement
 
   // Informations légales / facturation (pour la facture + obligations légales).
   companyName    String?

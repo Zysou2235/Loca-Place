@@ -5,7 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { getCurrentHost } from "@/lib/auth";
 import { getBaseUrl } from "@/lib/base-url";
-import { getPlan, type PlanId } from "@/lib/plans";
+import {
+  getPlan,
+  boxesFor,
+  priceCentsFor,
+  type PlanId,
+} from "@/lib/plans";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 
 function assertStripe() {
@@ -40,6 +45,10 @@ export async function placeSubscriptionOrder(formData: FormData) {
   const plan = getPlan(planId);
   if (!plan) throw new Error("Formule inconnue.");
 
+  // Nb de box (formule Multi : choix de l'hôte) — conservé dans les URLs du tunnel.
+  const boxes = boxesFor(planId, Number(formData.get("boxes") ?? 0));
+  const q = `plan=${planId}&boxes=${boxes}`;
+
   // Déjà abonné : pas de 2e souscription — on renvoie vers le portail Stripe
   // (changement/résiliation de formule s'y font proprement).
   if (
@@ -66,14 +75,19 @@ export async function placeSubscriptionOrder(formData: FormData) {
     },
   });
   if (!isProfileComplete(profile)) {
-    redirect(`/host/billing/commande?plan=${planId}&step=infos`);
+    redirect(`/host/billing/commande?${q}&step=infos`);
   }
   if (!profile?.deliveryCarrier) {
-    redirect(`/host/billing/commande?plan=${planId}&step=livraison`);
+    redirect(`/host/billing/commande?${q}&step=livraison`);
   }
   if (profile.deliveryCarrier === "mondial_relay" && !profile.deliveryRelayId) {
-    redirect(`/host/billing/commande?plan=${planId}&step=livraison&error=relay`);
+    redirect(`/host/billing/commande?${q}&step=livraison&error=relay`);
   }
+
+  // Prix mensuel TTC correspondant à la formule + nb de box.
+  const unitAmount = priceCentsFor(planId, boxes);
+  const label =
+    planId === "multi" ? `${plan.name} — ${boxes} box` : plan.name;
 
   // Ensure a Stripe customer for this host.
   let customerId = host.stripeCustomerId;
@@ -94,21 +108,23 @@ export async function placeSubscriptionOrder(formData: FormData) {
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: customerId,
-    // Price created inline → no need to pre-create products/prices in Stripe.
+    // Prix créé à la volée (TTC) — pas de produit à pré-créer dans Stripe.
     line_items: [
       {
         quantity: 1,
         price_data: {
           currency: plan.currency,
-          unit_amount: plan.priceCents,
+          unit_amount: unitAmount,
           recurring: { interval: "month" },
-          product_data: { name: `Escale Box — ${plan.name}` },
+          product_data: { name: `Escale Box — ${label}` },
         },
       },
     ],
-    subscription_data: { metadata: { hostId: host.id, planId } },
+    subscription_data: {
+      metadata: { hostId: host.id, planId, boxes: String(boxes) },
+    },
     client_reference_id: host.id,
-    metadata: { hostId: host.id, planId },
+    metadata: { hostId: host.id, planId, boxes: String(boxes) },
     success_url: `${baseUrl}/host?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/host/billing`,
   });
@@ -130,11 +146,14 @@ export async function syncSubscriptionFromCheckout(sessionId: string) {
       session.status === "complete" &&
       session.mode === "subscription"
     ) {
+      const planId = session.metadata?.planId ?? host.subscriptionPlan;
+      const boxes = boxesFor(planId, Number(session.metadata?.boxes ?? 0));
       await prisma.host.update({
         where: { id: host.id },
         data: {
           subscriptionStatus: "active",
-          subscriptionPlan: session.metadata?.planId ?? host.subscriptionPlan,
+          subscriptionPlan: planId,
+          boxQuota: boxes,
           stripeCustomerId:
             (session.customer as string) ?? host.stripeCustomerId,
         },
@@ -170,7 +189,13 @@ export async function refreshSubscriptionStatus() {
       data: {
         subscriptionStatus: sub.status,
         ...(active && sub.metadata?.planId
-          ? { subscriptionPlan: sub.metadata.planId }
+          ? {
+              subscriptionPlan: sub.metadata.planId,
+              boxQuota: boxesFor(
+                sub.metadata.planId,
+                Number(sub.metadata?.boxes ?? 0)
+              ),
+            }
           : {}),
       },
     });

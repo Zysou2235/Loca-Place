@@ -11,8 +11,11 @@ function clean(v: FormDataEntryValue | null, max = 120): string | null {
   return s || null;
 }
 
-function planParam(formData: FormData): string {
-  return encodeURIComponent(String(formData.get("planId") ?? ""));
+/** Conserve plan + nb de box dans l'URL du tunnel. */
+function tunnelQuery(formData: FormData): string {
+  const plan = encodeURIComponent(String(formData.get("planId") ?? ""));
+  const boxes = encodeURIComponent(String(formData.get("boxes") ?? ""));
+  return `plan=${plan}&boxes=${boxes}`;
 }
 
 /** Étape 1 — coordonnées de facturation + adresse. Puis → livraison. */
@@ -49,7 +52,7 @@ export async function saveCheckoutInfos(formData: FormData) {
     },
   });
 
-  redirect(`/host/billing/commande?plan=${planParam(formData)}&step=livraison`);
+  redirect(`/host/billing/commande?${tunnelQuery(formData)}&step=livraison`);
 }
 
 /** Étape 2 — choix du transporteur (+ point relais si Mondial Relay). → paiement. */
@@ -57,17 +60,17 @@ export async function saveCheckoutDelivery(formData: FormData) {
   const host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
-  const plan = planParam(formData);
+  const q = tunnelQuery(formData);
   const carrier = String(formData.get("carrier") ?? "");
   if (!CARRIERS.includes(carrier as (typeof CARRIERS)[number])) {
-    redirect(`/host/billing/commande?plan=${plan}&step=livraison&error=carrier`);
+    redirect(`/host/billing/commande?${q}&step=livraison&error=carrier`);
   }
 
   const relayId = clean(formData.get("relayId"), 20);
   const relayLabel = clean(formData.get("relayLabel"));
 
   if (carrier === "mondial_relay" && !relayId) {
-    redirect(`/host/billing/commande?plan=${plan}&step=livraison&error=relay`);
+    redirect(`/host/billing/commande?${q}&step=livraison&error=relay`);
   }
 
   await prisma.host.update({
@@ -80,5 +83,5 @@ export async function saveCheckoutDelivery(formData: FormData) {
     },
   });
 
-  redirect(`/host/billing/commande?plan=${plan}&step=paiement`);
+  redirect(`/host/billing/commande?${q}&step=paiement`);
 }

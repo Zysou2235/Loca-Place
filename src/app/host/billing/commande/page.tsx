@@ -2,7 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
-import { getPlan, type PlanId } from "@/lib/plans";
+import {
+  getPlan,
+  boxesFor,
+  priceCentsFor,
+  type PlanId,
+} from "@/lib/plans";
+import { formatPrice } from "@/lib/money";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 import { HostShell } from "../../HostShell";
 import { placeSubscriptionOrder } from "../../billing-actions";
@@ -22,14 +28,25 @@ const CARRIER_LABEL: Record<string, string> = {
 export default async function OrderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string; step?: string; error?: string }>;
+  searchParams: Promise<{
+    plan?: string;
+    step?: string;
+    error?: string;
+    boxes?: string;
+  }>;
 }) {
   const host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
-  const { plan: planParam, step: stepParam, error } = await searchParams;
+  const { plan: planParam, step: stepParam, error, boxes: boxesParam } =
+    await searchParams;
   const plan = getPlan(planParam as PlanId);
   if (!plan) redirect("/host/billing");
+
+  const boxes = boxesFor(plan.id, Number(boxesParam ?? 0));
+  const priceLabel = formatPrice(priceCentsFor(plan.id, boxes));
+  // Suffixe à conserver dans toutes les URLs internes du tunnel.
+  const q = `plan=${plan.id}&boxes=${boxes}`;
 
   const p = await prisma.host.findUnique({
     where: { id: host.id },
@@ -76,6 +93,7 @@ export default async function OrderPage({
           {step === "infos" && (
             <InfosStep
               planId={plan.id}
+              boxes={boxes}
               defaults={{
                 companyName: p?.companyName ?? host.name ?? "",
                 siret: p?.siret ?? "",
@@ -96,6 +114,7 @@ export default async function OrderPage({
           {step === "livraison" && (
             <DeliveryStep
               planId={plan.id}
+              boxes={boxes}
               error={error}
               defaults={{
                 carrier: (p?.deliveryCarrier as "mondial_relay" | "dpd" | "chronopost") ?? "",
@@ -111,7 +130,7 @@ export default async function OrderPage({
                 Récapitulatif & paiement
               </h2>
 
-              <Recap title="Facturation" editHref={`/host/billing/commande?plan=${plan.id}&step=infos`}>
+              <Recap title="Facturation" editHref={`/host/billing/commande?${q}&step=infos`}>
                 {p?.companyName || host.name}
                 <br />
                 {p?.billingLine1}
@@ -119,7 +138,7 @@ export default async function OrderPage({
                 {p?.billingZip} {p?.billingCity}
               </Recap>
 
-              <Recap title="Livraison" editHref={`/host/billing/commande?plan=${plan.id}&step=livraison`}>
+              <Recap title="Livraison" editHref={`/host/billing/commande?${q}&step=livraison`}>
                 {CARRIER_LABEL[p?.deliveryCarrier ?? ""] ?? "—"}
                 {p?.deliveryCarrier === "mondial_relay" && p?.deliveryRelayId && (
                   <>
@@ -138,12 +157,12 @@ export default async function OrderPage({
 
               <form action={placeSubscriptionOrder} className="border-t border-black/5 pt-5">
                 <input type="hidden" name="planId" value={plan.id} />
+                <input type="hidden" name="boxes" value={boxes} />
                 <button
                   type="submit"
                   className="w-full rounded-full bg-accent px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-accent-dark"
                 >
-                  Payer {plan.price}
-                  {plan.period} →
+                  Payer {priceLabel} / mois →
                 </button>
                 <p className="mt-2 text-center text-xs text-brand/50">
                   Paiement sécurisé par Stripe. Sans engagement.
@@ -157,10 +176,13 @@ export default async function OrderPage({
         <aside className="h-fit rounded-2xl border border-black/5 bg-white p-6 shadow-card">
           <h2 className="font-display font-bold text-brand">Votre formule</h2>
           <div className="mt-3 flex items-baseline justify-between">
-            <span className="font-semibold text-brand">{plan.name}</span>
+            <span className="font-semibold text-brand">
+              {plan.name}
+              {plan.id === "multi" ? ` · ${boxes} box` : ""}
+            </span>
             <span className="font-display text-xl font-extrabold text-brand">
-              {plan.price}
-              <span className="text-sm font-medium text-brand/50">{plan.period}</span>
+              {priceLabel}
+              <span className="text-sm font-medium text-brand/50"> / mois</span>
             </span>
           </div>
           <p className="mt-1 text-sm text-brand/60">{plan.tagline}</p>

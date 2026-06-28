@@ -20,9 +20,11 @@ type Defaults = {
 
 export function InfosStep({
   planId,
+  boxes,
   defaults,
 }: {
   planId: string;
+  boxes: number;
   defaults: Defaults;
 }) {
   const [sameAsBilling, setSameAsBilling] = useState(true);
@@ -33,6 +35,7 @@ export function InfosStep({
       className="space-y-6 rounded-2xl border border-black/5 bg-white p-6 shadow-card"
     >
       <input type="hidden" name="planId" value={planId} />
+      <input type="hidden" name="boxes" value={boxes} />
 
       <div>
         <h2 className="font-display font-bold text-brand">

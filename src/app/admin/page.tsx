@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getPlan } from "@/lib/plans";
+import { getPlan, priceCentsFor } from "@/lib/plans";
 import { formatPrice } from "@/lib/money";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
@@ -104,12 +104,12 @@ export default async function AdminPage({
   const [activeHosts, gmvAgg] = await Promise.all([
     prisma.host.findMany({
       where: { subscriptionStatus: { in: ACTIVE_STATUSES } },
-      select: { subscriptionPlan: true },
+      select: { subscriptionPlan: true, boxQuota: true },
     }),
     prisma.order.aggregate({ _sum: { amountCents: true } }),
   ]);
   const mrrCents = activeHosts.reduce(
-    (n, h) => n + (getPlan(h.subscriptionPlan)?.priceCents ?? 0),
+    (n, h) => n + priceCentsFor(h.subscriptionPlan, h.boxQuota),
     0
   );
   const gmvCents = gmvAgg._sum.amountCents ?? 0;

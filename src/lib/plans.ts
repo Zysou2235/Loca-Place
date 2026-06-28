@@ -1,28 +1,32 @@
-export type PlanId = "essentiel" | "duo" | "pro";
+export type PlanId = "essentiel" | "duo" | "multi";
 
 export interface Plan {
   id: PlanId;
   name: string;
-  price: string;
+  price: string; // libellé d'affichage (TTC)
   period: string;
   tagline: string;
-  maxBoxes: number;
+  maxBoxes: number; // nb de box de base (multi = minimum, extensible)
   features: string[];
   highlighted?: boolean;
-  /** Monthly price in cents — used to create the Stripe price inline. */
-  priceCents: number;
   currency: string;
 }
+
+// Tarifs TTC, en centimes.
+export const ESSENTIEL_CENTS = 1490;
+export const DUO_CENTS = 2490;
+export const EXTRA_BOX_CENTS = 900; // par box au-delà de 2 (formule Multi)
+export const MULTI_MIN_BOXES = 3;
+export const MAX_BOXES = 50;
 
 export const PLANS: Plan[] = [
   {
     id: "essentiel",
     name: "Essentiel",
-    price: "19€",
+    price: "14,90€",
     period: "/ mois",
     tagline: "Pour un logement",
     maxBoxes: 1,
-    priceCents: 1900,
     currency: "eur",
     features: [
       "1 logement équipé",
@@ -36,11 +40,10 @@ export const PLANS: Plan[] = [
   {
     id: "duo",
     name: "Duo",
-    price: "29,90€",
+    price: "24,90€",
     period: "/ mois",
     tagline: "Pour deux logements",
     maxBoxes: 2,
-    priceCents: 2990,
     currency: "eur",
     features: [
       "2 logements équipés (2 box)",
@@ -50,17 +53,17 @@ export const PLANS: Plan[] = [
     ],
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: "49€",
+    id: "multi",
+    name: "Multi",
+    price: "dès 33,90€",
     period: "/ mois",
     tagline: "Pour les multi-propriétaires",
-    maxBoxes: 5,
+    maxBoxes: MULTI_MIN_BOXES,
     highlighted: true,
-    priceCents: 4900,
     currency: "eur",
     features: [
-      "Jusqu'à 5 logements",
+      "À partir de 3 logements",
+      "+9€ / mois par box supplémentaire",
       "Tout le plan Duo",
       "Statistiques avancées",
       "Support prioritaire",
@@ -72,7 +75,26 @@ export function getPlan(id?: string | null): Plan | undefined {
   return PLANS.find((p) => p.id === id);
 }
 
-export function maxBoxesFor(planId?: string | null): number {
-  return getPlan(planId)?.maxBoxes ?? 0;
+/** Nombre de box pour une formule (multi : choix de l'hôte, borné). */
+export function boxesFor(planId?: string | null, requested = 0): number {
+  if (planId === "essentiel") return 1;
+  if (planId === "duo") return 2;
+  if (planId === "multi") {
+    return Math.min(
+      MAX_BOXES,
+      Math.max(MULTI_MIN_BOXES, requested || MULTI_MIN_BOXES)
+    );
+  }
+  return 0;
 }
 
+/** Prix mensuel TTC (centimes) d'une formule pour un nb de box donné. */
+export function priceCentsFor(planId?: string | null, boxes = 0): number {
+  if (planId === "essentiel") return ESSENTIEL_CENTS;
+  if (planId === "duo") return DUO_CENTS;
+  if (planId === "multi") {
+    const n = boxesFor("multi", boxes);
+    return DUO_CENTS + EXTRA_BOX_CENTS * (n - 2);
+  }
+  return 0;
+}

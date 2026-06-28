@@ -425,7 +425,7 @@ function Pricing() {
   const plans = [
     {
       name: "Essentiel",
-      price: "19€",
+      price: "14,90€",
       period: "/ mois",
       tagline: "Pour un logement",
       features: [
@@ -441,7 +441,7 @@ function Pricing() {
     },
     {
       name: "Duo",
-      price: "29,90€",
+      price: "24,90€",
       period: "/ mois",
       tagline: "Pour deux logements",
       features: [
@@ -454,18 +454,18 @@ function Pricing() {
       highlighted: false,
     },
     {
-      name: "Pro",
-      price: "49€",
+      name: "Multi",
+      price: "dès 33,90€",
       period: "/ mois",
       tagline: "Pour les multi-propriétaires",
       features: [
-        "Jusqu'à 5 logements",
-        "Tout le plan Essentiel",
-        "Tableau de bord multi-sites",
+        "À partir de 3 logements",
+        "+9€ / mois par box supplémentaire",
+        "Tout le plan Duo",
         "Statistiques avancées",
         "Support prioritaire",
       ],
-      cta: "Choisir Pro",
+      cta: "Choisir Multi",
       highlighted: true,
     },
     {
