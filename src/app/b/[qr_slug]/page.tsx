@@ -16,7 +16,10 @@ export default async function BoxPage({
 
   const box = await prisma.box.findFirst({
     where: { qrSlug: qr_slug, active: true },
-    include: { selectedProduct: true },
+    include: {
+      selectedProduct: true,
+      host: { select: { stripeAccountId: true, chargesEnabled: true } },
+    },
   });
 
   if (!box) {
@@ -27,6 +30,13 @@ export default async function BoxPage({
     box.selectedProduct && box.selectedProduct.active
       ? box.selectedProduct
       : null;
+
+  // L'hôte doit pouvoir encaisser (Stripe Connect actif) pour que la vente
+  // soit autorisée — sinon l'argent n'irait pas sur son compte.
+  const hostCanReceive = Boolean(
+    box.host?.stripeAccountId && box.host?.chargesEnabled
+  );
+  const sellable = Boolean(box.accessCode && product && hostCanReceive);
 
   // Trace le scan du QR code (instantané du produit présenté), best-effort.
   await recordScan({
@@ -56,7 +66,7 @@ export default async function BoxPage({
         </p>
       </header>
 
-      {!box.accessCode || !product ? (
+      {!sellable || !product ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
           Cette boutique sera bientôt disponible. Revenez un peu plus tard&nbsp;!
         </p>

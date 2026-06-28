@@ -41,14 +41,14 @@ export async function createCheckoutSession(formData: FormData) {
 
   const host = box.host;
 
-  // Connect guard: if the host started onboarding but it isn't complete,
-  // a destination charge would fail — block the sale with a clear message.
-  if (host.stripeAccountId && !host.chargesEnabled) {
+  // L'hôte DOIT pouvoir encaisser (Stripe Connect actif) : sinon l'argent
+  // n'irait pas sur son compte. On bloque toute vente tant que ce n'est pas le cas.
+  const canReceive = Boolean(host.stripeAccountId && host.chargesEnabled);
+  if (!canReceive) {
     throw new Error(
       "Cette boutique n'est pas encore prête à encaisser. Réessayez bientôt."
     );
   }
-  const canReceive = Boolean(host.stripeAccountId && host.chargesEnabled);
 
   const baseUrl = await getBaseUrl();
   const session = await stripe.checkout.sessions.create({
