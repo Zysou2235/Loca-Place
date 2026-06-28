@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { deliverBoxCode } from "@/lib/orders";
+import { boxesFor } from "@/lib/plans";
 
 // Stripe needs the raw request body to verify the signature.
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
               data: {
                 subscriptionStatus: "active",
                 subscriptionPlan: planId,
+                boxQuota: boxesFor(planId, Number(session.metadata?.boxes ?? 0)),
                 stripeCustomerId:
                   (session.customer as string) ?? undefined,
               },
@@ -64,7 +66,12 @@ export async function POST(req: NextRequest) {
           where: { stripeCustomerId: customerId },
           data: {
             subscriptionStatus: sub.status,
-            ...(planId ? { subscriptionPlan: planId } : {}),
+            ...(planId
+              ? {
+                  subscriptionPlan: planId,
+                  boxQuota: boxesFor(planId, Number(sub.metadata?.boxes ?? 0)),
+                }
+              : {}),
           },
         });
         break;

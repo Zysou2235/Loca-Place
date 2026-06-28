@@ -3,7 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
-import { getPlan, maxBoxesFor } from "@/lib/plans";
+import { getPlan } from "@/lib/plans";
 import { isEffectiveAdmin } from "@/lib/admin";
 import { HostShell } from "./HostShell";
 import { createBox, deleteBox } from "./box-actions";
@@ -48,7 +48,7 @@ export default async function HostDashboard({
   const subscribed =
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";
-  const limit = maxBoxesFor(host.subscriptionPlan);
+  const limit = host.boxQuota;
   const canCreate = subscribed && boxes.length < limit;
   const justSubscribed = Boolean(session_id) && subscribed;
 

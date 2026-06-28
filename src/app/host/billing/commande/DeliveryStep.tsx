@@ -23,10 +23,12 @@ const OPTIONS: {
 
 export function DeliveryStep({
   planId,
+  boxes,
   defaults,
   error,
 }: {
   planId: string;
+  boxes: number;
   defaults: { carrier: Carrier | ""; relayId: string; relayLabel: string };
   error?: string;
 }) {
@@ -38,6 +40,7 @@ export function DeliveryStep({
       className="space-y-5 rounded-2xl border border-black/5 bg-white p-6 shadow-card"
     >
       <input type="hidden" name="planId" value={planId} />
+      <input type="hidden" name="boxes" value={boxes} />
 
       <h2 className="font-display font-bold text-brand">
         Choisissez votre transporteur
@@ -120,7 +123,7 @@ export function DeliveryStep({
 
       <div className="flex items-center justify-between">
         <a
-          href={`/host/billing/commande?plan=${encodeURIComponent(planId)}&step=infos`}
+          href={`/host/billing/commande?plan=${encodeURIComponent(planId)}&boxes=${boxes}&step=infos`}
           className="text-sm font-medium text-brand/60 hover:text-brand"
         >
           ← Retour

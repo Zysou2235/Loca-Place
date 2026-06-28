@@ -134,6 +134,7 @@ export async function getCurrentHost() {
       stripeCustomerId: true,
       subscriptionStatus: true,
       subscriptionPlan: true,
+      boxQuota: true,
     },
   });
   if (!host || host.tokenVersion !== data.v) return null;
