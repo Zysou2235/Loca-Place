@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentHost } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
 import { HostShell } from "../HostShell";
-import { openBillingPortal } from "../billing-actions";
 import { MultiPlanCard } from "./MultiPlanCard";
+import { ChangePlanButton } from "./ChangePlanButton";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,12 @@ export default async function BillingPage() {
           // La formule Multi a son propre composant (sélecteur de box + prix dynamique).
           if (plan.id === "multi") {
             return (
-              <MultiPlanCard key={plan.id} current={current} subscribed={subscribed} />
+              <MultiPlanCard
+                key={plan.id}
+                current={current}
+                currentBoxes={host.boxQuota ?? 0}
+                subscribed={subscribed}
+              />
             );
           }
           return (
@@ -88,20 +93,13 @@ export default async function BillingPage() {
                   Formule actuelle
                 </div>
               ) : subscribed ? (
-                // Déjà abonné : on passe par le portail Stripe pour changer de
-                // formule (évite de créer une 2e souscription = double facturation).
-                <form action={openBillingPortal} className="mt-6">
-                  <button
-                    type="submit"
-                    className={`w-full rounded-full px-5 py-3 text-center font-semibold transition ${
-                      plan.highlighted
-                        ? "bg-accent text-white hover:bg-accent-dark"
-                        : "bg-brand text-white hover:bg-brand-dark"
-                    }`}
-                  >
-                    Changer pour cette formule
-                  </button>
-                </form>
+                // Déjà abonné : changement de formule en place via l'API
+                // Stripe (proration automatique).
+                <ChangePlanButton
+                  planId={plan.id}
+                  planName={plan.name}
+                  highlighted={plan.highlighted}
+                />
               ) : (
                 <Link
                   href={`/host/billing/commande?plan=${plan.id}`}

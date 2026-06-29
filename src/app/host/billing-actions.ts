@@ -135,6 +135,81 @@ export async function placeSubscriptionOrder(formData: FormData) {
   redirect(session.url);
 }
 
+/**
+ * Modifie la formule d'un abonnement déjà actif (Essentiel ↔ Duo ↔ Multi N
+ * boxes). Stripe gère le prorata automatiquement (`proration_behavior:
+ * create_prorations`) — l'hôte est crédité/débité de la différence sur la
+ * prochaine facture.
+ *
+ * Le portail Stripe ne sait pas changer nos formules (on utilise `price_data`
+ * en inline, pas un catalogue de Prix Stripe), donc on fait l'update à la main.
+ */
+export async function changeSubscriptionPlan(formData: FormData) {
+  assertStripe();
+  const host = await getCurrentHost();
+  if (!host) throw new Error("Non authentifié.");
+  if (!host.stripeCustomerId) {
+    redirect("/host?billingError=nocustomer");
+  }
+
+  const newPlanId = String(formData.get("planId") ?? "") as PlanId;
+  const newPlan = getPlan(newPlanId);
+  if (!newPlan) throw new Error("Formule inconnue.");
+
+  const newBoxes = boxesFor(newPlanId, Number(formData.get("boxes") ?? 0));
+  const newAmount = priceCentsFor(newPlanId, newBoxes);
+  const label =
+    newPlanId === "multi" ? `${newPlan.name} — ${newBoxes} box` : newPlan.name;
+
+  // Récupère l'abonnement actif courant.
+  const subs = await stripe.subscriptions.list({
+    customer: host!.stripeCustomerId!,
+    status: "all",
+    limit: 1,
+  });
+  const sub = subs.data[0];
+  if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
+    throw new Error("Aucun abonnement actif à modifier.");
+  }
+  const item = sub.items.data[0];
+  if (!item) throw new Error("Aucun item dans l'abonnement.");
+
+  // L'API subscriptions.update veut un Product ID (pas product_data inline
+  // comme pour Checkout). On crée donc le Produit à la volée.
+  const product = await stripe.products.create({
+    name: `Escale Box — ${label}`,
+    metadata: { planId: newPlanId, boxes: String(newBoxes) },
+  });
+
+  // Remplace l'item courant par un nouveau prix. Stripe calcule
+  // automatiquement les prorations.
+  await stripe.subscriptions.update(sub.id, {
+    items: [
+      {
+        id: item.id,
+        price_data: {
+          currency: newPlan.currency,
+          unit_amount: newAmount,
+          recurring: { interval: "month" },
+          product: product.id,
+        },
+      },
+    ],
+    proration_behavior: "create_prorations",
+    metadata: { hostId: host!.id, planId: newPlanId, boxes: String(newBoxes) },
+  });
+
+  // Le webhook `customer.subscription.updated` mettra à jour boxQuota et
+  // provisionnera les box manquantes. En attendant, on met à jour la DB
+  // localement pour que la prochaine page reflète le changement.
+  await prisma.host.update({
+    where: { id: host!.id },
+    data: { subscriptionPlan: newPlanId, boxQuota: newBoxes },
+  });
+
+  redirect("/host?planChanged=1");
+}
+
 /** Reconcile subscription status after returning from Checkout (fallback to webhook). */
 export async function syncSubscriptionFromCheckout(sessionId: string) {
   if (!process.env.STRIPE_SECRET_KEY) return;

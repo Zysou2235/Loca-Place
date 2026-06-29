@@ -10,18 +10,27 @@ import {
   getPlan,
 } from "@/lib/plans";
 import { formatPrice } from "@/lib/money";
-import { openBillingPortal } from "../billing-actions";
+import { changeSubscriptionPlan } from "../billing-actions";
 
 export function MultiPlanCard({
   current,
+  currentBoxes,
   subscribed,
 }: {
+  /** Vrai si l'hôte est actuellement sur la formule Multi (peu importe le nombre de box). */
   current: boolean;
+  /** Nombre actuel de box dans l'abonnement (pour pré-remplir le sélecteur). */
+  currentBoxes: number;
   subscribed: boolean;
 }) {
   const plan = getPlan("multi")!;
-  const [boxes, setBoxes] = useState(MULTI_MIN_BOXES);
+  const initialBoxes = current && currentBoxes >= MULTI_MIN_BOXES
+    ? Math.min(MAX_BOXES, currentBoxes)
+    : MULTI_MIN_BOXES;
+  const [boxes, setBoxes] = useState(initialBoxes);
   const price = priceCentsFor("multi", boxes);
+  // L'hôte est sur Multi avec le même nombre de box → rien à changer.
+  const sameAsCurrent = current && boxes === currentBoxes;
 
   const dec = () => setBoxes((b) => Math.max(MULTI_MIN_BOXES, b - 1));
   const inc = () => setBoxes((b) => Math.min(MAX_BOXES, b + 1));
@@ -70,17 +79,32 @@ export function MultiPlanCard({
         ))}
       </ul>
 
-      {current ? (
+      {sameAsCurrent ? (
         <div className="mt-6 rounded-full bg-green-100 px-5 py-3 text-center text-sm font-semibold text-green-700">
           Formule actuelle
         </div>
       ) : subscribed ? (
-        <form action={openBillingPortal} className="mt-6">
+        <form
+          action={changeSubscriptionPlan}
+          onSubmit={(e) => {
+            const verb = current ? "Modifier le nombre de box à" : "Passer à la formule Multi avec";
+            if (
+              !window.confirm(
+                `${verb} ${boxes} box ? La différence sera ajustée au prorata sur votre prochaine facture Stripe.`
+              )
+            ) {
+              e.preventDefault();
+            }
+          }}
+          className="mt-6"
+        >
+          <input type="hidden" name="planId" value="multi" />
+          <input type="hidden" name="boxes" value={boxes} />
           <button
             type="submit"
             className="w-full rounded-full bg-accent px-5 py-3 text-center font-semibold text-white transition hover:bg-accent-dark"
           >
-            Changer pour cette formule
+            {current ? `Passer à ${boxes} box` : "Changer pour cette formule"}
           </button>
         </form>
       ) : (

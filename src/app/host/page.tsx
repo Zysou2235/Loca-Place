@@ -26,13 +26,15 @@ export default async function HostDashboard({
     billingError?: string;
     msg?: string;
     connect?: string;
+    planChanged?: string;
   }>;
 }) {
   let host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   // Reconcile state after Stripe redirects.
-  const { session_id, billingError, msg, connect } = await searchParams;
+  const { session_id, billingError, msg, connect, planChanged } =
+    await searchParams;
   if (session_id) {
     await syncSubscriptionFromCheckout(session_id);
   }
@@ -87,6 +89,23 @@ export default async function HostDashboard({
       <p className="mt-1 text-brand/60">
         Pilotez vos box, vos produits et votre abonnement.
       </p>
+
+      {planChanged && (
+        <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+          <h2 className="font-display text-sm font-bold text-green-800">
+            ✅ Votre formule a été modifiée
+          </h2>
+          <p className="mt-1 text-sm text-green-700">
+            La différence sera appliquée au prorata sur votre prochaine facture.
+            {host.boxQuota > 0 && (
+              <>
+                {" "}
+                Votre quota est maintenant de {host.boxQuota} box.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {justSubscribed && (
         <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
