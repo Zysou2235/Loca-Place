@@ -19,6 +19,10 @@ export async function clientIp(): Promise<string> {
 
 /** true = autorisé, false = quota dépassé. */
 export function rateLimit(key: string, limit: number, windowMs: number): boolean {
+  // Bypass explicite pour les suites Playwright qui itèrent rapidement.
+  // Ne JAMAIS activer en prod — la variable n'est lue qu'en environnement
+  // de test local (.env.test).
+  if (process.env.SKIP_RATE_LIMIT === "1") return true;
   const now = Date.now();
 
   // Nettoyage opportuniste pour éviter une croissance non bornée.

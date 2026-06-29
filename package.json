@@ -25,6 +25,7 @@
     "stripe": "^17.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.7",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.7",

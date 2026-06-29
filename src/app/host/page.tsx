@@ -229,9 +229,19 @@ export default async function HostDashboard({
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {boxes.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center text-sm text-brand/50 sm:col-span-2">
-            {subscribed
-              ? "Vos box seront créées automatiquement. Rechargez la page si elles n'apparaissent pas."
-              : "Activez un abonnement pour recevoir vos box."}
+            {subscribed ? (
+              "Vos box seront créées automatiquement. Rechargez la page si elles n'apparaissent pas."
+            ) : (
+              <>
+                Activez un abonnement pour recevoir vos box.{" "}
+                <Link
+                  href="/host/billing"
+                  className="font-semibold text-accent hover:underline"
+                >
+                  Voir les formules
+                </Link>
+              </>
+            )}
           </p>
         ) : (
           boxes.map((box) => (
@@ -312,14 +322,6 @@ export default async function HostDashboard({
         )}
       </div>
 
-      {!subscribed && (
-        <p className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-4 text-center text-sm text-brand/60">
-          Activez un abonnement pour recevoir vos box.{" "}
-          <Link href="/host/billing" className="font-semibold text-accent">
-            Voir les formules
-          </Link>
-        </p>
-      )}
     </HostShell>
   );
 }
