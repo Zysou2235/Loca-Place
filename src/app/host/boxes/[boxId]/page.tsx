@@ -122,7 +122,7 @@ export default async function ManageBoxPage({
         </div>
       )}
 
-      {/* Renommer le logement (nom + ville/adresse) */}
+      {/* Renommer la box (nom + ville/adresse) */}
       <RenameBoxForm
         boxId={box.id}
         defaultName={box.name}

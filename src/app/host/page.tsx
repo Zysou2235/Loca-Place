@@ -167,7 +167,7 @@ export default async function HostDashboard({
             <>
               <Badge ok>{plan ? plan.name : "Actif"}</Badge>
               <p className="mt-2 text-sm text-brand/60">
-                {boxes.length} / {limit} logement(s) utilisé(s).
+                {boxes.length} / {limit} box utilisée{boxes.length > 1 ? "s" : ""}.
               </p>
               <form action={openBillingPortal} className="mt-4">
                 <SmallButton>Gérer mon abonnement</SmallButton>

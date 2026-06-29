@@ -4,7 +4,7 @@ import { useState } from "react";
 import { renameBox } from "../../box-actions";
 
 /**
- * Formulaire repliable de renommage du logement (nom + ville/adresse).
+ * Formulaire repliable de renommage de la box (nom + ville/adresse).
  * Replié par défaut pour ne pas alourdir la page de gestion de box.
  */
 export function RenameBoxForm({
@@ -25,7 +25,7 @@ export function RenameBoxForm({
         onClick={() => setOpen(true)}
         className="mt-4 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-brand transition hover:bg-black/5"
       >
-        ✏️ Renommer le logement
+        ✏️ Renommer la box
       </button>
     );
   }
@@ -38,7 +38,7 @@ export function RenameBoxForm({
       <input type="hidden" name="boxId" value={boxId} />
 
       <label className="block text-sm font-medium text-brand/80">
-        Nom du logement
+        Nom de la box
         <input
           name="name"
           defaultValue={defaultName}
