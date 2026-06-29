@@ -20,13 +20,17 @@ export const dynamic = "force-dynamic";
 export default async function HostDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string; billingError?: string }>;
+  searchParams: Promise<{
+    session_id?: string;
+    billingError?: string;
+    msg?: string;
+  }>;
 }) {
   let host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   // Reconcile state after Stripe redirects.
-  const { session_id, billingError } = await searchParams;
+  const { session_id, billingError, msg } = await searchParams;
   if (session_id) {
     await syncSubscriptionFromCheckout(session_id);
   }
@@ -103,6 +107,11 @@ export default async function HostDashboard({
             </a>
             .
           </p>
+          {msg && isEffectiveAdmin(host) && (
+            <pre className="mt-3 max-w-full overflow-x-auto rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
+              {msg}
+            </pre>
+          )}
         </div>
       )}
 

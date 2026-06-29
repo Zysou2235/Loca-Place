@@ -56,9 +56,11 @@ export async function placeSubscriptionOrder(formData: FormData) {
     host.subscriptionStatus === "trialing"
   ) {
     if (host.stripeCustomerId) {
-      const url = await tryCreatePortalSession(host.stripeCustomerId);
-      if (url) redirect(url);
-      redirect("/host?billingError=portal");
+      const result = await tryCreatePortalSession(host.stripeCustomerId);
+      if ("url" in result) redirect(result.url);
+      redirect(
+        `/host?billingError=portal&msg=${encodeURIComponent(result.error)}`
+      );
     }
     redirect("/host");
   }
@@ -207,26 +209,29 @@ export async function openBillingPortal() {
   const host = await getCurrentHost();
   if (!host?.stripeCustomerId) redirect("/host?billingError=nocustomer");
 
-  const url = await tryCreatePortalSession(host!.stripeCustomerId!);
-  if (!url) redirect("/host?billingError=portal");
-  redirect(url);
+  const result = await tryCreatePortalSession(host!.stripeCustomerId!);
+  if ("url" in result) redirect(result.url);
+  redirect(`/host?billingError=portal&msg=${encodeURIComponent(result.error)}`);
 }
 
 /**
- * Crée une session du portail client Stripe. Renvoie `null` (au lieu de jeter)
+ * Crée une session du portail client Stripe. Renvoie `{ error }` (au lieu de jeter)
  * si le portail n'est pas encore configuré côté Dashboard Stripe — l'appelant
  * peut alors rediriger vers /host avec un message clair.
  */
-async function tryCreatePortalSession(customerId: string): Promise<string | null> {
+async function tryCreatePortalSession(
+  customerId: string
+): Promise<{ url: string } | { error: string }> {
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${await getBaseUrl()}/host`,
     });
-    return session.url;
+    return { url: session.url };
   } catch (err) {
-    console.error("[stripe] billingPortal.sessions.create failed:", err);
-    return null;
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[stripe] billingPortal.sessions.create failed:", msg);
+    return { error: msg.slice(0, 300) };
   }
 }
 
