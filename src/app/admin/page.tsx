@@ -5,7 +5,6 @@ import { getPlan, priceCentsFor } from "@/lib/plans";
 import { formatPrice } from "@/lib/money";
 import { requireAdmin } from "@/lib/admin";
 import { logout } from "../host/auth-actions";
-import { resetStripeIdentifiers } from "../host/billing-actions";
 import {
   markBoxShipped,
   unmarkBoxShipped,
@@ -171,26 +170,6 @@ export default async function AdminPage({
           <Stat label="MRR (récurrent)" value={formatPrice(mrrCents)} />
           <Stat label="Volume de ventes" value={formatPrice(gmvCents)} />
         </div>
-        {/* Outils maintenance admin */}
-        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-red-700">
-            Outils admin
-          </h2>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <form action={resetStripeIdentifiers}>
-              <button
-                type="submit"
-                className="rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
-              >
-                Réinitialiser mes identifiants Stripe (mon compte)
-              </button>
-            </form>
-            <span className="text-xs text-red-700/70">
-              À utiliser après un changement de compte/clé Stripe (ex. test→live).
-            </span>
-          </div>
-        </div>
-
         <p className="mt-2 text-right text-xs text-brand/40">
           {totalBoxes} box affichées ·{" "}
           <a href="/admin/hosts/export" className="font-medium text-accent hover:underline">
