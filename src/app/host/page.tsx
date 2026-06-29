@@ -12,6 +12,7 @@ import {
   openBillingPortal,
   refreshConnectStatus,
   refreshSubscriptionStatus,
+  resetStripeIdentifiers,
   syncSubscriptionFromCheckout,
 } from "./billing-actions";
 
@@ -108,9 +109,21 @@ export default async function HostDashboard({
             .
           </p>
           {msg && isEffectiveAdmin(host) && (
-            <pre className="mt-3 max-w-full overflow-x-auto rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
-              {msg}
-            </pre>
+            <>
+              <pre className="mt-3 max-w-full overflow-x-auto rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
+                {msg}
+              </pre>
+              {msg.includes("No such customer") && (
+                <form action={resetStripeIdentifiers} className="mt-3">
+                  <button
+                    type="submit"
+                    className="rounded-full border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
+                  >
+                    Réinitialiser mes identifiants Stripe (admin)
+                  </button>
+                </form>
+              )}
+            </>
           )}
         </div>
       )}

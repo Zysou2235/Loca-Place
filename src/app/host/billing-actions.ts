@@ -12,6 +12,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
+import { isEffectiveAdmin } from "@/lib/admin";
 
 function assertStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -233,6 +234,31 @@ async function tryCreatePortalSession(
     console.error("[stripe] billingPortal.sessions.create failed:", msg);
     return { error: msg.slice(0, 300) };
   }
+}
+
+/**
+ * Admin-only : efface les identifiants Stripe (customer/account) du compte
+ * courant. Utile quand on bascule entre les comptes Stripe (ex. test → live)
+ * et que les anciens IDs ne sont plus valides (`No such customer`).
+ */
+export async function resetStripeIdentifiers() {
+  const host = await getCurrentHost();
+  if (!host) redirect("/host/login");
+  if (!isEffectiveAdmin(host!)) throw new Error("Action réservée à l'administrateur.");
+
+  await prisma.host.update({
+    where: { id: host!.id },
+    data: {
+      stripeCustomerId: null,
+      stripeAccountId: null,
+      subscriptionStatus: "none",
+      subscriptionPlan: null,
+      boxQuota: 0,
+      chargesEnabled: false,
+    },
+  });
+
+  redirect("/host/billing");
 }
 
 /* -------------------------------------------------- Stripe Connect */
