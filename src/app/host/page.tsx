@@ -20,13 +20,13 @@ export const dynamic = "force-dynamic";
 export default async function HostDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; billingError?: string }>;
 }) {
   let host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   // Reconcile state after Stripe redirects.
-  const { session_id } = await searchParams;
+  const { session_id, billingError } = await searchParams;
   if (session_id) {
     await syncSubscriptionFromCheckout(session_id);
   }
@@ -83,6 +83,25 @@ export default async function HostDashboard({
           </p>
           <p className="mt-1 text-xs text-green-700/70">
             Un reçu de paiement vous est envoyé par Stripe.
+          </p>
+        </div>
+      )}
+
+      {billingError === "portal" && (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-display text-sm font-bold text-amber-800">
+            La gestion d&apos;abonnement est momentanément indisponible
+          </h2>
+          <p className="mt-1 text-sm text-amber-700">
+            Veuillez réessayer dans quelques instants. Si le problème persiste,
+            écrivez-nous à{" "}
+            <a
+              href="mailto:contact@escalebox.fr"
+              className="font-semibold underline"
+            >
+              contact@escalebox.fr
+            </a>
+            .
           </p>
         </div>
       )}

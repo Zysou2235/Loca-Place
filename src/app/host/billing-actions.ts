@@ -56,11 +56,9 @@ export async function placeSubscriptionOrder(formData: FormData) {
     host.subscriptionStatus === "trialing"
   ) {
     if (host.stripeCustomerId) {
-      const portal = await stripe.billingPortal.sessions.create({
-        customer: host.stripeCustomerId,
-        return_url: `${await getBaseUrl()}/host`,
-      });
-      redirect(portal.url);
+      const url = await tryCreatePortalSession(host.stripeCustomerId);
+      if (url) redirect(url);
+      redirect("/host?billingError=portal");
     }
     redirect("/host");
   }
@@ -207,13 +205,29 @@ export async function refreshSubscriptionStatus() {
 export async function openBillingPortal() {
   assertStripe();
   const host = await getCurrentHost();
-  if (!host?.stripeCustomerId) throw new Error("Aucun abonnement à gérer.");
+  if (!host?.stripeCustomerId) redirect("/host?billingError=nocustomer");
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: host.stripeCustomerId,
-    return_url: `${await getBaseUrl()}/host`,
-  });
-  redirect(session.url);
+  const url = await tryCreatePortalSession(host!.stripeCustomerId!);
+  if (!url) redirect("/host?billingError=portal");
+  redirect(url);
+}
+
+/**
+ * Crée une session du portail client Stripe. Renvoie `null` (au lieu de jeter)
+ * si le portail n'est pas encore configuré côté Dashboard Stripe — l'appelant
+ * peut alors rediriger vers /host avec un message clair.
+ */
+async function tryCreatePortalSession(customerId: string): Promise<string | null> {
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${await getBaseUrl()}/host`,
+    });
+    return session.url;
+  } catch (err) {
+    console.error("[stripe] billingPortal.sessions.create failed:", err);
+    return null;
+  }
 }
 
 /* -------------------------------------------------- Stripe Connect */
