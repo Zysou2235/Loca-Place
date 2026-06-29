@@ -62,7 +62,7 @@ export default async function HostDashboard({
   const justSubscribed = Boolean(session_id) && subscribed;
 
   return (
-    <HostShell hostName={host.name}>
+    <HostShell hostName={host.name} back={false}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold text-brand">
           Bonjour {host.name.split(" ")[0]} 👋
