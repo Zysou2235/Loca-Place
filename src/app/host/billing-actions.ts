@@ -285,19 +285,27 @@ export async function connectOnboard() {
   const baseUrl = await getBaseUrl();
   const link = await stripe.accountLinks.create({
     account: accountId,
-    refresh_url: `${baseUrl}/host`,
-    return_url: `${baseUrl}/host`,
+    // refresh_url : Stripe y renvoie l'hôte si le lien d'onboarding a expiré ;
+    // on regénère alors un nouveau lien.
+    refresh_url: `${baseUrl}/host/connect/refresh`,
+    // return_url : retour après onboarding. Le query param ?connect=return
+    // force le rafraîchissement immédiat du statut (sinon le rate-limit
+    // anti-martèlement de 10 min empêche la mise à jour de chargesEnabled).
+    return_url: `${baseUrl}/host?connect=return`,
     type: "account_onboarding",
   });
   redirect(link.url);
 }
 
-/** Refresh the host's Connect payout status from Stripe. */
-export async function refreshConnectStatus() {
+/**
+ * Refresh the host's Connect payout status from Stripe.
+ * `force=true` contourne le rate-limit (utilisé au retour d'onboarding).
+ */
+export async function refreshConnectStatus(force = false) {
   if (!process.env.STRIPE_SECRET_KEY) return;
   const host = await getCurrentHost();
   if (!host?.stripeAccountId) return;
-  if (!shouldRefresh(`acct:${host.id}`)) return;
+  if (!force && !shouldRefresh(`acct:${host.id}`)) return;
   try {
     const account = await stripe.accounts.retrieve(host.stripeAccountId);
     await prisma.host.update({

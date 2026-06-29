@@ -25,18 +25,22 @@ export default async function HostDashboard({
     session_id?: string;
     billingError?: string;
     msg?: string;
+    connect?: string;
   }>;
 }) {
   let host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   // Reconcile state after Stripe redirects.
-  const { session_id, billingError, msg } = await searchParams;
+  const { session_id, billingError, msg, connect } = await searchParams;
   if (session_id) {
     await syncSubscriptionFromCheckout(session_id);
   }
   await refreshSubscriptionStatus();
-  await refreshConnectStatus();
+  // Au retour d'onboarding Stripe Connect, on force le refresh (sinon le
+  // rate-limit anti-martèlement de 10 min empêche la mise à jour de
+  // chargesEnabled, et le dashboard reste sur "À configurer").
+  await refreshConnectStatus(connect === "return");
   host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
