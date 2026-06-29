@@ -7,6 +7,7 @@ import { getPlan } from "@/lib/plans";
 import { isEffectiveAdmin } from "@/lib/admin";
 import { provisionBoxesForHost } from "@/lib/box-provisioning";
 import { HostShell } from "./HostShell";
+import { BoxQuickActions } from "./BoxQuickActions";
 import {
   connectOnboard,
   openBillingPortal,
@@ -248,16 +249,9 @@ export default async function HostDashboard({
                 aria-label={`Gérer ${box.name}`}
                 className="absolute inset-0 rounded-2xl"
               />
-              {!box.active ? (
-                <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
-                  Désactivée
-                </span>
-              ) : !box.selectedProduct ? (
-                <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                  {box._count.orders > 0 ? "Vide" : "Disponible"}
-                </span>
-              ) : null}
-              <div className="pointer-events-none flex items-center gap-4">
+              {/* Bouton d'action rapide (désactiver/réactiver) — top-right */}
+              <BoxQuickActions boxId={box.id} active={box.active} />
+              <div className="pointer-events-none flex items-center gap-4 pr-10">
                 <Image
                   src="/escale-box-logo.png"
                   alt=""
@@ -266,8 +260,19 @@ export default async function HostDashboard({
                   className="h-12 w-12 shrink-0 object-contain"
                 />
                 <div className="min-w-0">
-                  <div className="truncate font-display font-bold text-brand">
-                    {box.name}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate font-display font-bold text-brand">
+                      {box.name}
+                    </span>
+                    {!box.active ? (
+                      <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
+                        Désactivée
+                      </span>
+                    ) : !box.selectedProduct ? (
+                      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                        {box._count.orders > 0 ? "Vide" : "Disponible"}
+                      </span>
+                    ) : null}
                   </div>
                   {box.location && (
                     <div className="truncate text-sm text-brand/50">

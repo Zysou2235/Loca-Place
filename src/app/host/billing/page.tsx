@@ -8,13 +8,24 @@ import { ChangePlanButton } from "./ChangePlanButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    error?: string;
+    need?: string;
+    active?: string;
+    newBoxes?: string;
+  }>;
+}) {
   const host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   const subscribed =
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";
+
+  const { error, need, active, newBoxes } = await searchParams;
 
   return (
     <HostShell hostName={host.name}>
@@ -25,6 +36,23 @@ export default async function BillingPage() {
         Sans engagement, résiliable à tout moment. 0% de commission sur vos
         ventes.
       </p>
+
+      {error === "tooManyActive" && (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-display text-sm font-bold text-amber-800">
+            Vous devez désactiver {need} box avant ce changement
+          </h2>
+          <p className="mt-1 text-sm text-amber-700">
+            Vous avez actuellement {active} box actives mais la formule
+            choisie n&apos;en autorise que {newBoxes}. Désactivez les box que
+            vous n&apos;utilisez plus depuis votre{" "}
+            <Link href="/host" className="font-semibold underline">
+              tableau de bord
+            </Link>
+            , puis revenez ici pour changer de formule.
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PLANS.map((plan) => {

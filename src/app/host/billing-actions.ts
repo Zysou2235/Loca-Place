@@ -174,6 +174,16 @@ export async function changeSubscriptionPlan(formData: FormData) {
   const item = sub.items.data[0];
   if (!item) throw new Error("Aucun item dans l'abonnement.");
 
+  // Garde-fou : interdire le downgrade si l'hôte a plus de box actives que
+  // le nouveau quota. Il doit en désactiver assez d'abord.
+  const activeCount = await prisma.box.count({
+    where: { hostId: host!.id, active: true },
+  });
+  if (activeCount > newBoxes) {
+    const need = activeCount - newBoxes;
+    redirect(`/host/billing?error=tooManyActive&need=${need}&active=${activeCount}&newBoxes=${newBoxes}`);
+  }
+
   // L'API subscriptions.update veut un Product ID (pas product_data inline
   // comme pour Checkout). On crée donc le Produit à la volée.
   const product = await stripe.products.create({
