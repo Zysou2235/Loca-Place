@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 import { isEffectiveAdmin } from "@/lib/admin";
+import { provisionBoxesForHost } from "@/lib/box-provisioning";
 import { HostShell } from "./HostShell";
 import {
   connectOnboard,
@@ -42,6 +43,15 @@ export default async function HostDashboard({
   await refreshConnectStatus(connect === "return");
   host = await getCurrentHost();
   if (!host) redirect("/host/login");
+
+  // Filet de sécurité : provisionne les box manquantes pour les abonnés qui
+  // se sont inscrits avant l'arrivée de la création auto (idempotent).
+  const subActive =
+    host.subscriptionStatus === "active" ||
+    host.subscriptionStatus === "trialing";
+  if (subActive && host.boxQuota > 0) {
+    await provisionBoxesForHost(host.id, host.boxQuota);
+  }
 
   const boxes = await prisma.box.findMany({
     where: { hostId: host.id },
@@ -183,13 +193,25 @@ export default async function HostDashboard({
 
       {/* Boxes */}
       <div className="mt-10 flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold text-brand">Mes box</h2>
+        <h2 className="font-display text-xl font-bold text-brand">
+          Mes box{" "}
+          {subscribed && (
+            <span className="ml-1 text-sm font-medium text-brand/40">
+              {boxes.length}/{limit}
+            </span>
+          )}
+        </h2>
+        <p className="text-xs text-brand/40">
+          Cliquez sur une box pour la renommer ou y attribuer un produit
+        </p>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {boxes.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center text-sm text-brand/50 sm:col-span-2">
-            Aucune box pour le moment.
+            {subscribed
+              ? "Vos box seront créées automatiquement. Rechargez la page si elles n'apparaissent pas."
+              : "Activez un abonnement pour recevoir vos box."}
           </p>
         ) : (
           boxes.map((box) => (
@@ -203,6 +225,11 @@ export default async function HostDashboard({
                 aria-label={`Gérer ${box.name}`}
                 className="absolute inset-0 rounded-2xl"
               />
+              {!box.selectedProduct && (
+                <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                  Disponible
+                </span>
+              )}
               <div className="pointer-events-none flex items-center gap-4">
                 <Image
                   src="/escale-box-logo.png"
@@ -223,7 +250,7 @@ export default async function HostDashboard({
                   <div className="mt-0.5 text-xs text-brand/40">
                     {box.selectedProduct
                       ? `Article : ${box.selectedProduct.name}`
-                      : "Aucun article sélectionné"}
+                      : "À attribuer — cliquez pour configurer"}
                   </div>
                 </div>
                 <span className="ml-auto shrink-0 text-brand/30 transition group-hover:text-accent">
@@ -249,12 +276,6 @@ export default async function HostDashboard({
         )}
       </div>
 
-      {subscribed && boxes.length < limit && (
-        <p className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-4 text-center text-sm text-brand/60">
-          Vos {limit - boxes.length} box restante(s) seront provisionnée(s)
-          automatiquement. Si elles n&apos;apparaissent pas, rechargez la page.
-        </p>
-      )}
       {!subscribed && (
         <p className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-4 text-center text-sm text-brand/60">
           Activez un abonnement pour recevoir vos box.{" "}
