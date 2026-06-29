@@ -108,7 +108,7 @@ export default async function ManageBoxPage({
           <p className="mt-1">
             Le QR code et le code du cadenas sont conservés. Vous pouvez la
             réactiver, éventuellement après l&apos;avoir renommée pour
-            l&apos;attribuer à un autre logement.
+            l&apos;attribuer à une autre adresse.
           </p>
           <form action={reactivateBox} className="mt-3">
             <input type="hidden" name="boxId" value={box.id} />
@@ -417,7 +417,7 @@ export default async function ManageBoxPage({
           <p className="mt-1 text-sm text-red-700/80">
             Met la page voyageur hors ligne sans supprimer la box. Le QR code
             et le code du cadenas restent valides : vous pourrez la réactiver
-            plus tard (par exemple sur un autre logement).
+            plus tard (par exemple à une autre adresse).
           </p>
           <DeactivateBoxForm boxId={box.id} />
         </div>

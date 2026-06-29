@@ -25,7 +25,7 @@ export const PLANS: Plan[] = [
     name: "Essentiel",
     price: "14,90€",
     period: "/ mois",
-    tagline: "Pour une box",
+    tagline: "Pour un logement",
     maxBoxes: 1,
     currency: "eur",
     features: [
@@ -42,7 +42,7 @@ export const PLANS: Plan[] = [
     name: "Duo",
     price: "24,90€",
     period: "/ mois",
-    tagline: "Pour deux box",
+    tagline: "Pour deux logements",
     maxBoxes: 2,
     currency: "eur",
     features: [
@@ -57,7 +57,7 @@ export const PLANS: Plan[] = [
     name: "Multi",
     price: "dès 33,90€",
     period: "/ mois",
-    tagline: "Pour plusieurs box",
+    tagline: "Pour les multi-propriétaires",
     maxBoxes: MULTI_MIN_BOXES,
     highlighted: true,
     currency: "eur",

@@ -87,8 +87,8 @@ export async function renameBox(formData: FormData) {
 /**
  * Désactive une box : la page voyageur renvoie 404, mais l'enregistrement
  * (QR slug, code du cadenas, historique des ventes) est conservé en cache
- * pour pouvoir réactiver la box plus tard, éventuellement sur un autre
- * logement.
+ * pour pouvoir réactiver la box plus tard, éventuellement à une autre
+ * adresse.
  */
 export async function deactivateBox(formData: FormData) {
   const hostId = await requireHostId();

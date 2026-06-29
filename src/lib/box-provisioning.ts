@@ -18,7 +18,7 @@ export async function provisionBoxesForHost(
 
   for (let i = 0; i < toCreate; i++) {
     const index = existing + i + 1;
-    // Nom neutre : la box n'est pas encore attribuée à un logement.
+    // Nom neutre : la box n'est pas encore attribuée à une adresse.
     // L'hôte la renommera quand il l'installera.
     const name = `Box #${index}`;
     await prisma.box.create({

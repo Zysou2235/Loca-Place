@@ -427,7 +427,7 @@ function Pricing() {
       name: "Essentiel",
       price: "14,90€",
       period: "/ mois",
-      tagline: "Pour une box",
+      tagline: "Pour un logement",
       features: [
         "1 box dédiée",
         "QR code unique",
@@ -443,7 +443,7 @@ function Pricing() {
       name: "Duo",
       price: "24,90€",
       period: "/ mois",
-      tagline: "Pour deux box",
+      tagline: "Pour deux logements",
       features: [
         "2 box dédiées",
         "Tout le plan Essentiel",
@@ -457,7 +457,7 @@ function Pricing() {
       name: "Multi",
       price: "dès 33,90€",
       period: "/ mois",
-      tagline: "Pour plusieurs box",
+      tagline: "Pour les multi-propriétaires",
       features: [
         "À partir de 3 box",
         "+9€ / mois par box supplémentaire",
@@ -474,7 +474,7 @@ function Pricing() {
       period: "",
       tagline: "Pour les flottes & hôtels",
       features: [
-        "Box illimitées",
+        "Logements illimités",
         "Account manager dédié",
         "Intégrations (PMS, channel manager)",
         "Facturation centralisée",
