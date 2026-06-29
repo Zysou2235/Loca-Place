@@ -6,7 +6,6 @@ import { getCurrentHost } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 import { isEffectiveAdmin } from "@/lib/admin";
 import { HostShell } from "./HostShell";
-import { createBox, deleteBox } from "./box-actions";
 import {
   connectOnboard,
   openBillingPortal,
@@ -58,7 +57,6 @@ export default async function HostDashboard({
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";
   const limit = host.boxQuota;
-  const canCreate = subscribed && boxes.length < limit;
   const justSubscribed = Boolean(session_id) && subscribed;
 
   return (
@@ -246,58 +244,25 @@ export default async function HostDashboard({
                   </span>
                 )}
               </div>
-              {/* Supprimer — au-dessus du lien */}
-              <form
-                action={deleteBox}
-                className="relative z-10 mt-3 flex justify-end border-t border-black/5 pt-3"
-              >
-                <input type="hidden" name="boxId" value={box.id} />
-                <button
-                  type="submit"
-                  className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                >
-                  Supprimer
-                </button>
-              </form>
             </div>
           ))
         )}
       </div>
 
-      {/* Create box */}
-      <div className="mt-6 rounded-2xl border border-black/5 bg-white p-6 shadow-card">
-        <h3 className="font-display font-bold text-brand">Ajouter une box</h3>
-        {canCreate ? (
-          <form action={createBox} className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              name="name"
-              placeholder="Nom du logement (ex. Appartement Bellecour)"
-              required
-              className="flex-1 rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-            />
-            <input
-              name="location"
-              placeholder="Ville / adresse (optionnel)"
-              className="flex-1 rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-5 py-2.5 font-semibold text-white transition hover:bg-accent-dark"
-            >
-              Créer
-            </button>
-          </form>
-        ) : (
-          <p className="mt-3 text-sm text-brand/60">
-            {subscribed
-              ? `Votre formule ${plan?.name ?? ""} autorise ${limit} logement(s). `
-              : "Activez un abonnement pour créer vos box. "}
-            <Link href="/host/billing" className="font-semibold text-accent">
-              Voir les formules
-            </Link>
-          </p>
-        )}
-      </div>
+      {subscribed && boxes.length < limit && (
+        <p className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-4 text-center text-sm text-brand/60">
+          Vos {limit - boxes.length} box restante(s) seront provisionnée(s)
+          automatiquement. Si elles n&apos;apparaissent pas, rechargez la page.
+        </p>
+      )}
+      {!subscribed && (
+        <p className="mt-4 rounded-2xl border border-dashed border-black/10 bg-white p-4 text-center text-sm text-brand/60">
+          Activez un abonnement pour recevoir vos box.{" "}
+          <Link href="/host/billing" className="font-semibold text-accent">
+            Voir les formules
+          </Link>
+        </p>
+      )}
     </HostShell>
   );
 }

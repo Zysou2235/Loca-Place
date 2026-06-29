@@ -13,6 +13,7 @@ import {
 } from "@/lib/plans";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 import { isEffectiveAdmin } from "@/lib/admin";
+import { provisionBoxesForHost } from "@/lib/box-provisioning";
 
 function assertStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -159,6 +160,8 @@ export async function syncSubscriptionFromCheckout(sessionId: string) {
             (session.customer as string) ?? host.stripeCustomerId,
         },
       });
+      // Auto-création des box pour le quota du plan (idempotent).
+      await provisionBoxesForHost(host.id, boxes);
     }
   } catch {
     // ignore — webhook will reconcile eventually.
@@ -185,21 +188,22 @@ export async function refreshSubscriptionStatus() {
     if (!sub) return;
 
     const active = sub.status === "active" || sub.status === "trialing";
+    const quota =
+      active && sub.metadata?.planId
+        ? boxesFor(sub.metadata.planId, Number(sub.metadata?.boxes ?? 0))
+        : undefined;
     await prisma.host.update({
       where: { id: host.id },
       data: {
         subscriptionStatus: sub.status,
-        ...(active && sub.metadata?.planId
-          ? {
-              subscriptionPlan: sub.metadata.planId,
-              boxQuota: boxesFor(
-                sub.metadata.planId,
-                Number(sub.metadata?.boxes ?? 0)
-              ),
-            }
+        ...(active && sub.metadata?.planId && quota !== undefined
+          ? { subscriptionPlan: sub.metadata.planId, boxQuota: quota }
           : {}),
       },
     });
+    if (active && quota !== undefined) {
+      await provisionBoxesForHost(host.id, quota);
+    }
   } catch {
     // ignore
   }

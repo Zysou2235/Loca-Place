@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/money";
 import { ImageDropInput } from "@/components/ImageDropInput";
 import { HostShell } from "../../HostShell";
 import { ChangeCodeForm } from "./ChangeCodeForm";
+import { RenameBoxForm } from "./RenameBoxForm";
 import {
   assignProductToBox,
   createProduct,
@@ -77,10 +78,7 @@ export default async function ManageBoxPage({
 
   return (
     <HostShell hostName={host.name}>
-      <Link href="/host" className="text-sm font-medium text-accent">
-        ← Tableau de bord
-      </Link>
-      <h1 className="mt-2 font-display text-2xl font-bold text-brand">
+      <h1 className="font-display text-2xl font-bold text-brand">
         {box.name}
       </h1>
       <p className="mt-1 text-sm text-brand/60">
@@ -89,6 +87,13 @@ export default async function ManageBoxPage({
           /b/{box.qrSlug}
         </Link>
       </p>
+
+      {/* Renommer le logement (nom + ville/adresse) */}
+      <RenameBoxForm
+        boxId={box.id}
+        defaultName={box.name}
+        defaultLocation={box.location ?? ""}
+      />
 
       {/* Tracking : scans du QR, ventes, conversion */}
       <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-card">

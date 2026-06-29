@@ -2,9 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getSessionHostId, getCurrentHost } from "@/lib/auth";
-import { makeSlug } from "@/lib/slug";
-import { generateLockCode } from "@/lib/lock-code";
+import { getSessionHostId } from "@/lib/auth";
 import { rateLimit, HOUR } from "@/lib/rate-limit";
 
 async function requireHostId(): Promise<string> {
@@ -66,47 +64,23 @@ function cleanPhotoUrl(raw: FormDataEntryValue | null): string | null {
 }
 
 /* --------------------------------------------------------------- Boxes */
+// Note : la création est gérée automatiquement à l'activation de l'abonnement
+// (cf. lib/box-provisioning). La suppression a lieu uniquement à la résiliation
+// (désactivation). L'hôte ne peut que renommer / attribuer un produit.
 
-export async function createBox(formData: FormData) {
-  const host = await getCurrentHost();
-  if (!host) throw new Error("Non authentifié.");
-
-  // Enforce the subscription limit (and require an active subscription).
-  const limit = host.boxQuota;
-  const isActive =
-    host.subscriptionStatus === "active" ||
-    host.subscriptionStatus === "trialing";
-  if (!isActive || limit === 0) {
-    throw new Error("Un abonnement actif est requis pour créer une box.");
-  }
-  const count = await prisma.box.count({ where: { hostId: host.id } });
-  if (count >= limit) {
-    throw new Error(
-      `Votre formule autorise ${limit} logement(s). Passez à une formule supérieure.`
-    );
-  }
-
+export async function renameBox(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
   const name = clean(formData.get("name"), 120);
   const location = clean(formData.get("location"), 200) || null;
   if (!name) throw new Error("Le nom est requis.");
 
-  await prisma.box.create({
-    data: {
-      name,
-      location,
-      qrSlug: makeSlug(name),
-      hostId: host.id,
-      accessCode: generateLockCode(),
-    },
+  await assertBoxOwner(boxId, hostId);
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { name, location },
   });
-  revalidatePath("/host");
-}
-
-export async function deleteBox(formData: FormData) {
-  const hostId = await requireHostId();
-  const boxId = String(formData.get("boxId") ?? "");
-  // Ownership enforced via hostId in the where clause.
-  await prisma.box.deleteMany({ where: { id: boxId, hostId } });
+  revalidatePath(`/host/boxes/${boxId}`);
   revalidatePath("/host");
 }
 
