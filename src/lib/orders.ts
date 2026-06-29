@@ -91,4 +91,13 @@ export async function deliverBoxCode(session: Stripe.Checkout.Session) {
       customerPhone: phone,
     });
   }
+
+  // La box est vidée : on détache le produit pour que la page voyageur affiche
+  // "bientôt disponible" et que l'hôte voie la box marquée comme "vide" sur
+  // son dashboard. Une nouvelle attribution est nécessaire avant la prochaine
+  // vente.
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { selectedProductId: null },
+  });
 }

@@ -217,7 +217,11 @@ export default async function HostDashboard({
           boxes.map((box) => (
             <div
               key={box.id}
-              className="group relative rounded-2xl border border-black/5 bg-white p-5 shadow-card transition hover:border-accent/40 hover:shadow-md"
+              className={`group relative rounded-2xl border p-5 shadow-card transition hover:shadow-md ${
+                box.active
+                  ? "border-black/5 bg-white hover:border-accent/40"
+                  : "border-red-200 bg-red-50/40 opacity-80 hover:border-red-300"
+              }`}
             >
               {/* Toute la carte est cliquable → gestion de la box */}
               <Link
@@ -225,11 +229,15 @@ export default async function HostDashboard({
                 aria-label={`Gérer ${box.name}`}
                 className="absolute inset-0 rounded-2xl"
               />
-              {!box.selectedProduct && (
-                <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                  Disponible
+              {!box.active ? (
+                <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
+                  Désactivée
                 </span>
-              )}
+              ) : !box.selectedProduct ? (
+                <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                  {box._count.orders > 0 ? "Vide" : "Disponible"}
+                </span>
+              ) : null}
               <div className="pointer-events-none flex items-center gap-4">
                 <Image
                   src="/escale-box-logo.png"
@@ -248,9 +256,13 @@ export default async function HostDashboard({
                     </div>
                   )}
                   <div className="mt-0.5 text-xs text-brand/40">
-                    {box.selectedProduct
-                      ? `Article : ${box.selectedProduct.name}`
-                      : "À attribuer — cliquez pour configurer"}
+                    {!box.active
+                      ? "Désactivée — cliquez pour réactiver"
+                      : box.selectedProduct
+                        ? `Article : ${box.selectedProduct.name}`
+                        : box._count.orders > 0
+                          ? "Vide — cliquez pour réattribuer un produit"
+                          : "À attribuer — cliquez pour configurer"}
                   </div>
                 </div>
                 <span className="ml-auto shrink-0 text-brand/30 transition group-hover:text-accent">

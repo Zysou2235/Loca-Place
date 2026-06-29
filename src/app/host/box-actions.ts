@@ -84,6 +84,37 @@ export async function renameBox(formData: FormData) {
   revalidatePath("/host");
 }
 
+/**
+ * Désactive une box : la page voyageur renvoie 404, mais l'enregistrement
+ * (QR slug, code du cadenas, historique des ventes) est conservé en cache
+ * pour pouvoir réactiver la box plus tard, éventuellement sur un autre
+ * logement.
+ */
+export async function deactivateBox(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
+  await assertBoxOwner(boxId, hostId);
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { active: false, selectedProductId: null },
+  });
+  revalidatePath(`/host/boxes/${boxId}`);
+  revalidatePath("/host");
+}
+
+/** Réactive une box précédemment désactivée. */
+export async function reactivateBox(formData: FormData) {
+  const hostId = await requireHostId();
+  const boxId = String(formData.get("boxId") ?? "");
+  await assertBoxOwner(boxId, hostId);
+  await prisma.box.update({
+    where: { id: boxId },
+    data: { active: true },
+  });
+  revalidatePath(`/host/boxes/${boxId}`);
+  revalidatePath("/host");
+}
+
 /* --------------------------------------------------- Catalogue d'articles */
 // Un article appartient à l'hôte (catalogue réutilisable). On en place UN seul
 // dans chaque box via box.selectedProductId.
