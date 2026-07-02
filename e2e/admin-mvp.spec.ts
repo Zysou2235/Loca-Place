@@ -129,6 +129,53 @@ test.describe("Admin — Tests MVP (box offertes)", () => {
 });
 
 test.describe("Admin — page Données", () => {
+  test("Filtre par hôte et par box → périmètre restreint", async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(context);
+
+    // Deux hôtes, chacun une box + un scan, pour vérifier l'isolation
+    const mk = async (tag: string) => {
+      const h = await prisma.host.create({
+        data: {
+          email: `filter-${tag}-${Date.now()}@test.escalebox.fr`,
+          name: `Hôte ${tag}`,
+          subscriptionStatus: "active",
+          boxQuota: 1,
+        },
+      });
+      const b = await prisma.box.create({
+        data: {
+          name: `Box ${tag}`,
+          qrSlug: `filter-${tag}-${Date.now()}`,
+          accessCode: "123",
+          hostId: h.id,
+        },
+      });
+      await prisma.scan.create({ data: { boxId: b.id } });
+      return { h, b };
+    };
+    const a = await mk("Alpha");
+    await mk("Beta");
+
+    // Filtre par box Alpha → seule la box Alpha apparaît dans le tableau
+    await page.goto(`/admin/data?host=${a.h.id}&box=${a.b.id}`);
+    await expect(
+      page.getByRole("heading", { name: /Box Alpha/ })
+    ).toBeVisible();
+    const table = page.locator("section", { hasText: "Activité par box" });
+    await expect(table.getByRole("link", { name: "Box Alpha" })).toBeVisible();
+    await expect(table.getByText("Box Beta")).toHaveCount(0);
+
+    // Filtre par hôte seul
+    await page.goto(`/admin/data?host=${a.h.id}`);
+    await expect(page.getByText(/toutes ses box/)).toBeVisible();
+    await expect(
+      page.locator("section", { hasText: "Activité par box" }).getByText("Box Beta")
+    ).toHaveCount(0);
+  });
+
   test("KPIs, breakdowns et tables s'affichent", async ({ page, context }) => {
     await loginAsAdmin(context);
     await page.goto("/admin/data");

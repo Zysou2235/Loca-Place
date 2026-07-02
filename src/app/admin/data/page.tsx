@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { formatPrice } from "@/lib/money";
 import { AdminNav } from "../AdminNav";
+import { DataFilters } from "./DataFilters";
 
 export const dynamic = "force-dynamic";
 
@@ -48,14 +49,33 @@ function dayKey(d: Date): string {
 
 /* ---------------------------------------------------------------- page */
 
-export default async function AdminDataPage() {
+export default async function AdminDataPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ host?: string; box?: string }>;
+}) {
   await requireAdmin();
+
+  const { host: hostFilter = "", box: boxFilter = "" } = await searchParams;
 
   const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000);
   const since7d = new Date(Date.now() - 7 * 24 * 3600 * 1000);
 
-  const [scans, orders, boxes] = await Promise.all([
+  // Périmètre : tout, un hôte, ou une box précise.
+  const scanWhere = boxFilter
+    ? { boxId: boxFilter }
+    : hostFilter
+      ? { box: { hostId: hostFilter } }
+      : {};
+  const boxWhere = boxFilter
+    ? { id: boxFilter }
+    : hostFilter
+      ? { hostId: hostFilter }
+      : {};
+
+  const [scans, orders, boxes, allHosts, allBoxes] = await Promise.all([
     prisma.scan.findMany({
+      where: scanWhere,
       orderBy: { createdAt: "desc" },
       take: 5000,
       include: {
@@ -63,18 +83,47 @@ export default async function AdminDataPage() {
       },
     }),
     prisma.order.findMany({
+      where: scanWhere,
       orderBy: { createdAt: "desc" },
       take: 2000,
       include: { box: { select: { name: true, host: { select: { name: true } } } } },
     }),
     prisma.box.findMany({
+      where: boxWhere,
       include: {
         host: { select: { name: true, isTestAccount: true } },
         _count: { select: { scans: true, orders: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
+    // Options des filtres — uniquement ce qui a au moins une box.
+    prisma.host.findMany({
+      where: { boxes: { some: {} } },
+      select: { id: true, name: true, email: true, isTestAccount: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.box.findMany({
+      select: {
+        id: true,
+        name: true,
+        hostId: true,
+        host: { select: { name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
+
+  const filteredHost = hostFilter
+    ? allHosts.find((h) => h.id === hostFilter)
+    : null;
+  const filteredBox = boxFilter
+    ? allBoxes.find((b) => b.id === boxFilter)
+    : null;
+  const scopeLabel = filteredBox
+    ? `${filteredBox.name} (${filteredBox.host.name})`
+    : filteredHost
+      ? `${filteredHost.name} — toutes ses box`
+      : null;
 
   /* ---- KPIs globaux */
   const scans7d = scans.filter((s) => s.createdAt >= since7d).length;
@@ -136,6 +185,7 @@ export default async function AdminDataPage() {
       return {
         id: b.id,
         name: b.name,
+        hostId: b.hostId,
         host: b.host.name,
         isTest: b.host.isTestAccount,
         active: b.active,
@@ -158,12 +208,38 @@ export default async function AdminDataPage() {
       <AdminNav current="/admin/data" />
 
       <main className="mx-auto max-w-6xl px-5 py-10">
-        <h1 className="font-display text-2xl font-bold text-brand">Données</h1>
+        <h1 className="font-display text-2xl font-bold text-brand">
+          Données
+          {scopeLabel && (
+            <span className="ml-2 align-middle text-base font-medium text-brand/50">
+              — {scopeLabel}
+            </span>
+          )}
+        </h1>
         <p className="mt-1 text-brand/60">
-          Tout ce que la plateforme mesure : scans, temps passé, appareils,
-          provenance, paiements, conversion. (Analyse sur les{" "}
-          {scans.length.toLocaleString("fr-FR")} derniers scans.)
+          {scopeLabel
+            ? "Analyse limitée au périmètre sélectionné."
+            : "Tout ce que la plateforme mesure : scans, temps passé, appareils, provenance, paiements, conversion."}{" "}
+          ({scans.length.toLocaleString("fr-FR")} scan
+          {scans.length > 1 ? "s" : ""} analysé{scans.length > 1 ? "s" : ""}.)
         </p>
+
+        <DataFilters
+          hosts={allHosts.map((h) => ({
+            id: h.id,
+            name: h.name,
+            email: h.email,
+            isTest: h.isTestAccount,
+          }))}
+          boxes={allBoxes.map((b) => ({
+            id: b.id,
+            name: b.name,
+            hostId: b.hostId,
+            hostName: b.host.name,
+          }))}
+          currentHost={hostFilter}
+          currentBox={boxFilter}
+        />
 
         {/* KPIs */}
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -256,7 +332,10 @@ export default async function AdminDataPage() {
         </div>
 
         {/* Par box */}
-        <Section title="Activité par box" subtitle="Triées par nombre de scans.">
+        <Section
+          title="Activité par box"
+          subtitle="Triées par nombre de scans — cliquez sur une box ou un hôte pour filtrer toute la page sur ce périmètre."
+        >
           <table className="w-full text-left text-sm">
             <thead className="border-b border-black/5 text-xs text-brand/40">
               <tr>
@@ -271,8 +350,13 @@ export default async function AdminDataPage() {
             <tbody>
               {boxRows.map((b) => (
                 <tr key={b.id} className="border-b border-black/5 last:border-0">
-                  <td className="py-2 pr-4 font-medium text-brand">
-                    {b.name}
+                  <td className="py-2 pr-4 font-medium">
+                    <Link
+                      href={`/admin/data?host=${b.hostId}&box=${b.id}`}
+                      className="text-brand hover:text-accent hover:underline"
+                    >
+                      {b.name}
+                    </Link>
                     {b.isTest && (
                       <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
                         test
@@ -284,13 +368,27 @@ export default async function AdminDataPage() {
                       </span>
                     )}
                   </td>
-                  <td className="py-2 pr-4 text-brand/70">{b.host}</td>
+                  <td className="py-2 pr-4">
+                    <Link
+                      href={`/admin/data?host=${b.hostId}`}
+                      className="text-brand/70 hover:text-accent hover:underline"
+                    >
+                      {b.host}
+                    </Link>
+                  </td>
                   <td className="py-2 pr-4">{b.scans}</td>
                   <td className="py-2 pr-4">{b.orders}</td>
                   <td className="py-2 pr-4 text-brand/60">{b.conv}%</td>
                   <td className="py-2">{formatPrice(b.revenue, "eur")}</td>
                 </tr>
               ))}
+              {boxRows.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-brand/40">
+                    Aucune box dans ce périmètre.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </Section>
