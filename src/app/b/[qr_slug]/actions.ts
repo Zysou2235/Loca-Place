@@ -5,6 +5,55 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/base-url";
 import { grantPurchaseAccess } from "@/lib/purchase-cookie";
+import { clientIp, rateLimit, HOUR } from "@/lib/rate-limit";
+
+export type LeadState = { done?: boolean; error?: string };
+
+/**
+ * Un voyageur laisse volontairement son email sur la page de la box
+ * (consentement recontact : avis/sondage). Anti-abus : rate-limit par IP,
+ * unicité email+box (revisite = silencieusement ignorée).
+ */
+export async function leaveEmail(
+  _prev: LeadState,
+  formData: FormData
+): Promise<LeadState> {
+  const email = String(formData.get("email") ?? "")
+    .trim()
+    .toLowerCase()
+    .slice(0, 200);
+  const qrSlug = String(formData.get("qrSlug") ?? "");
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Adresse email invalide." };
+  }
+
+  const ip = await clientIp();
+  if (!rateLimit(`lead:${ip}`, 5, HOUR)) {
+    return { error: "Trop de tentatives. Réessayez plus tard." };
+  }
+
+  const box = await prisma.box.findFirst({
+    where: { qrSlug, active: true },
+    select: { id: true },
+  });
+  if (!box) return { error: "Box introuvable." };
+
+  try {
+    await prisma.lead.create({ data: { email, boxId: box.id } });
+  } catch (err) {
+    // Doublon email+box (P2002) : déjà enregistré, on confirme quand même.
+    // Toute autre erreur doit remonter — sinon on afficherait « merci »
+    // sans avoir rien enregistré.
+    const isDuplicate =
+      typeof err === "object" && err !== null && "code" in err && err.code === "P2002";
+    if (!isDuplicate) {
+      console.error("[lead] enregistrement impossible :", err);
+      return { error: "Enregistrement impossible. Réessayez plus tard." };
+    }
+  }
+  return { done: true };
+}
 
 /**
  * Create a Stripe Checkout Session for a single product and redirect the

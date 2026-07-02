@@ -5,6 +5,7 @@ import { formatPrice } from "@/lib/money";
 import { recordScan } from "@/lib/scans";
 import { createCheckoutSession } from "./actions";
 import { ScanTracker } from "./ScanTracker";
+import { EmailCaptureForm } from "./EmailCaptureForm";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,9 @@ export default async function BoxPage({
           </div>
         </div>
       )}
+
+      {/* Opt-in email — sondage/avis (Fichier client admin) */}
+      <EmailCaptureForm qrSlug={box.qrSlug} />
 
       <footer className="pt-4 text-center text-xs text-neutral-400">
         Paiement sécurisé par Stripe · Vendu par votre hôte

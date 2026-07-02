@@ -96,6 +96,7 @@ model Box {
 
   orders Order[]
   scans  Scan[]
+  leads  Lead[]
 }
 
 model Product {
@@ -131,6 +132,22 @@ model Scan {
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
 
   @@index([boxId, createdAt])
+}
+
+/// Email laissé volontairement par un voyageur sur la page publique d'une
+/// box (consentement à être recontacté : sondage, offres de la box). Les
+/// acheteurs, eux, sont déjà connus via Order.customerEmail — le « Fichier
+/// client » admin fusionne les deux sources.
+model Lead {
+  id        String   @id @default(cuid())
+  email     String
+  createdAt DateTime @default(now())
+
+  boxId String
+  box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
+
+  // Un même email ne compte qu'une fois par box (revisites ignorées).
+  @@unique([email, boxId])
 }
 
 model Order {

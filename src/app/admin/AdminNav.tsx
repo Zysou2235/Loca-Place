@@ -4,6 +4,7 @@ import { logout } from "../host/auth-actions";
 const TABS = [
   { href: "/admin", label: "Comptes & box" },
   { href: "/admin/orders", label: "Ventes" },
+  { href: "/admin/clients", label: "Clients" },
   { href: "/admin/data", label: "Données" },
   { href: "/admin/stats", label: "Statistiques" },
   { href: "/admin/test", label: "Tests MVP" },
