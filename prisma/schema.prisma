@@ -59,6 +59,10 @@ model Host {
   // Notes internes (visibles admin uniquement) pour le suivi/support.
   adminNotes String?
 
+  // Compte test (box offertes pendant la phase MVP) : exclu du MRR,
+  // géré depuis /admin/test.
+  isTestAccount Boolean @default(false)
+
   boxes    Box[]
   products Product[] // catalogue d'articles réutilisables de l'hôte
 }
@@ -120,6 +124,8 @@ model Scan {
   referer     String?
   productId   String? // article présenté au moment du scan (snapshot)
   productName String?
+  // Temps passé sur la page voyageur (beacon envoyé à la fermeture).
+  durationMs  Int?
 
   boxId String
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
@@ -136,6 +142,8 @@ model Order {
   customerEmail   String?
   customerPhone   String?
   codeSent        Boolean  @default(false)
+  // Moyen de paiement utilisé (card, apple_pay, google_pay, link…) — Stripe.
+  paymentMethod   String?
   createdAt       DateTime @default(now())
 
   boxId String

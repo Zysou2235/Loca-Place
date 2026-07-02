@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import {
   sendAccessCodeEmail,
@@ -42,6 +43,28 @@ export async function deliverBoxCode(session: Stripe.Checkout.Session) {
   const phone = session.customer_details?.phone ?? null;
   const productName = product?.name ?? "Produit";
 
+  // Moyen de paiement réel (card, apple_pay, google_pay, link…). La session
+  // liste les types proposés ; le détail précis (wallet) vit sur le
+  // PaymentIntent → charge. Best-effort : on prend ce qu'on peut lire.
+  let paymentMethod: string | null =
+    session.payment_method_types?.[0] ?? null;
+  try {
+    if (typeof session.payment_intent === "string") {
+      const pi = await stripe.paymentIntents.retrieve(session.payment_intent, {
+        expand: ["latest_charge"],
+      });
+      const charge = pi.latest_charge as Stripe.Charge | null;
+      const details = charge?.payment_method_details;
+      if (details?.type === "card" && details.card?.wallet?.type) {
+        paymentMethod = details.card.wallet.type; // apple_pay | google_pay | link
+      } else if (details?.type) {
+        paymentMethod = details.type;
+      }
+    }
+  } catch {
+    // on garde le fallback payment_method_types[0]
+  }
+
   // create() guards against races via the unique stripeSessionId.
   let order;
   try {
@@ -54,6 +77,7 @@ export async function deliverBoxCode(session: Stripe.Checkout.Session) {
         currency: session.currency ?? "eur",
         customerEmail: email,
         customerPhone: phone,
+        paymentMethod,
       },
     });
   } catch {
