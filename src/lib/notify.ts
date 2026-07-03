@@ -125,6 +125,64 @@ export async function sendHostSaleEmail(p: SalePayload): Promise<boolean> {
   }
 }
 
+interface LandingVisitPayload {
+  country?: string | null;
+  city?: string | null;
+  referer?: string | null;
+  path: string;
+}
+
+/** Alerte l'équipe (ADMIN_EMAILS) qu'un visiteur vient d'arriver sur la
+ *  landing page — temps réel, avec localisation approximative si connue. */
+export async function sendLandingVisitAlert(p: LandingVisitPayload): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const to = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!apiKey || to.length === 0) {
+    if (!apiKey) console.warn("[notify] RESEND_API_KEY absent — alerte visite non envoyée.");
+    return false;
+  }
+
+  const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
+  const location =
+    p.city || p.country
+      ? [p.city, p.country].filter(Boolean).join(", ")
+      : "Localisation inconnue";
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:auto">
+      <h2>👀 Nouveau visiteur sur la landing page</h2>
+      <p style="font-size:18px;font-weight:bold">${escapeHtml(location)}</p>
+      <p style="color:#666">Page : ${escapeHtml(p.path)}</p>
+      ${p.referer ? `<p style="color:#666">Provenance : ${escapeHtml(p.referer)}</p>` : ""}
+    </div>`;
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `👀 Visite landing page — ${location}`,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      console.error("[notify] Resend (visite landing) error", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[notify] Resend (visite landing) request failed", err);
+    return false;
+  }
+}
+
 /** Envoie le lien de réinitialisation du mot de passe à l'hôte. */
 export async function sendPasswordResetEmail(
   email: string,

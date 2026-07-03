@@ -145,6 +145,23 @@ model Scan {
   @@index([visitorHash])
 }
 
+/// Une visite de la landing page marketing (escalebox.fr, page d'accueil).
+/// Sert uniquement à alerter l'équipe en temps réel (nouveau prospect sur le
+/// site) — distinct des Scan, qui suivent les box déjà en service.
+model LandingVisit {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  path        String   @default("/")
+  userAgent   String?
+  referer     String?
+  lang        String?
+  country     String?
+  city        String?
+  visitorHash String?
+
+  @@index([createdAt])
+}
+
 /// Email laissé volontairement par un voyageur sur la page publique d'une
 /// box (consentement à être recontacté : sondage, offres de la box). Les
 /// acheteurs, eux, sont déjà connus via Order.customerEmail — le « Fichier
