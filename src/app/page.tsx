@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PLANS } from "@/lib/plans";
 
 export const metadata = {
   title: "Escale Box — Générez du CA additionnel dans vos locations",
@@ -422,52 +423,24 @@ function UseCases() {
 /* -------------------------------------------------------------- Pricing */
 
 function Pricing() {
+  // Tarifs : source unique lib/plans (partagée avec /host/billing et le
+  // tunnel d'abonnement). Seule l'offre Conciergerie (sur devis, hors
+  // souscription en ligne) est propre à la landing.
+  const CTA: Record<string, string> = {
+    essentiel: "Démarrer",
+    duo: "Choisir Duo",
+    multi: "Choisir Multi",
+  };
   const plans = [
-    {
-      name: "Essentiel",
-      price: "14,90€",
-      period: "/ mois",
-      tagline: "Pour un logement",
-      features: [
-        "1 box dédiée",
-        "QR code unique",
-        "Catalogue de produits illimité",
-        "0% de commission sur vos ventes",
-        "Versement direct (Stripe)",
-        "Suivi des ventes",
-      ],
-      cta: "Démarrer",
-      highlighted: false,
-    },
-    {
-      name: "Duo",
-      price: "24,90€",
-      period: "/ mois",
-      tagline: "Pour deux logements",
-      features: [
-        "2 box dédiées",
-        "Tout le plan Essentiel",
-        "Tableau de bord multi-box",
-        "Suivi des ventes consolidé",
-      ],
-      cta: "Choisir Duo",
-      highlighted: false,
-    },
-    {
-      name: "Multi",
-      price: "dès 33,90€",
-      period: "/ mois",
-      tagline: "Pour les multi-propriétaires",
-      features: [
-        "À partir de 3 box",
-        "+9€ / mois par box supplémentaire",
-        "Tout le plan Duo",
-        "Statistiques avancées",
-        "Support prioritaire",
-      ],
-      cta: "Choisir Multi",
-      highlighted: true,
-    },
+    ...PLANS.map((p) => ({
+      name: p.name,
+      price: p.price,
+      period: p.period,
+      tagline: p.tagline,
+      features: p.features,
+      cta: CTA[p.id] ?? "Démarrer",
+      highlighted: Boolean(p.highlighted),
+    })),
     {
       name: "Conciergerie",
       price: "Sur devis",

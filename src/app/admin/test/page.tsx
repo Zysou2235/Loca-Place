@@ -22,7 +22,6 @@ export default async function AdminTestPage({
         orderBy: { createdAt: "asc" },
         include: {
           selectedProduct: { select: { name: true } },
-          _count: { select: { scans: true, orders: true } },
         },
       },
     },
@@ -137,8 +136,6 @@ export default async function AdminTestPage({
         ) : (
           <div className="mt-4 space-y-4">
             {testHosts.map((h) => {
-              const scans = h.boxes.reduce((n, b) => n + b._count.scans, 0);
-              const orders = h.boxes.reduce((n, b) => n + b._count.orders, 0);
               return (
                 <div
                   key={h.id}
@@ -160,12 +157,14 @@ export default async function AdminTestPage({
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="rounded-full bg-brand/5 px-3 py-1 text-xs font-medium text-brand/70">
-                        👁️ {scans} scan{scans > 1 ? "s" : ""}
-                      </span>
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                        🛒 {orders} vente{orders > 1 ? "s" : ""}
-                      </span>
+                      {/* Les chiffres détaillés vivent dans « Données »
+                          (filtrées sur ce testeur) — pas de doublon ici. */}
+                      <Link
+                        href={`/admin/data?host=${h.id}`}
+                        className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold text-brand/70 transition hover:bg-black/5"
+                      >
+                        📊 Voir ses données →
+                      </Link>
                       <form action={revokeTestAccess}>
                         <input type="hidden" name="hostId" value={h.id} />
                         <button
@@ -187,8 +186,6 @@ export default async function AdminTestPage({
                           <th className="py-2 pr-4 font-medium">QR</th>
                           <th className="py-2 pr-4 font-medium">Code cadenas</th>
                           <th className="py-2 pr-4 font-medium">Produit</th>
-                          <th className="py-2 pr-4 font-medium">Scans</th>
-                          <th className="py-2 pr-4 font-medium">Ventes</th>
                           <th className="py-2 font-medium">Expédiée</th>
                         </tr>
                       </thead>
@@ -215,8 +212,6 @@ export default async function AdminTestPage({
                             <td className="py-2 pr-4 text-brand/70">
                               {b.selectedProduct?.name ?? "—"}
                             </td>
-                            <td className="py-2 pr-4">{b._count.scans}</td>
-                            <td className="py-2 pr-4">{b._count.orders}</td>
                             <td className="py-2">
                               {b.shippedAt
                                 ? b.shippedAt.toLocaleDateString("fr-FR")

@@ -129,6 +129,12 @@ export default async function AdminDataPage({
   const scans7d = scans.filter((s) => s.createdAt >= since7d).length;
   const totalRevenue = orders.reduce((n, o) => n + o.amountCents, 0);
   const avgBasket = orders.length ? Math.round(totalRevenue / orders.length) : 0;
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const monthRevenue = orders
+    .filter((o) => o.createdAt >= monthStart)
+    .reduce((n, o) => n + o.amountCents, 0);
   const conversion = scans.length
     ? Math.round((orders.length / scans.length) * 1000) / 10
     : 0;
@@ -139,11 +145,15 @@ export default async function AdminDataPage({
   const codesSent = orders.filter((o) => o.codeSent).length;
 
   /* ---- Par jour (30 j) */
-  const byDay = new Map<string, { scans: number; orders: number }>();
+  const byDay = new Map<
+    string,
+    { scans: number; orders: number; revenueCents: number }
+  >();
   for (let i = 29; i >= 0; i--) {
     byDay.set(dayKey(new Date(Date.now() - i * 24 * 3600 * 1000)), {
       scans: 0,
       orders: 0,
+      revenueCents: 0,
     });
   }
   for (const s of scans) {
@@ -154,7 +164,10 @@ export default async function AdminDataPage({
   for (const o of orders) {
     if (o.createdAt < since30d) continue;
     const e = byDay.get(dayKey(o.createdAt));
-    if (e) e.orders++;
+    if (e) {
+      e.orders++;
+      e.revenueCents += o.amountCents;
+    }
   }
   const dayRows = [...byDay.entries()];
   const maxDayScans = Math.max(1, ...dayRows.map(([, v]) => v.scans));
@@ -175,6 +188,7 @@ export default async function AdminDataPage({
   const payments = count(
     orders.map((o) => PAYMENT_LABELS[o.paymentMethod ?? ""] ?? o.paymentMethod ?? "Non renseigné")
   );
+  const topProducts = count(orders.map((o) => o.productName));
 
   /* ---- Par box (activité) */
   const boxRows = boxes
@@ -247,7 +261,11 @@ export default async function AdminDataPage({
           <Stat label="Scans (7 jours)" value={scans7d.toLocaleString("fr-FR")} />
           <Stat label="Ventes" value={orders.length.toLocaleString("fr-FR")} />
           <Stat label="Conversion" value={`${conversion}%`} />
-          <Stat label="CA voyageurs" value={formatPrice(totalRevenue, "eur")} />
+          <Stat
+            label="CA voyageurs"
+            value={formatPrice(totalRevenue, "eur")}
+            hint={`dont ${formatPrice(monthRevenue, "eur")} ce mois-ci`}
+          />
           <Stat label="Panier moyen" value={formatPrice(avgBasket, "eur")} />
           <Stat
             label="Temps moyen sur page"
@@ -272,9 +290,10 @@ export default async function AdminDataPage({
               <tr>
                 <th className="py-2 pr-3 font-medium">Jour</th>
                 <th className="py-2 pr-3 font-medium">Scans</th>
-                <th className="w-1/2 py-2 pr-3 font-medium"></th>
+                <th className="w-2/5 py-2 pr-3 font-medium"></th>
                 <th className="py-2 pr-3 font-medium">Ventes</th>
-                <th className="py-2 font-medium">Conv.</th>
+                <th className="py-2 pr-3 font-medium">Conv.</th>
+                <th className="py-2 font-medium">CA</th>
               </tr>
             </thead>
             <tbody>
@@ -291,8 +310,11 @@ export default async function AdminDataPage({
                     <Bar value={v.scans} max={maxDayScans} />
                   </td>
                   <td className="py-1.5 pr-3">{v.orders}</td>
-                  <td className="py-1.5 text-brand/60">
+                  <td className="py-1.5 pr-3 text-brand/60">
                     {v.scans ? Math.round((v.orders / v.scans) * 100) : 0}%
+                  </td>
+                  <td className="py-1.5">
+                    {v.revenueCents ? formatPrice(v.revenueCents, "eur") : "—"}
                   </td>
                 </tr>
               ))}
@@ -320,12 +342,18 @@ export default async function AdminDataPage({
           </table>
         </Section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <BreakdownCard title="Appareils" rows={devices} total={scans.length} />
           <BreakdownCard title="Provenance" rows={referers} total={scans.length} />
           <BreakdownCard
             title="Moyens de paiement"
             rows={payments}
+            total={orders.length}
+            empty="Aucune vente pour l'instant"
+          />
+          <BreakdownCard
+            title="Produits les plus vendus"
+            rows={topProducts}
             total={orders.length}
             empty="Aucune vente pour l'instant"
           />
@@ -443,11 +471,7 @@ export default async function AdminDataPage({
         <p className="mt-8 text-xs text-brand/40">
           Le « temps passé » est mesuré à partir de maintenant (beacon envoyé
           quand le voyageur quitte la page) — les scans antérieurs au
-          déploiement n&apos;en ont pas. Voir aussi{" "}
-          <Link href="/admin/stats" className="text-accent hover:underline">
-            Statistiques
-          </Link>{" "}
-          pour les courbes de CA.
+          déploiement n&apos;en ont pas.
         </p>
       </main>
     </div>
