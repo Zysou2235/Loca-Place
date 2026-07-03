@@ -153,7 +153,8 @@ export async function sendLandingVisitAlert(p: LandingVisitPayload): Promise<voi
 
 function landingVisitText(p: LandingVisitPayload, location: string): string {
   const lines = [
-    `👀 Nouveau visiteur — ${location}`,
+    `👀 Visite landing page`,
+    `Localisation : ${location}`,
     `Qui : ${p.identity}`,
     `Page : ${p.path}`,
   ];
@@ -178,7 +179,8 @@ async function sendLandingVisitEmail(
   const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
-      <h2>👀 Nouveau visiteur sur la landing page</h2>
+      <h2>👀 Visite sur la landing page</h2>
+      <p style="color:#666">Localisation (approximative)</p>
       <p style="font-size:18px;font-weight:bold">${escapeHtml(location)}</p>
       <p style="color:#666">Qui : ${escapeHtml(p.identity)}</p>
       <p style="color:#666">Page : ${escapeHtml(p.path)}</p>
