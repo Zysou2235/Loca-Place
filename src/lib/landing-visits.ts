@@ -4,12 +4,56 @@ import { prisma } from "@/lib/prisma";
 import { clientIp, rateLimit, MINUTE } from "@/lib/rate-limit";
 import { computeVisitorHash, browserLang } from "@/lib/visitor";
 import { lookupGeo } from "@/lib/geo";
+import { getCurrentHost } from "@/lib/auth";
 import { sendLandingVisitAlert } from "@/lib/notify";
 
 /**
- * Enregistre une visite de la landing page marketing et alerte l'équipe par
- * email en temps réel (localisation dérivée de l'IP, jamais l'IP elle-même).
- * Best-effort : toute erreur est avalée pour ne jamais impacter la page.
+ * Identifie le visiteur pour l'alerte, avec le nom quand on l'a : hôte
+ * connecté (nom + email de son compte), visiteur déjà identifié par email
+ * (a acheté ou laissé son email sur une box, relié via l'empreinte visiteur
+ * — si cet email correspond à un compte hôte, on donne aussi son nom),
+ * visiteur récurrent anonyme (déjà vu, jamais identifié), ou nouveau visiteur.
+ */
+async function identifyVisitor(
+  visitorHash: string | null,
+  currentVisitId: string
+): Promise<string> {
+  const host = await getCurrentHost();
+  if (host) return `Hôte connecté : ${host.name} (${host.email})`;
+
+  if (!visitorHash) return "Nouveau visiteur";
+
+  const [lead, order, priorVisit] = await Promise.all([
+    prisma.lead.findFirst({ where: { visitorHash }, select: { email: true } }),
+    prisma.order.findFirst({
+      where: { visitorHash, customerEmail: { not: null } },
+      select: { customerEmail: true },
+    }),
+    prisma.landingVisit.findFirst({
+      where: { visitorHash, id: { not: currentVisitId } },
+      select: { id: true },
+    }),
+  ]);
+  const knownEmail = lead?.email ?? order?.customerEmail;
+  if (knownEmail) {
+    const matchingHost = await prisma.host.findUnique({
+      where: { email: knownEmail },
+      select: { name: true },
+    });
+    return matchingHost
+      ? `Visiteur connu : ${matchingHost.name} (${knownEmail})`
+      : `Visiteur connu : ${knownEmail}`;
+  }
+  if (priorVisit) return "Visiteur récurrent (déjà venu, identité inconnue)";
+  return "Nouveau visiteur";
+}
+
+/**
+ * Enregistre une visite de la landing page marketing et alerte l'équipe en
+ * temps réel (email + Slack, selon ce qui est configuré) avec localisation
+ * approximative (dérivée de l'IP, jamais l'IP elle-même) et identité du
+ * visiteur si connue. Best-effort : toute erreur est avalée pour ne jamais
+ * impacter la page.
  *
  * Anti-spam : un même visiteur (empreinte IP+UA) ne déclenche qu'une alerte
  * par tranche de 15 min, pour éviter une boîte mail saturée par les rechargements.
@@ -43,10 +87,13 @@ export async function recordLandingVisit(path: string = "/"): Promise<void> {
       select: { id: true },
     });
 
-    // Géolocalisation + email d'alerte en arrière-plan, après la réponse.
+    // Géolocalisation + identification + alerte en arrière-plan, après la réponse.
     after(async () => {
       try {
-        const geo = await lookupGeo(ip);
+        const [geo, identity] = await Promise.all([
+          lookupGeo(ip),
+          identifyVisitor(visitorHash, visit.id),
+        ]);
         if (geo?.country) {
           await prisma.landingVisit.update({
             where: { id: visit.id },
@@ -58,6 +105,7 @@ export async function recordLandingVisit(path: string = "/"): Promise<void> {
           city: geo?.city ?? null,
           referer: referer?.slice(0, 300) ?? null,
           path,
+          identity,
         });
       } catch {
         // best-effort
