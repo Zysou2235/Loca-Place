@@ -145,11 +145,16 @@ test.describe("Fichier client", () => {
     expect(lead?.visitorHash).toBe(scans[0]!.visitorHash);
 
     // Côté admin : identité résolue + badge de récurrence dans Données
+    // (le journal détaillé des scans vit sous « Détails visiteurs », replié
+    // par défaut — progressive disclosure).
     await loginAs(context, prisma, { email: ADMIN_EMAIL, name: "Admin Test" });
     await page.goto(`/admin/data?box=${box.id}`);
+    await expect(
+      page.getByText("Visiteurs uniques", { exact: true })
+    ).toBeVisible();
+    await page.getByText(/Détails visiteurs/i).click();
     await expect(page.getByText(email).first()).toBeVisible();
     await expect(page.getByText(/×\d+ visites/).first()).toBeVisible();
-    await expect(page.getByText("Visiteurs uniques")).toBeVisible();
   });
 
   test("Le fichier client est refusé aux non-admins", async ({
