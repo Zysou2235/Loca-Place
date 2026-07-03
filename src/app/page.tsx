@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PLANS } from "@/lib/plans";
+import { LandingVisitTracker } from "./LandingVisitTracker";
 
 export const metadata = {
   title: "Escale Box — Générez du CA additionnel dans vos locations",
@@ -14,6 +15,7 @@ const CONTACT_EMAIL = "contact@escalebox.fr";
 export default function Home() {
   return (
     <div className="bg-white text-brand">
+      <LandingVisitTracker />
       <Header />
       <main>
         <Hero />
