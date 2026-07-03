@@ -130,11 +130,41 @@ interface LandingVisitPayload {
   city?: string | null;
   referer?: string | null;
   path: string;
+  /** Qui est ce visiteur : "Hôte connecté (email)", "Visiteur connu (email)",
+   *  "Visiteur récurrent (anonyme)" ou "Nouveau visiteur". */
+  identity: string;
 }
 
-/** Alerte l'équipe (ADMIN_EMAILS) qu'un visiteur vient d'arriver sur la
- *  landing page — temps réel, avec localisation approximative si connue. */
-export async function sendLandingVisitAlert(p: LandingVisitPayload): Promise<boolean> {
+/** Alerte l'équipe qu'un visiteur vient d'arriver sur la landing page —
+ *  temps réel, sur tous les canaux configurés (email, Slack). Chaque canal
+ *  est indépendant et no-op silencieusement s'il n'a pas ses variables d'env
+ *  — jamais d'erreur remontée à l'appelant. */
+export async function sendLandingVisitAlert(p: LandingVisitPayload): Promise<void> {
+  const location =
+    p.city || p.country
+      ? [p.city, p.country].filter(Boolean).join(", ")
+      : "Localisation inconnue";
+
+  await Promise.allSettled([
+    sendLandingVisitEmail(p, location),
+    sendSlackAlert(landingVisitText(p, location)),
+  ]);
+}
+
+function landingVisitText(p: LandingVisitPayload, location: string): string {
+  const lines = [
+    `👀 Nouveau visiteur — ${location}`,
+    `Qui : ${p.identity}`,
+    `Page : ${p.path}`,
+  ];
+  if (p.referer) lines.push(`Provenance : ${p.referer}`);
+  return lines.join("\n");
+}
+
+async function sendLandingVisitEmail(
+  p: LandingVisitPayload,
+  location: string
+): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   const to = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
@@ -146,14 +176,11 @@ export async function sendLandingVisitAlert(p: LandingVisitPayload): Promise<boo
   }
 
   const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
-  const location =
-    p.city || p.country
-      ? [p.city, p.country].filter(Boolean).join(", ")
-      : "Localisation inconnue";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
       <h2>👀 Nouveau visiteur sur la landing page</h2>
       <p style="font-size:18px;font-weight:bold">${escapeHtml(location)}</p>
+      <p style="color:#666">Qui : ${escapeHtml(p.identity)}</p>
       <p style="color:#666">Page : ${escapeHtml(p.path)}</p>
       ${p.referer ? `<p style="color:#666">Provenance : ${escapeHtml(p.referer)}</p>` : ""}
     </div>`;
@@ -179,6 +206,28 @@ export async function sendLandingVisitAlert(p: LandingVisitPayload): Promise<boo
     return true;
   } catch (err) {
     console.error("[notify] Resend (visite landing) request failed", err);
+    return false;
+  }
+}
+
+/** Envoie un message texte via un Incoming Webhook Slack.
+ *  Variable requise : SLACK_WEBHOOK_URL (Slack → Apps → Incoming Webhooks). */
+export async function sendSlackAlert(text: string): Promise<boolean> {
+  const url = process.env.SLACK_WEBHOOK_URL;
+  if (!url) return false;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      console.error("[notify] Slack error", res.status, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[notify] Slack request failed", err);
     return false;
   }
 }
