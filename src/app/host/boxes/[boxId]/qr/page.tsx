@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
+import { isEffectiveAdmin } from "@/lib/admin";
 import { getBaseUrl } from "@/lib/base-url";
 import { PrintButton } from "./PrintButton";
 
@@ -12,21 +13,34 @@ export const dynamic = "force-dynamic";
  * Fiche QR à imprimer au format A5 (148 × 210 mm), à coller sur la box.
  * À l'écran : aperçu fidèle + bouton Imprimer. À l'impression : la feuille
  * seule, calée sur une page A5 sans marges.
+ *
+ * Accès : l'hôte propriétaire de la box, OU un admin (pour imprimer et
+ * coller l'étiquette avant expédition, avant même que l'hôte se connecte —
+ * cas des box offertes depuis /admin/test).
  */
 export default async function HostQrPrintPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ boxId: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
+  const admin = isEffectiveAdmin(host);
   const { boxId } = await params;
+  const { from } = await searchParams;
+
   const box = await prisma.box.findFirst({
-    where: { id: boxId, hostId: host.id },
+    where: admin ? { id: boxId } : { id: boxId, hostId: host.id },
     select: { qrSlug: true, name: true },
   });
   if (!box) notFound();
+
+  // Retour : vers la page admin d'origine si on y accède en admin, sinon
+  // vers la gestion de la box (côté hôte).
+  const backHref = admin && from === "admin-test" ? "/admin/test" : `/host/boxes/${boxId}`;
 
   const targetUrl = `${await getBaseUrl()}/b/${box.qrSlug}`;
   const displayUrl = targetUrl.replace(/^https?:\/\//, "");
@@ -42,10 +56,10 @@ export default async function HostQrPrintPage({
       {/* Barre d'outils — écran uniquement */}
       <div className="mx-auto mb-6 flex w-[148mm] max-w-full items-center justify-between px-4 print:hidden">
         <Link
-          href={`/host/boxes/${boxId}`}
+          href={backHref}
           className="text-sm font-medium text-accent hover:underline"
         >
-          ← Retour à la box
+          ← Retour
         </Link>
         <PrintButton />
       </div>
