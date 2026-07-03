@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
 import { generateLockCode } from "@/lib/lock-code";
-import { createMondialRelayLabel } from "@/lib/mondial-relay";
+import { createShippingLabel, type Carrier } from "@/lib/shipping";
 import { deleteHostAccount } from "@/lib/account";
 import { redirect } from "next/navigation";
 
@@ -70,10 +70,11 @@ export async function saveHostNotes(formData: FormData) {
   revalidatePath(`/admin/hosts/${hostId}`);
 }
 
-/** Génère l'étiquette Mondial Relay d'une box (API WSI) et stocke suivi + PDF.
- *  Livraison en Point Relais si la box en a un, sinon au domicile de l'hôte.
- *  Admin only. */
-export async function generateMondialRelayLabel(formData: FormData) {
+/** Génère l'étiquette d'expédition d'une box via l'API du transporteur choisi
+ *  par l'hôte (Mondial Relay, DPD ou Chronopost) et stocke suivi + PDF.
+ *  Livraison en Point Relais pour Mondial Relay si la box en a un, sinon au
+ *  domicile de l'hôte. Admin only. */
+export async function generateShippingLabel(formData: FormData) {
   await requireAdmin();
   const boxId = String(formData.get("boxId") ?? "");
   if (!boxId) throw new Error("Box manquante.");
@@ -92,6 +93,7 @@ export async function generateMondialRelayLabel(formData: FormData) {
           deliveryCity: true,
           deliveryCountry: true,
           deliveryRelayId: true,
+          deliveryCarrier: true,
         },
       },
     },
@@ -99,6 +101,8 @@ export async function generateMondialRelayLabel(formData: FormData) {
   if (!box) throw new Error("Box introuvable.");
 
   const h = box.host;
+  const carrier = h.deliveryCarrier as Carrier | null;
+  if (!carrier) throw new Error("Aucun transporteur choisi par cet hôte.");
   if (
     !h.deliveryRelayId &&
     !(h.deliveryLine1 && h.deliveryZip && h.deliveryCity)
@@ -108,7 +112,7 @@ export async function generateMondialRelayLabel(formData: FormData) {
     );
   }
 
-  const result = await createMondialRelayLabel({
+  const result = await createShippingLabel(carrier, {
     destName: h.deliveryName || h.name,
     destAddress: h.deliveryLine1 ?? "",
     destZip: h.deliveryZip ?? "",

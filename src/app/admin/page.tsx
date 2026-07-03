@@ -9,9 +9,10 @@ import {
   markBoxShipped,
   unmarkBoxShipped,
   setBoxShipping,
-  generateMondialRelayLabel,
+  generateShippingLabel,
 } from "./actions";
 import { GenerateCodeButton } from "./GenerateCodeButton";
+import { CARRIER_LABELS, isCarrierConfigured, type Carrier } from "@/lib/shipping";
 
 export const dynamic = "force-dynamic";
 
@@ -351,17 +352,24 @@ export default async function AdminPage({
                                     ? "Chronopost (domicile)"
                                     : "Transporteur non choisi"}
                             </span>
-                            {host.deliveryCarrier === "mondial_relay" && (
-                              <form action={generateMondialRelayLabel}>
-                                <input type="hidden" name="boxId" value={box.id} />
-                                <button
-                                  type="submit"
-                                  className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
-                                >
-                                  🏷️ Générer l&apos;étiquette Mondial Relay
-                                </button>
-                              </form>
-                            )}
+                            {host.deliveryCarrier &&
+                              (isCarrierConfigured(host.deliveryCarrier as Carrier) ? (
+                                <form action={generateShippingLabel}>
+                                  <input type="hidden" name="boxId" value={box.id} />
+                                  <button
+                                    type="submit"
+                                    className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-accent-dark"
+                                  >
+                                    🏷️ Générer l&apos;étiquette{" "}
+                                    {CARRIER_LABELS[host.deliveryCarrier as Carrier]}
+                                  </button>
+                                </form>
+                              ) : (
+                                <span className="text-xs text-brand/30">
+                                  (API {CARRIER_LABELS[host.deliveryCarrier as Carrier]}{" "}
+                                  non configurée — saisie manuelle ci-dessous)
+                                </span>
+                              ))}
                           </div>
 
                           {/* Expédition — saisie manuelle (repli si besoin) */}
