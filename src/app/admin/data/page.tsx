@@ -60,6 +60,7 @@ export default async function AdminDataPage({
 
   const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000);
   const since7d = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+  const since14d = new Date(Date.now() - 14 * 24 * 3600 * 1000);
 
   // Périmètre : tout, un hôte, ou une box précise.
   const scanWhere = boxFilter
@@ -111,24 +112,22 @@ export default async function AdminDataPage({
       },
       orderBy: { createdAt: "asc" },
     }),
-    // Opt-ins : servent à résoudre l'identité des visiteurs (hash → email).
-    // Tri décroissant : en cas d'empreinte partagée (wifi commun, appareil
-    // identique), l'association la plus récente gagne.
+    // Opt-ins — pas de filtre de périmètre ici : un visiteur identifié via une
+    // autre box reste identifié (c'est la même personne). boxId sert juste au
+    // calcul du taux de captation scopé plus bas.
     prisma.lead.findMany({
-      select: { email: true, visitorHash: true },
+      select: { email: true, visitorHash: true, boxId: true },
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
   /* ---- Identité & récurrence des visiteurs (empreinte anonyme) */
-  // Nb de visites par empreinte (sur le périmètre chargé).
   const visitCount = new Map<string, number>();
   for (const s of scans) {
     if (s.visitorHash) {
       visitCount.set(s.visitorHash, (visitCount.get(s.visitorHash) ?? 0) + 1);
     }
   }
-  // hash → identité connue (email/téléphone), via achats puis opt-ins.
   const identity = new Map<string, { email: string; phone?: string | null }>();
   for (const o of orders) {
     if (o.visitorHash && o.customerEmail && !identity.has(o.visitorHash)) {
@@ -149,6 +148,17 @@ export default async function AdminDataPage({
     identity.has(h)
   ).length;
 
+  // Taux de captation email, scopé au périmètre courant (boxes filtrées).
+  // Plafonné à 100% pour l'affichage : en pratique un lead peut exister sans
+  // scan compté en face (rate-limit sur l'enregistrement des scans, données
+  // anciennes sans empreinte) — le ratio brut peut dépasser 100% sans que ce
+  // soit un vrai signal, ça brouillerait juste la lecture.
+  const boxIdsInScope = new Set(boxes.map((b) => b.id));
+  const leadsInScope = leads.filter((l) => boxIdsInScope.has(l.boxId)).length;
+  const captureRate = uniqueVisitors
+    ? Math.min(100, Math.round((leadsInScope / uniqueVisitors) * 100))
+    : 0;
+
   const filteredHost = hostFilter
     ? allHosts.find((h) => h.id === hostFilter)
     : null;
@@ -162,7 +172,6 @@ export default async function AdminDataPage({
       : null;
 
   /* ---- KPIs globaux */
-  const scans7d = scans.filter((s) => s.createdAt >= since7d).length;
   const totalRevenue = orders.reduce((n, o) => n + o.amountCents, 0);
   const avgBasket = orders.length ? Math.round(totalRevenue / orders.length) : 0;
   const monthStart = new Date();
@@ -180,7 +189,7 @@ export default async function AdminDataPage({
     : null;
   const codesSent = orders.filter((o) => o.codeSent).length;
 
-  /* ---- Par jour (30 j) */
+  /* ---- Tendance : scans/jour sur 14 j (comparaison 7 j vs 7 j précédents) */
   const byDay = new Map<
     string,
     { scans: number; orders: number; revenueCents: number }
@@ -205,15 +214,24 @@ export default async function AdminDataPage({
       e.revenueCents += o.amountCents;
     }
   }
-  const dayRows = [...byDay.entries()];
+  const dayRows = [...byDay.entries()].slice(-14); // 14 derniers jours pour le graphique
   const maxDayScans = Math.max(1, ...dayRows.map(([, v]) => v.scans));
+  const scans7d = scans.filter((s) => s.createdAt >= since7d).length;
+  const scansPrev7d = scans.filter(
+    (s) => s.createdAt >= since14d && s.createdAt < since7d
+  ).length;
+  const scansTrend =
+    scansPrev7d > 0
+      ? Math.round(((scans7d - scansPrev7d) / scansPrev7d) * 100)
+      : null;
 
-  /* ---- Par heure de la journée (pourquoi ça scanne : à quel moment) */
+  /* ---- Par heure de la journée */
   const byHour = Array.from({ length: 24 }, () => 0);
   for (const s of scans) byHour[s.createdAt.getHours()]++;
   const maxHour = Math.max(1, ...byHour);
+  const peakHour = byHour.indexOf(Math.max(...byHour));
 
-  /* ---- Appareils, provenance, paiement */
+  /* ---- Répartitions secondaires */
   const count = (list: string[]) => {
     const m = new Map<string, number>();
     for (const k of list) m.set(k, (m.get(k) ?? 0) + 1);
@@ -287,9 +305,7 @@ export default async function AdminDataPage({
         <p className="mt-1 text-brand/60">
           {scopeLabel
             ? "Analyse limitée au périmètre sélectionné."
-            : "Tout ce que la plateforme mesure : scans, temps passé, appareils, provenance, paiements, conversion."}{" "}
-          ({scans.length.toLocaleString("fr-FR")} scan
-          {scans.length > 1 ? "s" : ""} analysé{scans.length > 1 ? "s" : ""}.)
+            : "L'essentiel pour piloter le business, puis les détails si besoin."}
         </p>
 
         <DataFilters
@@ -309,124 +325,111 @@ export default async function AdminDataPage({
           currentBox={boxFilter}
         />
 
-        {/* KPIs */}
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Stat label="Scans (total)" value={scans.length.toLocaleString("fr-FR")} />
-          <Stat label="Scans (7 jours)" value={scans7d.toLocaleString("fr-FR")} />
-          <Stat label="Ventes" value={orders.length.toLocaleString("fr-FR")} />
-          <Stat label="Conversion" value={`${conversion}%`} />
+        {/* ============================================ L'ESSENTIEL */}
+        <h2 className="mt-8 text-xs font-bold uppercase tracking-wide text-brand/40">
+          L&apos;essentiel
+        </h2>
+        <div className="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat
-            label="CA voyageurs"
+            big
+            label="Chiffre d'affaires"
             value={formatPrice(totalRevenue, "eur")}
             hint={`dont ${formatPrice(monthRevenue, "eur")} ce mois-ci`}
           />
-          <Stat label="Panier moyen" value={formatPrice(avgBasket, "eur")} />
+          <Stat big label="Ventes" value={orders.length.toLocaleString("fr-FR")} />
           <Stat
-            label="Temps moyen sur page"
-            value={avgDuration != null ? fmtDuration(avgDuration) : "—"}
-            hint={
-              avgDuration == null
-                ? "Se remplit dès les premiers scans après déploiement"
-                : `${durations.length} visites mesurées`
-            }
+            big
+            label="Conversion"
+            value={`${conversion}%`}
+            hint="scans → achat"
           />
-          <Stat
-            label="Codes délivrés"
-            value={`${codesSent}/${orders.length}`}
-            hint="Emails/SMS envoyés après paiement"
-          />
+          <Stat big label="Panier moyen" value={formatPrice(avgBasket, "eur")} />
+        </div>
+
+        {/* ============================================ VOS CLIENTS */}
+        <h2 className="mt-8 text-xs font-bold uppercase tracking-wide text-brand/40">
+          Vos clients (marketing)
+        </h2>
+        <div className="mt-3 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat
             label="Visiteurs uniques"
             value={uniqueVisitors.toLocaleString("fr-FR")}
             hint={
               uniqueVisitors
-                ? `${Math.round((returningVisitors / uniqueVisitors) * 100)}% reviennent au moins une fois`
+                ? `${Math.round((returningVisitors / uniqueVisitors) * 100)}% reviennent`
                 : undefined
             }
           />
           <Stat
+            label="Emails captés"
+            value={leadsInScope.toLocaleString("fr-FR")}
+            hint={`${captureRate}% des visiteurs uniques`}
+          />
+          <Stat
             label="Visiteurs identifiés"
             value={identifiedVisitors.toLocaleString("fr-FR")}
-            hint="Email connu (achat ou opt-in)"
+            hint="email connu (achat ou opt-in)"
           />
+          <div className="rounded-2xl border border-dashed border-accent/30 bg-accent/5 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wide text-brand/40">
+              Fichier client
+            </div>
+            <Link
+              href="/admin/clients"
+              className="mt-1 inline-block font-display text-lg font-bold text-accent hover:underline"
+            >
+              Voir &amp; exporter →
+            </Link>
+            <div className="mt-0.5 text-xs text-brand/40">
+              Base pour vos sondages post-séjour
+            </div>
+          </div>
         </div>
 
-        {/* Activité par jour */}
-        <Section title="Activité — 30 derniers jours">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-black/5 text-xs text-brand/40">
-              <tr>
-                <th className="py-2 pr-3 font-medium">Jour</th>
-                <th className="py-2 pr-3 font-medium">Scans</th>
-                <th className="w-2/5 py-2 pr-3 font-medium"></th>
-                <th className="py-2 pr-3 font-medium">Ventes</th>
-                <th className="py-2 pr-3 font-medium">Conv.</th>
-                <th className="py-2 font-medium">CA</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dayRows.map(([day, v]) => (
-                <tr key={day} className="border-b border-black/5 last:border-0">
-                  <td className="py-1.5 pr-3 text-brand/70">
-                    {new Date(day).toLocaleDateString("fr-FR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                    })}
-                  </td>
-                  <td className="py-1.5 pr-3 font-medium text-brand">{v.scans}</td>
-                  <td className="py-1.5 pr-3">
-                    <Bar value={v.scans} max={maxDayScans} />
-                  </td>
-                  <td className="py-1.5 pr-3">{v.orders}</td>
-                  <td className="py-1.5 pr-3 text-brand/60">
-                    {v.scans ? Math.round((v.orders / v.scans) * 100) : 0}%
-                  </td>
-                  <td className="py-1.5">
-                    {v.revenueCents ? formatPrice(v.revenueCents, "eur") : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
-
-        {/* Heures de scan */}
+        {/* ============================================ TENDANCE */}
         <Section
-          title="À quelle heure les voyageurs scannent"
-          subtitle="Distribution des scans par heure de la journée — utile pour comprendre les pics (arrivées, soirées…)."
+          title="Tendance — scans des 14 derniers jours"
+          subtitle={
+            scansTrend != null
+              ? `${scans7d} scans cette semaine, ${scansTrend >= 0 ? "+" : ""}${scansTrend}% vs la semaine précédente.`
+              : `${scans7d} scans cette semaine.`
+          }
         >
-          <table className="w-full text-left text-sm">
-            <tbody>
-              {byHour.map((n, h) => (
-                <tr key={h}>
-                  <td className="w-16 py-1 pr-3 text-brand/60">{h}h</td>
-                  <td className="w-10 py-1 pr-3 font-medium text-brand">{n}</td>
-                  <td className="py-1">
-                    <Bar value={n} max={maxHour} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TrendChart data={dayRows} max={maxDayScans} />
         </Section>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <BreakdownCard title="Localisation" rows={locations} total={scans.length} />
-          <BreakdownCard title="Langues" rows={languages} total={scans.length} />
-          <BreakdownCard title="Appareils" rows={devices} total={scans.length} />
-          <BreakdownCard title="Provenance" rows={referers} total={scans.length} />
-          <BreakdownCard
-            title="Moyens de paiement"
-            rows={payments}
-            total={orders.length}
-            empty="Aucune vente pour l'instant"
-          />
+        {/* ============================================ CE QUI SE VEND */}
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <BreakdownCard
             title="Produits les plus vendus"
             rows={topProducts}
             total={orders.length}
             empty="Aucune vente pour l'instant"
           />
+          <div className="rounded-2xl border border-black/5 bg-white p-6 shadow-card">
+            <h2 className="font-display font-bold text-brand">
+              Moyens de paiement
+            </h2>
+            {payments.length === 0 ? (
+              <p className="mt-4 text-sm text-brand/40">
+                Aucune vente pour l&apos;instant
+              </p>
+            ) : (
+              <ul className="mt-4 space-y-2">
+                {payments.map(([label, n]) => (
+                  <li key={label} className="flex items-baseline justify-between text-sm">
+                    <span className="text-brand/80">{label}</span>
+                    <span className="font-medium text-brand">
+                      {n}{" "}
+                      <span className="text-xs text-brand/40">
+                        ({Math.round((n / orders.length) * 100)}%)
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
         {/* Par box */}
@@ -491,92 +494,142 @@ export default async function AdminDataPage({
           </table>
         </Section>
 
-        {/* Derniers scans en détail */}
-        <Section
-          title="Derniers scans (détail)"
-          subtitle="Chaque visite de page voyageur : localisation, appareil, récurrence — et identité quand le visiteur a acheté ou laissé son email."
-        >
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-black/5 text-xs text-brand/40">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Date</th>
-                <th className="py-2 pr-4 font-medium">Box</th>
-                <th className="py-2 pr-4 font-medium">Produit présenté</th>
-                <th className="py-2 pr-4 font-medium">Temps</th>
-                <th className="py-2 pr-4 font-medium">Appareil</th>
-                <th className="py-2 pr-4 font-medium">Localisation</th>
-                <th className="py-2 pr-4 font-medium">Langue</th>
-                <th className="py-2 font-medium">Visiteur</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentScans.map((s) => {
-                const visits = s.visitorHash
-                  ? (visitCount.get(s.visitorHash) ?? 1)
-                  : 1;
-                const who = s.visitorHash ? identity.get(s.visitorHash) : null;
-                return (
-                  <tr key={s.id} className="border-b border-black/5 last:border-0">
-                    <td className="py-2 pr-4 text-brand/70">
-                      {s.createdAt.toLocaleString("fr-FR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td className="py-2 pr-4 font-medium text-brand">{s.box.name}</td>
-                    <td className="py-2 pr-4 text-brand/70">
-                      {s.productName ?? "Aucun article"}
-                    </td>
-                    <td className="py-2 pr-4">
-                      {s.durationMs != null ? fmtDuration(s.durationMs) : "—"}
-                    </td>
-                    <td className="py-2 pr-4 text-brand/60">{deviceOf(s.userAgent)}</td>
-                    <td className="py-2 pr-4 text-brand/60">
-                      {s.country
-                        ? s.city
-                          ? `${s.city}, ${s.country}`
-                          : s.country
-                        : "—"}
-                    </td>
-                    <td className="py-2 pr-4 text-brand/60">
-                      {s.lang ? s.lang.split("-")[0]!.toUpperCase() : "—"}
-                    </td>
-                    <td className="py-2">
-                      {who ? (
-                        <div>
-                          <div className="font-medium text-brand">{who.email}</div>
-                          {who.phone && (
-                            <div className="text-xs text-brand/40">{who.phone}</div>
-                          )}
-                        </div>
-                      ) : s.visitorHash ? (
-                        <span className="font-mono text-xs text-brand/40">
-                          {s.visitorHash.slice(0, 6)}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
-                      {visits > 1 && (
-                        <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent-dark">
-                          ×{visits} visites
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {recentScans.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="py-6 text-center text-brand/40">
-                    Aucun scan pour l&apos;instant.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </Section>
+        {/* ============================================ DÉTAILS (repliés) */}
+        <details className="mt-8 rounded-2xl border border-black/5 bg-white shadow-card">
+          <summary className="cursor-pointer select-none px-6 py-4 font-display font-bold text-brand/70 hover:text-brand">
+            Détails visiteurs &amp; technique — appareils, provenance,
+            localisation, horaires, santé des envois
+          </summary>
+          <div className="space-y-8 border-t border-black/5 px-6 py-6">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Stat
+                label="Temps moyen sur page"
+                value={avgDuration != null ? fmtDuration(avgDuration) : "—"}
+                hint={
+                  avgDuration == null
+                    ? "Se remplit avec les scans"
+                    : `${durations.length} visites mesurées`
+                }
+              />
+              <Stat
+                label="Codes délivrés"
+                value={`${codesSent}/${orders.length}`}
+                hint="emails/SMS envoyés après paiement"
+              />
+              <Stat
+                label="Heure de pointe"
+                value={orders.length || scans.length ? `${peakHour}h` : "—"}
+                hint="pic de scans dans la journée"
+              />
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-brand/40">
+                Scans par heure de la journée
+              </h3>
+              <HourSparkline data={byHour} max={maxHour} />
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <BreakdownCard title="Localisation" rows={locations} total={scans.length} compact />
+              <BreakdownCard title="Langues" rows={languages} total={scans.length} compact />
+              <BreakdownCard title="Appareils" rows={devices} total={scans.length} compact />
+              <BreakdownCard title="Provenance" rows={referers} total={scans.length} compact />
+            </div>
+
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-brand/40">
+                Derniers scans (journal)
+              </h3>
+              <p className="mt-0.5 text-xs text-brand/50">
+                Chaque visite en détail — utile pour du débogage ou du support
+                ponctuel, pas pour le pilotage quotidien.
+              </p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="border-b border-black/5 text-xs text-brand/40">
+                    <tr>
+                      <th className="py-2 pr-4 font-medium">Date</th>
+                      <th className="py-2 pr-4 font-medium">Box</th>
+                      <th className="py-2 pr-4 font-medium">Produit présenté</th>
+                      <th className="py-2 pr-4 font-medium">Temps</th>
+                      <th className="py-2 pr-4 font-medium">Appareil</th>
+                      <th className="py-2 pr-4 font-medium">Localisation</th>
+                      <th className="py-2 pr-4 font-medium">Langue</th>
+                      <th className="py-2 font-medium">Visiteur</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentScans.map((s) => {
+                      const visits = s.visitorHash
+                        ? (visitCount.get(s.visitorHash) ?? 1)
+                        : 1;
+                      const who = s.visitorHash ? identity.get(s.visitorHash) : null;
+                      return (
+                        <tr key={s.id} className="border-b border-black/5 last:border-0">
+                          <td className="py-2 pr-4 text-brand/70">
+                            {s.createdAt.toLocaleString("fr-FR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </td>
+                          <td className="py-2 pr-4 font-medium text-brand">{s.box.name}</td>
+                          <td className="py-2 pr-4 text-brand/70">
+                            {s.productName ?? "Aucun article"}
+                          </td>
+                          <td className="py-2 pr-4">
+                            {s.durationMs != null ? fmtDuration(s.durationMs) : "—"}
+                          </td>
+                          <td className="py-2 pr-4 text-brand/60">{deviceOf(s.userAgent)}</td>
+                          <td className="py-2 pr-4 text-brand/60">
+                            {s.country
+                              ? s.city
+                                ? `${s.city}, ${s.country}`
+                                : s.country
+                              : "—"}
+                          </td>
+                          <td className="py-2 pr-4 text-brand/60">
+                            {s.lang ? s.lang.split("-")[0]!.toUpperCase() : "—"}
+                          </td>
+                          <td className="py-2">
+                            {who ? (
+                              <div>
+                                <div className="font-medium text-brand">{who.email}</div>
+                                {who.phone && (
+                                  <div className="text-xs text-brand/40">{who.phone}</div>
+                                )}
+                              </div>
+                            ) : s.visitorHash ? (
+                              <span className="font-mono text-xs text-brand/40">
+                                {s.visitorHash.slice(0, 6)}
+                              </span>
+                            ) : (
+                              "—"
+                            )}
+                            {visits > 1 && (
+                              <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent-dark">
+                                ×{visits} visites
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {recentScans.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="py-6 text-center text-brand/40">
+                          Aucun scan pour l&apos;instant.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </details>
 
         <p className="mt-8 text-xs text-brand/40">
           Temps passé, localisation, langue et empreinte visiteur sont mesurés
@@ -598,17 +651,21 @@ function Stat({
   label,
   value,
   hint,
+  big,
 }: {
   label: string;
   value: string;
   hint?: string;
+  big?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-black/5 bg-white p-4 shadow-card">
       <div className="text-xs font-semibold uppercase tracking-wide text-brand/40">
         {label}
       </div>
-      <div className="mt-1 font-display text-2xl font-extrabold text-brand">
+      <div
+        className={`mt-1 font-display font-extrabold text-brand ${big ? "text-3xl" : "text-2xl"}`}
+      >
         {value}
       </div>
       {hint && <div className="mt-0.5 text-xs text-brand/40">{hint}</div>}
@@ -639,10 +696,76 @@ function Bar({ value, max }: { value: number; max: number }) {
   const pct = Math.round((value / max) * 100);
   return (
     <div className="h-2 w-full rounded-full bg-black/5">
-      <div
-        className="h-2 rounded-full bg-accent"
-        style={{ width: `${pct}%` }}
-      />
+      <div className="h-2 rounded-full bg-accent" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+// Hauteur en pixels (pas en %) : un % de hauteur sur un enfant de flex-item
+// ne se résout pas de façon fiable sans que le parent ait une hauteur figée
+// à chaque niveau d'imbrication — plus simple et robuste de calculer en px.
+const TREND_CHART_PX = 128;
+const HOUR_CHART_PX = 64;
+
+/** Graphique en barres verticales — tendance des scans sur 14 jours. */
+function TrendChart({
+  data,
+  max,
+}: {
+  data: [string, { scans: number; orders: number; revenueCents: number }][];
+  max: number;
+}) {
+  return (
+    <div
+      className="flex items-end gap-1.5 sm:gap-2"
+      style={{ height: TREND_CHART_PX }}
+    >
+      {data.map(([day, v]) => {
+        const heightPx = Math.max(
+          3,
+          Math.round((v.scans / max) * TREND_CHART_PX)
+        );
+        const label = new Date(day).toLocaleDateString("fr-FR", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+        return (
+          <div key={day} className="flex flex-1 flex-col items-center gap-1.5">
+            <div
+              title={`${label} — ${v.scans} scan${v.scans > 1 ? "s" : ""}, ${v.orders} vente${v.orders > 1 ? "s" : ""}`}
+              className={`w-full rounded-t transition ${
+                v.orders > 0 ? "bg-accent" : "bg-brand/30"
+              }`}
+              style={{ height: heightPx }}
+            />
+            <span className="text-[9px] text-brand/40">{label.slice(0, 2)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 24 barres fines côte à côte — distribution des scans par heure. */
+function HourSparkline({ data, max }: { data: number[]; max: number }) {
+  return (
+    <div
+      className="mt-2 flex items-end gap-0.5"
+      style={{ height: HOUR_CHART_PX }}
+    >
+      {data.map((n, h) => {
+        const heightPx = Math.max(2, Math.round((n / max) * HOUR_CHART_PX));
+        return (
+          <div key={h} className="flex flex-1 flex-col items-center gap-1">
+            <div
+              title={`${h}h — ${n} scan${n > 1 ? "s" : ""}`}
+              className="w-full rounded-t bg-accent/70"
+              style={{ height: heightPx }}
+            />
+            {h % 4 === 0 && <span className="text-[9px] text-brand/30">{h}h</span>}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -652,11 +775,13 @@ function BreakdownCard({
   rows,
   total,
   empty,
+  compact,
 }: {
   title: string;
   rows: [string, number][];
   total: number;
   empty?: string;
+  compact?: boolean;
 }) {
   const max = Math.max(1, ...rows.map(([, n]) => n));
   return (
@@ -666,7 +791,7 @@ function BreakdownCard({
         <p className="mt-4 text-sm text-brand/40">{empty ?? "Aucune donnée"}</p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {rows.slice(0, 8).map(([label, n]) => (
+          {rows.slice(0, compact ? 5 : 8).map(([label, n]) => (
             <li key={label} className="text-sm">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-brand/80">{label}</span>

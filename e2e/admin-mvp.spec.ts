@@ -180,18 +180,27 @@ test.describe("Admin — page Données", () => {
     await loginAsAdmin(context);
     await page.goto("/admin/data");
 
+    // Visible par défaut : l'essentiel business + marketing, au-dessus du pli.
     await expect(page.getByRole("heading", { name: "Données" })).toBeVisible();
-    await expect(page.getByText("Scans (total)")).toBeVisible();
+    await expect(page.getByText("Chiffre d'affaires").first()).toBeVisible();
     await expect(page.getByText("Conversion").first()).toBeVisible();
-    await expect(page.getByText("Temps moyen sur page")).toBeVisible();
+    await expect(
+      page.getByText("Visiteurs uniques", { exact: true })
+    ).toBeVisible();
+    await expect(page.getByText("Emails captés")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Moyens de paiement" })
     ).toBeVisible();
+    await expect(page.getByText("Activité par box")).toBeVisible();
+
+    // Replié par défaut (progressive disclosure) : contenu secondaire/technique.
+    await expect(page.getByRole("heading", { name: "Appareils" })).not.toBeVisible();
+    await page.getByText(/Détails visiteurs/i).click();
+    await expect(page.getByText("Temps moyen sur page")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Appareils" })).toBeVisible();
     await expect(
-      page.getByText(/À quelle heure les voyageurs scannent/i)
+      page.getByText(/Scans par heure de la journée/i)
     ).toBeVisible();
-    await expect(page.getByText("Activité par box")).toBeVisible();
   });
 });
 
