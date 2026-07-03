@@ -212,10 +212,26 @@ async function sendLandingVisitEmail(
   }
 }
 
+/** Extrait une URL de webhook Slack propre à partir de la variable d'env —
+ *  tolère les erreurs de copier-coller courantes (guillemets autour de la
+ *  valeur, espaces, ou collage de la commande curl entière au lieu de la
+ *  seule URL). Renvoie null si rien d'exploitable n'est trouvé. */
+function parseSlackWebhookUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const match = raw.match(/https:\/\/hooks\.slack\.com\/services\/\S+/);
+  if (!match) {
+    console.warn(
+      "[notify] SLACK_WEBHOOK_URL présente mais ne ressemble pas à une URL de webhook Slack — vérifiez qu'elle commence par https://hooks.slack.com/services/ sans guillemets ni texte autour."
+    );
+    return null;
+  }
+  return match[0].replace(/["'.,;]+$/, "");
+}
+
 /** Envoie un message texte via un Incoming Webhook Slack.
  *  Variable requise : SLACK_WEBHOOK_URL (Slack → Apps → Incoming Webhooks). */
 export async function sendSlackAlert(text: string): Promise<boolean> {
-  const url = process.env.SLACK_WEBHOOK_URL;
+  const url = parseSlackWebhookUrl(process.env.SLACK_WEBHOOK_URL);
   if (!url) return false;
   try {
     const res = await fetch(url, {
