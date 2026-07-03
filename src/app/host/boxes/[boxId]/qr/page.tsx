@@ -24,7 +24,7 @@ export default async function HostQrPrintPage({
   const { boxId } = await params;
   const box = await prisma.box.findFirst({
     where: { id: boxId, hostId: host.id },
-    select: { qrSlug: true, name: true, location: true },
+    select: { qrSlug: true, name: true },
   });
   if (!box) notFound();
 
@@ -39,18 +39,6 @@ export default async function HostQrPrintPage({
 
   return (
     <main className="min-h-screen bg-cream py-10 print:min-h-0 print:bg-white print:py-0">
-      {/* Réglages d'impression : page A5 sans marges, couleurs conservées */}
-      <style>{`
-        @media print {
-          @page { size: A5 portrait; margin: 0; }
-          html, body { background: #fff !important; }
-        }
-        .qr-sheet {
-          print-color-adjust: exact;
-          -webkit-print-color-adjust: exact;
-        }
-      `}</style>
-
       {/* Barre d'outils — écran uniquement */}
       <div className="mx-auto mb-6 flex w-[148mm] max-w-full items-center justify-between px-4 print:hidden">
         <Link
@@ -114,21 +102,19 @@ export default async function HostQrPrintPage({
           ))}
         </div>
 
-        {/* Pied : nom de la box + URL de secours */}
+        {/* Pied : branding + URL de secours — jamais le nom interne de la
+            box (identifiant technique, sans intérêt pour le voyageur). */}
         <div className="mt-auto w-full">
           <div className="rounded-[4mm] bg-brand px-[6mm] py-[3.5mm] text-white">
-            <div className="truncate font-display text-[4.2mm] font-bold">
-              {box.name}
-              {box.location ? (
-                <span className="font-normal text-white/60"> · {box.location}</span>
-              ) : null}
+            <div className="font-display text-[4.2mm] font-bold">
+              Escale Box
             </div>
             <div className="mt-[0.8mm] break-all text-[3mm] text-white/70">
               Sans appareil photo&nbsp;? Tapez&nbsp;: {displayUrl}
             </div>
           </div>
           <p className="mt-[2.5mm] text-[2.8mm] text-brand/40">
-            Paiement sécurisé par Stripe · Sans application · Escale Box
+            Paiement sécurisé par Stripe · Sans application
           </p>
         </div>
       </div>
