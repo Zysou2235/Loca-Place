@@ -73,7 +73,7 @@ export default async function AdminDataPage({
       ? { hostId: hostFilter }
       : {};
 
-  const [scans, orders, boxes, allHosts, allBoxes] = await Promise.all([
+  const [scans, orders, boxes, allHosts, allBoxes, leads] = await Promise.all([
     prisma.scan.findMany({
       where: scanWhere,
       orderBy: { createdAt: "desc" },
@@ -111,7 +111,43 @@ export default async function AdminDataPage({
       },
       orderBy: { createdAt: "asc" },
     }),
+    // Opt-ins : servent à résoudre l'identité des visiteurs (hash → email).
+    // Tri décroissant : en cas d'empreinte partagée (wifi commun, appareil
+    // identique), l'association la plus récente gagne.
+    prisma.lead.findMany({
+      select: { email: true, visitorHash: true },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
+
+  /* ---- Identité & récurrence des visiteurs (empreinte anonyme) */
+  // Nb de visites par empreinte (sur le périmètre chargé).
+  const visitCount = new Map<string, number>();
+  for (const s of scans) {
+    if (s.visitorHash) {
+      visitCount.set(s.visitorHash, (visitCount.get(s.visitorHash) ?? 0) + 1);
+    }
+  }
+  // hash → identité connue (email/téléphone), via achats puis opt-ins.
+  const identity = new Map<string, { email: string; phone?: string | null }>();
+  for (const o of orders) {
+    if (o.visitorHash && o.customerEmail && !identity.has(o.visitorHash)) {
+      identity.set(o.visitorHash, {
+        email: o.customerEmail,
+        phone: o.customerPhone,
+      });
+    }
+  }
+  for (const l of leads) {
+    if (l.visitorHash && !identity.has(l.visitorHash)) {
+      identity.set(l.visitorHash, { email: l.email });
+    }
+  }
+  const uniqueVisitors = visitCount.size;
+  const returningVisitors = [...visitCount.values()].filter((n) => n > 1).length;
+  const identifiedVisitors = [...visitCount.keys()].filter((h) =>
+    identity.has(h)
+  ).length;
 
   const filteredHost = hostFilter
     ? allHosts.find((h) => h.id === hostFilter)
@@ -189,6 +225,24 @@ export default async function AdminDataPage({
     orders.map((o) => PAYMENT_LABELS[o.paymentMethod ?? ""] ?? o.paymentMethod ?? "Non renseigné")
   );
   const topProducts = count(orders.map((o) => o.productName));
+  const locations = count(
+    scans.map((s) =>
+      s.country ? (s.city ? `${s.city}, ${s.country}` : s.country) : "Non localisé"
+    )
+  );
+  const langName = new Intl.DisplayNames(["fr"], { type: "language" });
+  const languages = count(
+    scans.map((s) => {
+      if (!s.lang) return "Inconnue";
+      const base = s.lang.split("-")[0]!.toLowerCase();
+      try {
+        const label = langName.of(base);
+        return label ? label.charAt(0).toUpperCase() + label.slice(1) : s.lang;
+      } catch {
+        return s.lang;
+      }
+    })
+  );
 
   /* ---- Par box (activité) */
   const boxRows = boxes
@@ -281,6 +335,20 @@ export default async function AdminDataPage({
             value={`${codesSent}/${orders.length}`}
             hint="Emails/SMS envoyés après paiement"
           />
+          <Stat
+            label="Visiteurs uniques"
+            value={uniqueVisitors.toLocaleString("fr-FR")}
+            hint={
+              uniqueVisitors
+                ? `${Math.round((returningVisitors / uniqueVisitors) * 100)}% reviennent au moins une fois`
+                : undefined
+            }
+          />
+          <Stat
+            label="Visiteurs identifiés"
+            value={identifiedVisitors.toLocaleString("fr-FR")}
+            hint="Email connu (achat ou opt-in)"
+          />
         </div>
 
         {/* Activité par jour */}
@@ -342,7 +410,9 @@ export default async function AdminDataPage({
           </table>
         </Section>
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <BreakdownCard title="Localisation" rows={locations} total={scans.length} />
+          <BreakdownCard title="Langues" rows={languages} total={scans.length} />
           <BreakdownCard title="Appareils" rows={devices} total={scans.length} />
           <BreakdownCard title="Provenance" rows={referers} total={scans.length} />
           <BreakdownCard
@@ -424,7 +494,7 @@ export default async function AdminDataPage({
         {/* Derniers scans en détail */}
         <Section
           title="Derniers scans (détail)"
-          subtitle="Chaque visite de page voyageur : produit présenté, temps passé, appareil."
+          subtitle="Chaque visite de page voyageur : localisation, appareil, récurrence — et identité quand le visiteur a acheté ou laissé son email."
         >
           <table className="w-full text-left text-sm">
             <thead className="border-b border-black/5 text-xs text-brand/40">
@@ -432,34 +502,74 @@ export default async function AdminDataPage({
                 <th className="py-2 pr-4 font-medium">Date</th>
                 <th className="py-2 pr-4 font-medium">Box</th>
                 <th className="py-2 pr-4 font-medium">Produit présenté</th>
-                <th className="py-2 pr-4 font-medium">Temps passé</th>
-                <th className="py-2 font-medium">Appareil</th>
+                <th className="py-2 pr-4 font-medium">Temps</th>
+                <th className="py-2 pr-4 font-medium">Appareil</th>
+                <th className="py-2 pr-4 font-medium">Localisation</th>
+                <th className="py-2 pr-4 font-medium">Langue</th>
+                <th className="py-2 font-medium">Visiteur</th>
               </tr>
             </thead>
             <tbody>
-              {recentScans.map((s) => (
-                <tr key={s.id} className="border-b border-black/5 last:border-0">
-                  <td className="py-2 pr-4 text-brand/70">
-                    {s.createdAt.toLocaleString("fr-FR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </td>
-                  <td className="py-2 pr-4 font-medium text-brand">{s.box.name}</td>
-                  <td className="py-2 pr-4 text-brand/70">
-                    {s.productName ?? "Aucun article"}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {s.durationMs != null ? fmtDuration(s.durationMs) : "—"}
-                  </td>
-                  <td className="py-2 text-brand/60">{deviceOf(s.userAgent)}</td>
-                </tr>
-              ))}
+              {recentScans.map((s) => {
+                const visits = s.visitorHash
+                  ? (visitCount.get(s.visitorHash) ?? 1)
+                  : 1;
+                const who = s.visitorHash ? identity.get(s.visitorHash) : null;
+                return (
+                  <tr key={s.id} className="border-b border-black/5 last:border-0">
+                    <td className="py-2 pr-4 text-brand/70">
+                      {s.createdAt.toLocaleString("fr-FR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="py-2 pr-4 font-medium text-brand">{s.box.name}</td>
+                    <td className="py-2 pr-4 text-brand/70">
+                      {s.productName ?? "Aucun article"}
+                    </td>
+                    <td className="py-2 pr-4">
+                      {s.durationMs != null ? fmtDuration(s.durationMs) : "—"}
+                    </td>
+                    <td className="py-2 pr-4 text-brand/60">{deviceOf(s.userAgent)}</td>
+                    <td className="py-2 pr-4 text-brand/60">
+                      {s.country
+                        ? s.city
+                          ? `${s.city}, ${s.country}`
+                          : s.country
+                        : "—"}
+                    </td>
+                    <td className="py-2 pr-4 text-brand/60">
+                      {s.lang ? s.lang.split("-")[0]!.toUpperCase() : "—"}
+                    </td>
+                    <td className="py-2">
+                      {who ? (
+                        <div>
+                          <div className="font-medium text-brand">{who.email}</div>
+                          {who.phone && (
+                            <div className="text-xs text-brand/40">{who.phone}</div>
+                          )}
+                        </div>
+                      ) : s.visitorHash ? (
+                        <span className="font-mono text-xs text-brand/40">
+                          {s.visitorHash.slice(0, 6)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                      {visits > 1 && (
+                        <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent-dark">
+                          ×{visits} visites
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {recentScans.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-brand/40">
+                  <td colSpan={8} className="py-6 text-center text-brand/40">
                     Aucun scan pour l&apos;instant.
                   </td>
                 </tr>
@@ -469,9 +579,13 @@ export default async function AdminDataPage({
         </Section>
 
         <p className="mt-8 text-xs text-brand/40">
-          Le « temps passé » est mesuré à partir de maintenant (beacon envoyé
-          quand le voyageur quitte la page) — les scans antérieurs au
-          déploiement n&apos;en ont pas.
+          Temps passé, localisation, langue et empreinte visiteur sont mesurés
+          à partir de maintenant — les scans antérieurs au déploiement
+          n&apos;en ont pas. La localisation (pays/ville) est dérivée de
+          l&apos;IP puis l&apos;IP est jetée ; l&apos;empreinte visiteur est un
+          hash anonyme et l&apos;identité n&apos;apparaît que si la personne a
+          acheté ou laissé son email. Données personnelles réservées à
+          l&apos;admin — à couvrir dans la politique de confidentialité.
         </p>
       </main>
     </div>

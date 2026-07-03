@@ -6,6 +6,7 @@ import { stripe } from "@/lib/stripe";
 import { getBaseUrl } from "@/lib/base-url";
 import { grantPurchaseAccess } from "@/lib/purchase-cookie";
 import { clientIp, rateLimit, HOUR } from "@/lib/rate-limit";
+import { computeVisitorHash } from "@/lib/visitor";
 
 export type LeadState = { done?: boolean; error?: string };
 
@@ -39,8 +40,12 @@ export async function leaveEmail(
   });
   if (!box) return { error: "Box introuvable." };
 
+  // Empreinte visiteur : relie cet email aux scans du même visiteur
+  // (récurrence + identité dans les Données admin).
+  const visitorHash = await computeVisitorHash();
+
   try {
-    await prisma.lead.create({ data: { email, boxId: box.id } });
+    await prisma.lead.create({ data: { email, boxId: box.id, visitorHash } });
   } catch (err) {
     // Doublon email+box (P2002) : déjà enregistré, on confirme quand même.
     // Toute autre erreur doit remonter — sinon on afficherait « merci »
@@ -136,6 +141,8 @@ export async function createCheckoutSession(formData: FormData) {
       productId: product.id,
       boxId: box.id,
       qrSlug,
+      // Empreinte visiteur : reliera l'achat aux scans du même visiteur.
+      visitorHash: (await computeVisitorHash()) ?? "",
     },
     success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/b/${qrSlug}`,

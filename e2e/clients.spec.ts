@@ -120,6 +120,38 @@ test.describe("Fichier client", () => {
     expect(body).toContain(email);
   });
 
+  test("Empreinte visiteur : scans reliés à l'email, récurrence affichée", async ({
+    page,
+    context,
+  }) => {
+    const box = await makeBox("visitor");
+    const email = `identite-${Date.now()}@exemple.fr`;
+
+    // Deux visites du même navigateur → même empreinte, récurrence ×2
+    await page.goto(`/b/${box.qrSlug}`);
+    await page.goto(`/b/${box.qrSlug}`);
+
+    const scans = await prisma.scan.findMany({ where: { boxId: box.id } });
+    expect(scans.length).toBeGreaterThanOrEqual(2);
+    expect(scans[0]!.visitorHash).toBeTruthy();
+    expect(scans[0]!.visitorHash).toBe(scans[1]!.visitorHash);
+    expect(scans[0]!.lang).toBeTruthy(); // Accept-Language capté
+
+    // Opt-in → le Lead porte la même empreinte que les scans
+    await page.getByPlaceholder("vous@exemple.fr").fill(email);
+    await page.getByRole("button", { name: /Envoyer/i }).click();
+    await expect(page.getByText(/Merci !/i)).toBeVisible();
+    const lead = await prisma.lead.findFirst({ where: { email } });
+    expect(lead?.visitorHash).toBe(scans[0]!.visitorHash);
+
+    // Côté admin : identité résolue + badge de récurrence dans Données
+    await loginAs(context, prisma, { email: ADMIN_EMAIL, name: "Admin Test" });
+    await page.goto(`/admin/data?box=${box.id}`);
+    await expect(page.getByText(email).first()).toBeVisible();
+    await expect(page.getByText(/×\d+ visites/).first()).toBeVisible();
+    await expect(page.getByText("Visiteurs uniques")).toBeVisible();
+  });
+
   test("Le fichier client est refusé aux non-admins", async ({
     page,
     context,

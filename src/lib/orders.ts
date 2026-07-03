@@ -78,6 +78,7 @@ export async function deliverBoxCode(session: Stripe.Checkout.Session) {
         customerEmail: email,
         customerPhone: phone,
         paymentMethod,
+        visitorHash: session.metadata?.visitorHash || null,
       },
     });
   } catch {

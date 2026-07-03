@@ -127,11 +127,22 @@ model Scan {
   productName String?
   // Temps passé sur la page voyageur (beacon envoyé à la fermeture).
   durationMs  Int?
+  // Langue du navigateur (Accept-Language, 1er tag — ex. "fr", "en-US").
+  lang        String?
+  // Géolocalisation approximative dérivée de l'IP (l'IP brute n'est PAS
+  // stockée) — remplie en arrière-plan après la réponse.
+  country     String?
+  city        String?
+  // Empreinte visiteur anonyme : HMAC(secret, ip+userAgent) tronqué.
+  // Permet de compter les visiteurs uniques et les revisites, et de relier
+  // les visites à un email quand la personne achète ou laisse son adresse.
+  visitorHash String?
 
   boxId String
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
 
   @@index([boxId, createdAt])
+  @@index([visitorHash])
 }
 
 /// Email laissé volontairement par un voyageur sur la page publique d'une
@@ -142,12 +153,15 @@ model Lead {
   id        String   @id @default(cuid())
   email     String
   createdAt DateTime @default(now())
+  // Empreinte visiteur au moment de l'opt-in → relie l'email aux scans.
+  visitorHash String?
 
   boxId String
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
 
   // Un même email ne compte qu'une fois par box (revisites ignorées).
   @@unique([email, boxId])
+  @@index([visitorHash])
 }
 
 model Order {
@@ -161,6 +175,8 @@ model Order {
   codeSent        Boolean  @default(false)
   // Moyen de paiement utilisé (card, apple_pay, google_pay, link…) — Stripe.
   paymentMethod   String?
+  // Empreinte visiteur au moment du checkout → relie l'achat aux scans.
+  visitorHash     String?
   createdAt       DateTime @default(now())
 
   boxId String
