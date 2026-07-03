@@ -186,7 +186,8 @@ export default async function AdminTestPage({
                           <th className="py-2 pr-4 font-medium">QR</th>
                           <th className="py-2 pr-4 font-medium">Code cadenas</th>
                           <th className="py-2 pr-4 font-medium">Produit</th>
-                          <th className="py-2 font-medium">Expédiée</th>
+                          <th className="py-2 pr-4 font-medium">Expédiée</th>
+                          <th className="py-2 font-medium">Fiche</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -212,10 +213,18 @@ export default async function AdminTestPage({
                             <td className="py-2 pr-4 text-brand/70">
                               {b.selectedProduct?.name ?? "—"}
                             </td>
-                            <td className="py-2">
+                            <td className="py-2 pr-4">
                               {b.shippedAt
                                 ? b.shippedAt.toLocaleDateString("fr-FR")
                                 : "—"}
+                            </td>
+                            <td className="py-2">
+                              <Link
+                                href={`/host/boxes/${b.id}/qr?from=admin-test`}
+                                className="font-medium text-accent hover:underline"
+                              >
+                                🖨️ Imprimer
+                              </Link>
                             </td>
                           </tr>
                         ))}
