@@ -3,18 +3,29 @@ import { redirect } from "next/navigation";
 import { getCurrentHost } from "@/lib/auth";
 import { PLANS } from "@/lib/plans";
 import { HostShell } from "../HostShell";
-import { openBillingPortal } from "../billing-actions";
 import { MultiPlanCard } from "./MultiPlanCard";
+import { ChangePlanButton } from "./ChangePlanButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    error?: string;
+    need?: string;
+    active?: string;
+    newBoxes?: string;
+  }>;
+}) {
   const host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   const subscribed =
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";
+
+  const { error, need, active, newBoxes } = await searchParams;
 
   return (
     <HostShell hostName={host.name}>
@@ -26,13 +37,35 @@ export default async function BillingPage() {
         ventes.
       </p>
 
+      {error === "tooManyActive" && (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-display text-sm font-bold text-amber-800">
+            Vous devez désactiver {need} box avant ce changement
+          </h2>
+          <p className="mt-1 text-sm text-amber-700">
+            Vous avez actuellement {active} box actives mais la formule
+            choisie n&apos;en autorise que {newBoxes}. Désactivez les box que
+            vous n&apos;utilisez plus depuis votre{" "}
+            <Link href="/host" className="font-semibold underline">
+              tableau de bord
+            </Link>
+            , puis revenez ici pour changer de formule.
+          </p>
+        </div>
+      )}
+
       <div className="mt-8 grid gap-6 md:grid-cols-3">
         {PLANS.map((plan) => {
           const current = subscribed && host.subscriptionPlan === plan.id;
           // La formule Multi a son propre composant (sélecteur de box + prix dynamique).
           if (plan.id === "multi") {
             return (
-              <MultiPlanCard key={plan.id} current={current} subscribed={subscribed} />
+              <MultiPlanCard
+                key={plan.id}
+                current={current}
+                currentBoxes={host.boxQuota ?? 0}
+                subscribed={subscribed}
+              />
             );
           }
           return (
@@ -88,20 +121,13 @@ export default async function BillingPage() {
                   Formule actuelle
                 </div>
               ) : subscribed ? (
-                // Déjà abonné : on passe par le portail Stripe pour changer de
-                // formule (évite de créer une 2e souscription = double facturation).
-                <form action={openBillingPortal} className="mt-6">
-                  <button
-                    type="submit"
-                    className={`w-full rounded-full px-5 py-3 text-center font-semibold transition ${
-                      plan.highlighted
-                        ? "bg-accent text-white hover:bg-accent-dark"
-                        : "bg-brand text-white hover:bg-brand-dark"
-                    }`}
-                  >
-                    Changer pour cette formule
-                  </button>
-                </form>
+                // Déjà abonné : changement de formule en place via l'API
+                // Stripe (proration automatique).
+                <ChangePlanButton
+                  planId={plan.id}
+                  planName={plan.name}
+                  highlighted={plan.highlighted}
+                />
               ) : (
                 <Link
                   href={`/host/billing/commande?plan=${plan.id}`}

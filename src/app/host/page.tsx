@@ -5,13 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 import { isEffectiveAdmin } from "@/lib/admin";
+import { provisionBoxesForHost } from "@/lib/box-provisioning";
 import { HostShell } from "./HostShell";
-import { createBox, deleteBox } from "./box-actions";
+import { BoxQuickActions } from "./BoxQuickActions";
 import {
   connectOnboard,
   openBillingPortal,
   refreshConnectStatus,
   refreshSubscriptionStatus,
+  resetStripeIdentifiers,
   syncSubscriptionFromCheckout,
 } from "./billing-actions";
 
@@ -20,20 +22,39 @@ export const dynamic = "force-dynamic";
 export default async function HostDashboard({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{
+    session_id?: string;
+    billingError?: string;
+    msg?: string;
+    connect?: string;
+    planChanged?: string;
+  }>;
 }) {
   let host = await getCurrentHost();
   if (!host) redirect("/host/login");
 
   // Reconcile state after Stripe redirects.
-  const { session_id } = await searchParams;
+  const { session_id, billingError, msg, connect, planChanged } =
+    await searchParams;
   if (session_id) {
     await syncSubscriptionFromCheckout(session_id);
   }
   await refreshSubscriptionStatus();
-  await refreshConnectStatus();
+  // Au retour d'onboarding Stripe Connect, on force le refresh (sinon le
+  // rate-limit anti-martèlement de 10 min empêche la mise à jour de
+  // chargesEnabled, et le dashboard reste sur "À configurer").
+  await refreshConnectStatus(connect === "return");
   host = await getCurrentHost();
   if (!host) redirect("/host/login");
+
+  // Filet de sécurité : provisionne les box manquantes pour les abonnés qui
+  // se sont inscrits avant l'arrivée de la création auto (idempotent).
+  const subActive =
+    host.subscriptionStatus === "active" ||
+    host.subscriptionStatus === "trialing";
+  if (subActive && host.boxQuota > 0) {
+    await provisionBoxesForHost(host.id, host.boxQuota);
+  }
 
   const boxes = await prisma.box.findMany({
     where: { hostId: host.id },
@@ -49,11 +70,10 @@ export default async function HostDashboard({
     host.subscriptionStatus === "active" ||
     host.subscriptionStatus === "trialing";
   const limit = host.boxQuota;
-  const canCreate = subscribed && boxes.length < limit;
   const justSubscribed = Boolean(session_id) && subscribed;
 
   return (
-    <HostShell hostName={host.name}>
+    <HostShell hostName={host.name} back={false}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold text-brand">
           Bonjour {host.name.split(" ")[0]} 👋
@@ -71,6 +91,23 @@ export default async function HostDashboard({
         Pilotez vos box, vos produits et votre abonnement.
       </p>
 
+      {planChanged && (
+        <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+          <h2 className="font-display text-sm font-bold text-green-800">
+            ✅ Votre formule a été modifiée
+          </h2>
+          <p className="mt-1 text-sm text-green-700">
+            La différence sera appliquée au prorata sur votre prochaine facture.
+            {host.boxQuota > 0 && (
+              <>
+                {" "}
+                Votre quota est maintenant de {host.boxQuota} box.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       {justSubscribed && (
         <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
           <h2 className="font-display text-lg font-bold text-green-800">
@@ -87,6 +124,42 @@ export default async function HostDashboard({
         </div>
       )}
 
+      {billingError === "portal" && (
+        <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-display text-sm font-bold text-amber-800">
+            La gestion d&apos;abonnement est momentanément indisponible
+          </h2>
+          <p className="mt-1 text-sm text-amber-700">
+            Veuillez réessayer dans quelques instants. Si le problème persiste,
+            écrivez-nous à{" "}
+            <a
+              href="mailto:contact@escalebox.fr"
+              className="font-semibold underline"
+            >
+              contact@escalebox.fr
+            </a>
+            .
+          </p>
+          {msg && isEffectiveAdmin(host) && (
+            <>
+              <pre className="mt-3 max-w-full overflow-x-auto rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
+                {msg}
+              </pre>
+              {msg.includes("No such customer") && (
+                <form action={resetStripeIdentifiers} className="mt-3">
+                  <button
+                    type="submit"
+                    className="rounded-full border border-amber-300 bg-white px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
+                  >
+                    Réinitialiser mes identifiants Stripe (admin)
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Status cards */}
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
         <Card title="Abonnement">
@@ -94,7 +167,7 @@ export default async function HostDashboard({
             <>
               <Badge ok>{plan ? plan.name : "Actif"}</Badge>
               <p className="mt-2 text-sm text-brand/60">
-                {boxes.length} / {limit} logement(s) utilisé(s).
+                {boxes.length} / {limit} box utilisée{boxes.length > 1 ? "s" : ""}.
               </p>
               <form action={openBillingPortal} className="mt-4">
                 <SmallButton>Gérer mon abonnement</SmallButton>
@@ -140,19 +213,45 @@ export default async function HostDashboard({
 
       {/* Boxes */}
       <div className="mt-10 flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold text-brand">Mes box</h2>
+        <h2 className="font-display text-xl font-bold text-brand">
+          Mes box{" "}
+          {subscribed && (
+            <span className="ml-1 text-sm font-medium text-brand/40">
+              {boxes.length}/{limit}
+            </span>
+          )}
+        </h2>
+        <p className="text-xs text-brand/40">
+          Cliquez sur une box pour la renommer ou y attribuer un produit
+        </p>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {boxes.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-black/10 bg-white p-6 text-center text-sm text-brand/50 sm:col-span-2">
-            Aucune box pour le moment.
+            {subscribed ? (
+              "Vos box seront créées automatiquement. Rechargez la page si elles n'apparaissent pas."
+            ) : (
+              <>
+                Activez un abonnement pour recevoir vos box.{" "}
+                <Link
+                  href="/host/billing"
+                  className="font-semibold text-accent hover:underline"
+                >
+                  Voir les formules
+                </Link>
+              </>
+            )}
           </p>
         ) : (
           boxes.map((box) => (
             <div
               key={box.id}
-              className="group relative rounded-2xl border border-black/5 bg-white p-5 shadow-card transition hover:border-accent/40 hover:shadow-md"
+              className={`group relative rounded-2xl border p-5 shadow-card transition hover:shadow-md ${
+                box.active
+                  ? "border-black/5 bg-white hover:border-accent/40"
+                  : "border-red-200 bg-red-50/40 opacity-80 hover:border-red-300"
+              }`}
             >
               {/* Toute la carte est cliquable → gestion de la box */}
               <Link
@@ -160,7 +259,9 @@ export default async function HostDashboard({
                 aria-label={`Gérer ${box.name}`}
                 className="absolute inset-0 rounded-2xl"
               />
-              <div className="pointer-events-none flex items-center gap-4">
+              {/* Bouton d'action rapide (désactiver/réactiver) — top-right */}
+              <BoxQuickActions boxId={box.id} active={box.active} />
+              <div className="pointer-events-none flex items-center gap-4 pr-10">
                 <Image
                   src="/escale-box-logo.png"
                   alt=""
@@ -169,8 +270,19 @@ export default async function HostDashboard({
                   className="h-12 w-12 shrink-0 object-contain"
                 />
                 <div className="min-w-0">
-                  <div className="truncate font-display font-bold text-brand">
-                    {box.name}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate font-display font-bold text-brand">
+                      {box.name}
+                    </span>
+                    {!box.active ? (
+                      <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
+                        Désactivée
+                      </span>
+                    ) : !box.selectedProduct ? (
+                      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                        {box._count.orders > 0 ? "Vide" : "Disponible"}
+                      </span>
+                    ) : null}
                   </div>
                   {box.location && (
                     <div className="truncate text-sm text-brand/50">
@@ -178,9 +290,13 @@ export default async function HostDashboard({
                     </div>
                   )}
                   <div className="mt-0.5 text-xs text-brand/40">
-                    {box.selectedProduct
-                      ? `Article : ${box.selectedProduct.name}`
-                      : "Aucun article sélectionné"}
+                    {!box.active
+                      ? "Désactivée — cliquez pour réactiver"
+                      : box.selectedProduct
+                        ? `Article : ${box.selectedProduct.name}`
+                        : box._count.orders > 0
+                          ? "Vide — cliquez pour réattribuer un produit"
+                          : "À attribuer — cliquez pour configurer"}
                   </div>
                 </div>
                 <span className="ml-auto shrink-0 text-brand/30 transition group-hover:text-accent">
@@ -201,58 +317,11 @@ export default async function HostDashboard({
                   </span>
                 )}
               </div>
-              {/* Supprimer — au-dessus du lien */}
-              <form
-                action={deleteBox}
-                className="relative z-10 mt-3 flex justify-end border-t border-black/5 pt-3"
-              >
-                <input type="hidden" name="boxId" value={box.id} />
-                <button
-                  type="submit"
-                  className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                >
-                  Supprimer
-                </button>
-              </form>
             </div>
           ))
         )}
       </div>
 
-      {/* Create box */}
-      <div className="mt-6 rounded-2xl border border-black/5 bg-white p-6 shadow-card">
-        <h3 className="font-display font-bold text-brand">Ajouter une box</h3>
-        {canCreate ? (
-          <form action={createBox} className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <input
-              name="name"
-              placeholder="Nom du logement (ex. Appartement Bellecour)"
-              required
-              className="flex-1 rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-            />
-            <input
-              name="location"
-              placeholder="Ville / adresse (optionnel)"
-              className="flex-1 rounded-xl border border-black/10 px-4 py-2.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-accent px-5 py-2.5 font-semibold text-white transition hover:bg-accent-dark"
-            >
-              Créer
-            </button>
-          </form>
-        ) : (
-          <p className="mt-3 text-sm text-brand/60">
-            {subscribed
-              ? `Votre formule ${plan?.name ?? ""} autorise ${limit} logement(s). `
-              : "Activez un abonnement pour créer vos box. "}
-            <Link href="/host/billing" className="font-semibold text-accent">
-              Voir les formules
-            </Link>
-          </p>
-        )}
-      </div>
     </HostShell>
   );
 }

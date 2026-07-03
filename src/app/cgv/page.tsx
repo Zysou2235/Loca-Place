@@ -38,7 +38,7 @@ export default function CgvPage() {
         <p>
           Après paiement, un code d&apos;accès est communiqué au voyageur (à
           l&apos;écran, par email et/ou SMS) afin de récupérer immédiatement son
-          produit dans la boîte présente dans le logement.
+          produit dans la box mise à disposition par l&apos;hôte.
         </p>
       </LegalSection>
 

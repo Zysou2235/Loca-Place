@@ -29,8 +29,8 @@ export const PLANS: Plan[] = [
     maxBoxes: 1,
     currency: "eur",
     features: [
-      "1 logement équipé",
-      "Box + QR code dédié",
+      "1 box dédiée",
+      "QR code unique",
       "Catalogue de produits illimité",
       "0% de commission sur vos ventes",
       "Versement direct (Stripe)",
@@ -46,9 +46,9 @@ export const PLANS: Plan[] = [
     maxBoxes: 2,
     currency: "eur",
     features: [
-      "2 logements équipés (2 box)",
+      "2 box dédiées",
       "Tout le plan Essentiel",
-      "Tableau de bord multi-sites",
+      "Tableau de bord multi-box",
       "Suivi des ventes consolidé",
     ],
   },
@@ -62,7 +62,7 @@ export const PLANS: Plan[] = [
     highlighted: true,
     currency: "eur",
     features: [
-      "À partir de 3 logements",
+      "À partir de 3 box",
       "+9€ / mois par box supplémentaire",
       "Tout le plan Duo",
       "Statistiques avancées",

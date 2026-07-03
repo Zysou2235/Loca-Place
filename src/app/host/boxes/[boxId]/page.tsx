@@ -6,9 +6,12 @@ import { formatPrice } from "@/lib/money";
 import { ImageDropInput } from "@/components/ImageDropInput";
 import { HostShell } from "../../HostShell";
 import { ChangeCodeForm } from "./ChangeCodeForm";
+import { RenameBoxForm } from "./RenameBoxForm";
+import { DeactivateBoxForm } from "./DeactivateBoxForm";
 import {
   assignProductToBox,
   createProduct,
+  reactivateBox,
   removeProductFromBox,
 } from "../../box-actions";
 
@@ -77,18 +80,54 @@ export default async function ManageBoxPage({
 
   return (
     <HostShell hostName={host.name}>
-      <Link href="/host" className="text-sm font-medium text-accent">
-        ← Tableau de bord
-      </Link>
-      <h1 className="mt-2 font-display text-2xl font-bold text-brand">
-        {box.name}
-      </h1>
-      <p className="mt-1 text-sm text-brand/60">
-        Page publique :{" "}
-        <Link href={`/b/${box.qrSlug}`} className="text-accent hover:underline">
-          /b/{box.qrSlug}
-        </Link>
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-brand">
+            {box.name}
+          </h1>
+          <p className="mt-1 text-sm text-brand/60">
+            Page publique :{" "}
+            <Link
+              href={`/b/${box.qrSlug}`}
+              className="text-accent hover:underline"
+            >
+              /b/{box.qrSlug}
+            </Link>
+          </p>
+        </div>
+        {!box.active && (
+          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700">
+            Désactivée
+          </span>
+        )}
+      </div>
+
+      {!box.active && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">Cette box est désactivée.</p>
+          <p className="mt-1">
+            Le QR code et le code du cadenas sont conservés. Vous pouvez la
+            réactiver, éventuellement après l&apos;avoir renommée pour
+            l&apos;attribuer à une autre adresse.
+          </p>
+          <form action={reactivateBox} className="mt-3">
+            <input type="hidden" name="boxId" value={box.id} />
+            <button
+              type="submit"
+              className="rounded-full bg-amber-700 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-800"
+            >
+              Réactiver cette box
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Renommer la box (nom + ville/adresse) */}
+      <RenameBoxForm
+        boxId={box.id}
+        defaultName={box.name}
+        defaultLocation={box.location ?? ""}
+      />
 
       {/* Tracking : scans du QR, ventes, conversion */}
       <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-card">
@@ -368,6 +407,21 @@ export default async function ManageBoxPage({
           </button>
         </form>
       </div>
+
+      {/* Désactivation (zone "danger") — la box reste en cache, réactivable. */}
+      {box.active && (
+        <div className="mt-10 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <h3 className="font-display text-sm font-bold text-red-700">
+            Désactiver cette box
+          </h3>
+          <p className="mt-1 text-sm text-red-700/80">
+            Met la page voyageur hors ligne sans supprimer la box. Le QR code
+            et le code du cadenas restent valides : vous pourrez la réactiver
+            plus tard (par exemple à une autre adresse).
+          </p>
+          <DeactivateBoxForm boxId={box.id} />
+        </div>
+      )}
     </HostShell>
   );
 }

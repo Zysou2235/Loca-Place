@@ -30,3 +30,18 @@ h3,
   background: #e8833a;
   color: #ffffff;
 }
+
+/* Fiche QR imprimable (/host/boxes/[boxId]/qr) — format A5 sans marges.
+   @page ne peut pas être scopé à une classe : c'est la seule page du site
+   avec un bouton Imprimer, donc la régle reste globale sans conséquence
+   ailleurs. */
+.qr-sheet {
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+@media print {
+  @page {
+    size: A5 portrait;
+    margin: 0;
+  }
+}

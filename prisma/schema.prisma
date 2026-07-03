@@ -59,6 +59,10 @@ model Host {
   // Notes internes (visibles admin uniquement) pour le suivi/support.
   adminNotes String?
 
+  // Compte test (box offertes pendant la phase MVP) : exclu du MRR,
+  // géré depuis /admin/test.
+  isTestAccount Boolean @default(false)
+
   boxes    Box[]
   products Product[] // catalogue d'articles réutilisables de l'hôte
 }
@@ -92,6 +96,7 @@ model Box {
 
   orders Order[]
   scans  Scan[]
+  leads  Lead[]
 }
 
 model Product {
@@ -120,11 +125,43 @@ model Scan {
   referer     String?
   productId   String? // article présenté au moment du scan (snapshot)
   productName String?
+  // Temps passé sur la page voyageur (beacon envoyé à la fermeture).
+  durationMs  Int?
+  // Langue du navigateur (Accept-Language, 1er tag — ex. "fr", "en-US").
+  lang        String?
+  // Géolocalisation approximative dérivée de l'IP (l'IP brute n'est PAS
+  // stockée) — remplie en arrière-plan après la réponse.
+  country     String?
+  city        String?
+  // Empreinte visiteur anonyme : HMAC(secret, ip+userAgent) tronqué.
+  // Permet de compter les visiteurs uniques et les revisites, et de relier
+  // les visites à un email quand la personne achète ou laisse son adresse.
+  visitorHash String?
 
   boxId String
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
 
   @@index([boxId, createdAt])
+  @@index([visitorHash])
+}
+
+/// Email laissé volontairement par un voyageur sur la page publique d'une
+/// box (consentement à être recontacté : sondage, offres de la box). Les
+/// acheteurs, eux, sont déjà connus via Order.customerEmail — le « Fichier
+/// client » admin fusionne les deux sources.
+model Lead {
+  id        String   @id @default(cuid())
+  email     String
+  createdAt DateTime @default(now())
+  // Empreinte visiteur au moment de l'opt-in → relie l'email aux scans.
+  visitorHash String?
+
+  boxId String
+  box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)
+
+  // Un même email ne compte qu'une fois par box (revisites ignorées).
+  @@unique([email, boxId])
+  @@index([visitorHash])
 }
 
 model Order {
@@ -136,6 +173,10 @@ model Order {
   customerEmail   String?
   customerPhone   String?
   codeSent        Boolean  @default(false)
+  // Moyen de paiement utilisé (card, apple_pay, google_pay, link…) — Stripe.
+  paymentMethod   String?
+  // Empreinte visiteur au moment du checkout → relie l'achat aux scans.
+  visitorHash     String?
   createdAt       DateTime @default(now())
 
   boxId String

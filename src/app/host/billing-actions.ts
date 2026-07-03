@@ -12,6 +12,8 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
+import { isEffectiveAdmin } from "@/lib/admin";
+import { provisionBoxesForHost } from "@/lib/box-provisioning";
 
 function assertStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -56,11 +58,11 @@ export async function placeSubscriptionOrder(formData: FormData) {
     host.subscriptionStatus === "trialing"
   ) {
     if (host.stripeCustomerId) {
-      const portal = await stripe.billingPortal.sessions.create({
-        customer: host.stripeCustomerId,
-        return_url: `${await getBaseUrl()}/host`,
-      });
-      redirect(portal.url);
+      const result = await tryCreatePortalSession(host.stripeCustomerId);
+      if ("url" in result) redirect(result.url);
+      redirect(
+        `/host?billingError=portal&msg=${encodeURIComponent(result.error)}`
+      );
     }
     redirect("/host");
   }
@@ -133,6 +135,91 @@ export async function placeSubscriptionOrder(formData: FormData) {
   redirect(session.url);
 }
 
+/**
+ * Modifie la formule d'un abonnement déjà actif (Essentiel ↔ Duo ↔ Multi N
+ * boxes). Stripe gère le prorata automatiquement (`proration_behavior:
+ * create_prorations`) — l'hôte est crédité/débité de la différence sur la
+ * prochaine facture.
+ *
+ * Le portail Stripe ne sait pas changer nos formules (on utilise `price_data`
+ * en inline, pas un catalogue de Prix Stripe), donc on fait l'update à la main.
+ */
+export async function changeSubscriptionPlan(formData: FormData) {
+  assertStripe();
+  const host = await getCurrentHost();
+  if (!host) throw new Error("Non authentifié.");
+  if (!host.stripeCustomerId) {
+    redirect("/host?billingError=nocustomer");
+  }
+
+  const newPlanId = String(formData.get("planId") ?? "") as PlanId;
+  const newPlan = getPlan(newPlanId);
+  if (!newPlan) throw new Error("Formule inconnue.");
+
+  const newBoxes = boxesFor(newPlanId, Number(formData.get("boxes") ?? 0));
+  const newAmount = priceCentsFor(newPlanId, newBoxes);
+  const label =
+    newPlanId === "multi" ? `${newPlan.name} — ${newBoxes} box` : newPlan.name;
+
+  // Récupère l'abonnement actif courant.
+  const subs = await stripe.subscriptions.list({
+    customer: host!.stripeCustomerId!,
+    status: "all",
+    limit: 1,
+  });
+  const sub = subs.data[0];
+  if (!sub || (sub.status !== "active" && sub.status !== "trialing")) {
+    throw new Error("Aucun abonnement actif à modifier.");
+  }
+  const item = sub.items.data[0];
+  if (!item) throw new Error("Aucun item dans l'abonnement.");
+
+  // Garde-fou : interdire le downgrade si l'hôte a plus de box actives que
+  // le nouveau quota. Il doit en désactiver assez d'abord.
+  const activeCount = await prisma.box.count({
+    where: { hostId: host!.id, active: true },
+  });
+  if (activeCount > newBoxes) {
+    const need = activeCount - newBoxes;
+    redirect(`/host/billing?error=tooManyActive&need=${need}&active=${activeCount}&newBoxes=${newBoxes}`);
+  }
+
+  // L'API subscriptions.update veut un Product ID (pas product_data inline
+  // comme pour Checkout). On crée donc le Produit à la volée.
+  const product = await stripe.products.create({
+    name: `Escale Box — ${label}`,
+    metadata: { planId: newPlanId, boxes: String(newBoxes) },
+  });
+
+  // Remplace l'item courant par un nouveau prix. Stripe calcule
+  // automatiquement les prorations.
+  await stripe.subscriptions.update(sub.id, {
+    items: [
+      {
+        id: item.id,
+        price_data: {
+          currency: newPlan.currency,
+          unit_amount: newAmount,
+          recurring: { interval: "month" },
+          product: product.id,
+        },
+      },
+    ],
+    proration_behavior: "create_prorations",
+    metadata: { hostId: host!.id, planId: newPlanId, boxes: String(newBoxes) },
+  });
+
+  // Le webhook `customer.subscription.updated` mettra à jour boxQuota et
+  // provisionnera les box manquantes. En attendant, on met à jour la DB
+  // localement pour que la prochaine page reflète le changement.
+  await prisma.host.update({
+    where: { id: host!.id },
+    data: { subscriptionPlan: newPlanId, boxQuota: newBoxes },
+  });
+
+  redirect("/host?planChanged=1");
+}
+
 /** Reconcile subscription status after returning from Checkout (fallback to webhook). */
 export async function syncSubscriptionFromCheckout(sessionId: string) {
   if (!process.env.STRIPE_SECRET_KEY) return;
@@ -158,6 +245,8 @@ export async function syncSubscriptionFromCheckout(sessionId: string) {
             (session.customer as string) ?? host.stripeCustomerId,
         },
       });
+      // Auto-création des box pour le quota du plan (idempotent).
+      await provisionBoxesForHost(host.id, boxes);
     }
   } catch {
     // ignore — webhook will reconcile eventually.
@@ -184,21 +273,22 @@ export async function refreshSubscriptionStatus() {
     if (!sub) return;
 
     const active = sub.status === "active" || sub.status === "trialing";
+    const quota =
+      active && sub.metadata?.planId
+        ? boxesFor(sub.metadata.planId, Number(sub.metadata?.boxes ?? 0))
+        : undefined;
     await prisma.host.update({
       where: { id: host.id },
       data: {
         subscriptionStatus: sub.status,
-        ...(active && sub.metadata?.planId
-          ? {
-              subscriptionPlan: sub.metadata.planId,
-              boxQuota: boxesFor(
-                sub.metadata.planId,
-                Number(sub.metadata?.boxes ?? 0)
-              ),
-            }
+        ...(active && sub.metadata?.planId && quota !== undefined
+          ? { subscriptionPlan: sub.metadata.planId, boxQuota: quota }
           : {}),
       },
     });
+    if (active && quota !== undefined) {
+      await provisionBoxesForHost(host.id, quota);
+    }
   } catch {
     // ignore
   }
@@ -207,13 +297,57 @@ export async function refreshSubscriptionStatus() {
 export async function openBillingPortal() {
   assertStripe();
   const host = await getCurrentHost();
-  if (!host?.stripeCustomerId) throw new Error("Aucun abonnement à gérer.");
+  if (!host?.stripeCustomerId) redirect("/host?billingError=nocustomer");
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: host.stripeCustomerId,
-    return_url: `${await getBaseUrl()}/host`,
+  const result = await tryCreatePortalSession(host!.stripeCustomerId!);
+  if ("url" in result) redirect(result.url);
+  redirect(`/host?billingError=portal&msg=${encodeURIComponent(result.error)}`);
+}
+
+/**
+ * Crée une session du portail client Stripe. Renvoie `{ error }` (au lieu de jeter)
+ * si le portail n'est pas encore configuré côté Dashboard Stripe — l'appelant
+ * peut alors rediriger vers /host avec un message clair.
+ */
+async function tryCreatePortalSession(
+  customerId: string
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${await getBaseUrl()}/host`,
+    });
+    return { url: session.url };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[stripe] billingPortal.sessions.create failed:", msg);
+    return { error: msg.slice(0, 300) };
+  }
+}
+
+/**
+ * Admin-only : efface les identifiants Stripe (customer/account) du compte
+ * courant. Utile quand on bascule entre les comptes Stripe (ex. test → live)
+ * et que les anciens IDs ne sont plus valides (`No such customer`).
+ */
+export async function resetStripeIdentifiers() {
+  const host = await getCurrentHost();
+  if (!host) redirect("/host/login");
+  if (!isEffectiveAdmin(host!)) throw new Error("Action réservée à l'administrateur.");
+
+  await prisma.host.update({
+    where: { id: host!.id },
+    data: {
+      stripeCustomerId: null,
+      stripeAccountId: null,
+      subscriptionStatus: "none",
+      subscriptionPlan: null,
+      boxQuota: 0,
+      chargesEnabled: false,
+    },
   });
-  redirect(session.url);
+
+  redirect("/host/billing");
 }
 
 /* -------------------------------------------------- Stripe Connect */
@@ -240,19 +374,27 @@ export async function connectOnboard() {
   const baseUrl = await getBaseUrl();
   const link = await stripe.accountLinks.create({
     account: accountId,
-    refresh_url: `${baseUrl}/host`,
-    return_url: `${baseUrl}/host`,
+    // refresh_url : Stripe y renvoie l'hôte si le lien d'onboarding a expiré ;
+    // on regénère alors un nouveau lien.
+    refresh_url: `${baseUrl}/host/connect/refresh`,
+    // return_url : retour après onboarding. Le query param ?connect=return
+    // force le rafraîchissement immédiat du statut (sinon le rate-limit
+    // anti-martèlement de 10 min empêche la mise à jour de chargesEnabled).
+    return_url: `${baseUrl}/host?connect=return`,
     type: "account_onboarding",
   });
   redirect(link.url);
 }
 
-/** Refresh the host's Connect payout status from Stripe. */
-export async function refreshConnectStatus() {
+/**
+ * Refresh the host's Connect payout status from Stripe.
+ * `force=true` contourne le rate-limit (utilisé au retour d'onboarding).
+ */
+export async function refreshConnectStatus(force = false) {
   if (!process.env.STRIPE_SECRET_KEY) return;
   const host = await getCurrentHost();
   if (!host?.stripeAccountId) return;
-  if (!shouldRefresh(`acct:${host.id}`)) return;
+  if (!force && !shouldRefresh(`acct:${host.id}`)) return;
   try {
     const account = await stripe.accounts.retrieve(host.stripeAccountId);
     await prisma.host.update({

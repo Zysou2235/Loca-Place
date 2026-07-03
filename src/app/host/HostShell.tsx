@@ -3,24 +3,39 @@ import { logout } from "./auth-actions";
 
 export function HostShell({
   hostName,
+  back = true,
   children,
 }: {
   hostName: string;
+  /** Affiche un bouton "← Tableau de bord" dans l'en-tête. Mettre à false sur la page d'accueil. */
+  back?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="min-h-screen bg-cream">
       <header className="border-b border-black/5 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
-          <Link
-            href="/host"
-            className="font-display text-xl font-extrabold text-brand"
-          >
-            Escale <span className="text-accent">Box</span>
-            <span className="ml-2 align-middle text-xs font-medium text-brand/40">
-              espace hôte
-            </span>
-          </Link>
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-5 py-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/host"
+              className="font-display text-xl font-extrabold text-brand"
+            >
+              Escale <span className="text-accent">Box</span>
+              <span className="ml-2 hidden align-middle text-xs font-medium text-brand/40 sm:inline">
+                espace hôte
+              </span>
+            </Link>
+            {back && (
+              <Link
+                href="/host"
+                className="flex shrink-0 items-center gap-1 rounded-full border border-black/10 px-3 py-1.5 text-sm font-medium text-brand/70 transition hover:bg-black/5"
+              >
+                <span aria-hidden="true">←</span>
+                <span className="hidden sm:inline">Tableau de bord</span>
+                <span className="sm:hidden">Retour</span>
+              </Link>
+            )}
+          </div>
 
           {/* Menu déroulant (natif <details>, se ferme à la navigation) */}
           <details className="group relative [&_summary]:list-none">

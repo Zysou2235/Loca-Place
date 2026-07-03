@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
 import { recordScan } from "@/lib/scans";
 import { createCheckoutSession } from "./actions";
+import { ScanTracker } from "./ScanTracker";
+import { EmailCaptureForm } from "./EmailCaptureForm";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export default async function BoxPage({
   const sellable = Boolean(box.accessCode && product && hostCanReceive);
 
   // Trace le scan du QR code (instantané du produit présenté), best-effort.
-  await recordScan({
+  const scanId = await recordScan({
     boxId: box.id,
     productId: product?.id,
     productName: product?.name,
@@ -47,6 +49,8 @@ export default async function BoxPage({
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 px-5 py-10">
+      {/* Mesure du temps passé sur la page (beacon à la fermeture) */}
+      {scanId && <ScanTracker scanId={scanId} />}
       <header className="border-b border-neutral-200 pb-5">
         <Image
           src="/escale-box-logo.png"
@@ -110,6 +114,9 @@ export default async function BoxPage({
           </div>
         </div>
       )}
+
+      {/* Opt-in email — sondage/avis (Fichier client admin) */}
+      <EmailCaptureForm qrSlug={box.qrSlug} />
 
       <footer className="pt-4 text-center text-xs text-neutral-400">
         Paiement sécurisé par Stripe · Vendu par votre hôte

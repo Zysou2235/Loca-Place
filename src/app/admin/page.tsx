@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getPlan, priceCentsFor } from "@/lib/plans";
 import { formatPrice } from "@/lib/money";
 import { requireAdmin } from "@/lib/admin";
-import { logout } from "../host/auth-actions";
+import { AdminNav } from "./AdminNav";
 import {
   markBoxShipped,
   unmarkBoxShipped,
@@ -103,7 +103,8 @@ export default async function AdminPage({
   // KPIs société : MRR (revenu récurrent plateforme) + volume de ventes (GMV).
   const [activeHosts, gmvAgg] = await Promise.all([
     prisma.host.findMany({
-      where: { subscriptionStatus: { in: ACTIVE_STATUSES } },
+      // Comptes test (box offertes) exclus : ils ne rapportent pas de MRR.
+      where: { subscriptionStatus: { in: ACTIVE_STATUSES }, isTestAccount: false },
       select: { subscriptionPlan: true, boxQuota: true },
     }),
     prisma.order.aggregate({ _sum: { amountCents: true } }),
@@ -116,44 +117,7 @@ export default async function AdminPage({
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="border-b border-black/5 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-          <span className="font-display text-xl font-extrabold text-brand">
-            Escale <span className="text-accent">Box</span>
-            <span className="ml-2 align-middle text-xs font-medium text-red-500">
-              admin
-            </span>
-          </span>
-          <div className="flex items-center gap-4 text-sm">
-            <Link
-              href="/host"
-              className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5"
-            >
-              ← Espace hôte
-            </Link>
-            <Link href="/admin" className="font-semibold text-brand">
-              Comptes &amp; box
-            </Link>
-            <Link
-              href="/admin/orders"
-              className="font-medium text-brand/70 hover:text-brand"
-            >
-              Ventes
-            </Link>
-            <Link
-              href="/admin/stats"
-              className="font-medium text-brand/70 hover:text-brand"
-            >
-              Statistiques
-            </Link>
-            <form action={logout}>
-              <button className="rounded-full border border-black/10 px-3 py-1.5 font-medium text-brand/70 transition hover:bg-black/5">
-                Déconnexion
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AdminNav current="/admin" />
 
       <main className="mx-auto max-w-6xl px-5 py-10">
         <h1 className="font-display text-2xl font-bold text-brand">
