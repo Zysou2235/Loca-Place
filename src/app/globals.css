@@ -31,7 +31,7 @@ h3,
   color: #ffffff;
 }
 
-/* Fiche QR imprimable (/host/boxes/[boxId]/qr) — format A5 sans marges.
+/* Fiche QR imprimable (/host/boxes/[boxId]/qr) — format A4 sans marges.
    @page ne peut pas être scopé à une classe : c'est la seule page du site
    avec un bouton Imprimer, donc la régle reste globale sans conséquence
    ailleurs. */
@@ -41,7 +41,7 @@ h3,
 }
 @media print {
   @page {
-    size: A5 portrait;
+    size: A4 portrait;
     margin: 0;
   }
 }
