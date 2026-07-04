@@ -101,16 +101,24 @@ function Header() {
         <div className="flex items-center gap-3">
           <Link
             href="/host/login"
-            className="text-sm font-semibold text-brand hover:text-accent"
+            aria-label="Connexion"
+            title="Connexion"
+            className="flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-accent"
           >
-            Connexion
+            <Image
+              src="/connexion-icon.png"
+              alt=""
+              width={20}
+              height={20}
+              className="h-5 w-5"
+            />
+            <span className="hidden sm:inline">Connexion</span>
           </Link>
           <Link
             href="/host/signup"
-            className="rounded-full bg-accent px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark sm:px-4"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"
           >
-            <span className="sm:hidden">Équiper</span>
-            <span className="hidden sm:inline">Équiper mes logements</span>
+            Équiper mes logements
           </Link>
         </div>
       </div>
