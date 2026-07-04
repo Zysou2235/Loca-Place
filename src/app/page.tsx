@@ -101,16 +101,18 @@ function Header() {
         <div className="flex items-center gap-3">
           <Link
             href="/host/login"
-            className="text-sm font-semibold text-brand hover:text-accent"
+            aria-label="Connexion"
+            title="Connexion"
+            className="flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-accent"
           >
-            Connexion
+            <IconLogin />
+            <span className="hidden sm:inline">Connexion</span>
           </Link>
           <Link
             href="/host/signup"
-            className="rounded-full bg-accent px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark sm:px-4"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"
           >
-            <span className="sm:hidden">Équiper</span>
-            <span className="hidden sm:inline">Équiper mes logements</span>
+            Équiper mes logements
           </Link>
         </div>
       </div>
@@ -877,6 +879,16 @@ function Plus() {
   return (
     <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
       <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" />
+    </svg>
+  );
+}
+
+// Icône générique "connexion" — à remplacer par la vôtre si besoin.
+function IconLogin() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth={2}>
+      <path d="M15 3h4a1 1 0 011 1v16a1 1 0 01-1 1h-4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 17l5-5-5-5M15 12H3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
