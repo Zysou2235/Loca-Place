@@ -3,15 +3,18 @@ import Link from "next/link";
 import { PLANS } from "@/lib/plans";
 import { LandingVisitTracker } from "./LandingVisitTracker";
 
+// Mots-clés recherchés par la cible (Airbnb, gîte, location saisonnière)
+// placés dans le titre et la description — c'est ce que Google affiche et
+// ce sur quoi la page se positionne.
 export const metadata = {
-  title: "Escale Box — Générez du CA additionnel dans vos locations",
+  title: "Boutique autonome pour Airbnb, gîte & location saisonnière | Escale Box",
   description:
-    "La boutique autonome qui transforme vos gîtes et locations en source de revenus. Abonnez-vous, installez en 5 minutes, encaissez sur chaque séjour. 0% de commission sur vos ventes.",
+    "Générez des revenus complémentaires dans votre Airbnb, gîte ou location saisonnière : vos voyageurs scannent un QR code, paient en ligne et se servent. 0% de commission, installation en 5 minutes.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "Escale Box — Générez du CA additionnel dans vos locations",
+    title: "Boutique autonome pour Airbnb, gîte & location saisonnière | Escale Box",
     description:
-      "La boutique autonome qui transforme vos gîtes et locations en source de revenus. Installation en 5 minutes, 0% de commission sur vos ventes.",
+      "Générez des revenus complémentaires dans votre location : vos voyageurs scannent un QR code, paient en ligne et se servent. 0% de commission.",
     url: "/",
   },
 };
@@ -36,6 +39,10 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }}
       />
       <LandingVisitTracker />
       <Header />
@@ -638,33 +645,47 @@ function Testimonials() {
 
 /* ------------------------------------------------------------------ FAQ */
 
+// Au niveau module : sert à la fois à l'affichage et au balisage FAQPage
+// (données structurées) injecté dans <Home>.
+const FAQS = [
+  {
+    q: "Combien puis-je espérer gagner ?",
+    a: "Cela dépend de votre taux d'occupation et de votre offre, mais nos hôtes constatent fréquemment plusieurs dizaines à plus de 150€ de CA additionnel par mois et par logement.",
+  },
+  {
+    q: "Quelle commission prenez-vous sur mes ventes ?",
+    a: "0%. Vous payez uniquement votre abonnement. L'intégralité de vos ventes est versée directement sur votre compte (hors frais de transaction Stripe standards).",
+  },
+  {
+    q: "Y a-t-il un engagement ?",
+    a: "Non, l'abonnement est sans engagement et résiliable à tout moment depuis votre espace.",
+  },
+  {
+    q: "Je gère plusieurs logements, est-ce adapté ?",
+    a: "Oui. Les formules Pro et Conciergerie permettent de piloter plusieurs logements depuis un tableau de bord unique, idéal pour les multi-propriétaires et conciergeries.",
+  },
+  {
+    q: "Comment mes voyageurs paient-ils ?",
+    a: "Ils scannent le QR code de la box, choisissent leurs produits et paient en invité via Stripe — sans application ni création de compte.",
+  },
+  {
+    q: "L'installation est-elle compliquée ?",
+    a: "Non. Vous posez la box, collez le QR code fourni et ajoutez vos produits depuis votre espace. Comptez environ 5 minutes.",
+  },
+];
+
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 function Faq() {
-  const faqs = [
-    {
-      q: "Combien puis-je espérer gagner ?",
-      a: "Cela dépend de votre taux d'occupation et de votre offre, mais nos hôtes constatent fréquemment plusieurs dizaines à plus de 150€ de CA additionnel par mois et par logement.",
-    },
-    {
-      q: "Quelle commission prenez-vous sur mes ventes ?",
-      a: "0%. Vous payez uniquement votre abonnement. L'intégralité de vos ventes est versée directement sur votre compte (hors frais de transaction Stripe standards).",
-    },
-    {
-      q: "Y a-t-il un engagement ?",
-      a: "Non, l'abonnement est sans engagement et résiliable à tout moment depuis votre espace.",
-    },
-    {
-      q: "Je gère plusieurs logements, est-ce adapté ?",
-      a: "Oui. Les formules Pro et Conciergerie permettent de piloter plusieurs logements depuis un tableau de bord unique, idéal pour les multi-propriétaires et conciergeries.",
-    },
-    {
-      q: "Comment mes voyageurs paient-ils ?",
-      a: "Ils scannent le QR code de la box, choisissent leurs produits et paient en invité via Stripe — sans application ni création de compte.",
-    },
-    {
-      q: "L'installation est-elle compliquée ?",
-      a: "Non. Vous posez la box, collez le QR code fourni et ajoutez vos produits depuis votre espace. Comptez environ 5 minutes.",
-    },
-  ];
+  const faqs = FAQS;
 
   return (
     <section id="faq" className="bg-white py-20 md:py-28">
@@ -755,6 +776,7 @@ function Footer() {
           title="Entreprise"
           links={[
             { label: "À propos", href: "/a-propos" },
+            { label: "Guides & conseils", href: "/guides" },
             { label: "FAQ", href: "#faq" },
             { label: "Contact", href: `mailto:${CONTACT_EMAIL}` },
           ]}
