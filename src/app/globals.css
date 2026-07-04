@@ -44,4 +44,12 @@ h3,
     size: A4 portrait;
     margin: 0;
   }
+  /* La feuille fait exactement 210×297mm. Or la plupart des navigateurs /
+     imprimantes appliquent des marges par défaut (~12,7mm) qui réduisent la
+     zone imprimable : sans réduction, le bas de la fiche bascule sur une 2e
+     page. zoom réduit toute la fiche uniformément (≈183×258mm) pour tenir
+     sur UNE page quelle que soit la configuration de marges. */
+  .qr-sheet {
+    zoom: 0.87;
+  }
 }
