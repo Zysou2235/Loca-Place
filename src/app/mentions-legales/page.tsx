@@ -1,6 +1,10 @@
 import { LegalShell, LegalSection } from "@/components/LegalShell";
 
-export const metadata = { title: "Mentions légales — Escale Box" };
+export const metadata = {
+  title: "Mentions légales — Escale Box",
+  description: "Mentions légales du site Escale Box : éditeur, hébergeur, contact.",
+  alternates: { canonical: "/mentions-legales" },
+};
 
 export default function MentionsLegalesPage() {
   return (

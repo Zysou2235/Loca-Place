@@ -7,14 +7,36 @@ export const metadata = {
   title: "Escale Box — Générez du CA additionnel dans vos locations",
   description:
     "La boutique autonome qui transforme vos gîtes et locations en source de revenus. Abonnez-vous, installez en 5 minutes, encaissez sur chaque séjour. 0% de commission sur vos ventes.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Escale Box — Générez du CA additionnel dans vos locations",
+    description:
+      "La boutique autonome qui transforme vos gîtes et locations en source de revenus. Installation en 5 minutes, 0% de commission sur vos ventes.",
+    url: "/",
+  },
 };
 
 // Adresse de contact à personnaliser.
 const CONTACT_EMAIL = "contact@escalebox.fr";
 
+// Données structurées schema.org — aide Google à afficher le logo et les
+// infos de l'entreprise dans les résultats de recherche.
+const ORG_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Escale Box",
+  url: "https://www.escalebox.fr",
+  logo: "https://www.escalebox.fr/escale-box-logo.png",
+  email: CONTACT_EMAIL,
+};
+
 export default function Home() {
   return (
     <div className="bg-white text-brand">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSON_LD) }}
+      />
       <LandingVisitTracker />
       <Header />
       <main>

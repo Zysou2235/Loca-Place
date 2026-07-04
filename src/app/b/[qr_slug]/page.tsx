@@ -9,6 +9,15 @@ import { EmailCaptureForm } from "./EmailCaptureForm";
 
 export const dynamic = "force-dynamic";
 
+// Pages accessibles uniquement en scannant le QR physique — aucune raison
+// d'apparaître dans Google (des dizaines de pages quasi identiques seraient
+// du contenu dupliqué pénalisant). noindex plutôt que robots.txt : Google
+// doit pouvoir crawler la page pour voir la directive.
+export const metadata = {
+  title: "La boutique de votre logement — Escale Box",
+  robots: { index: false, follow: false },
+};
+
 export default async function BoxPage({
   params,
 }: {

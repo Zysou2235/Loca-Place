@@ -25,13 +25,13 @@ export const metadata: Metadata = {
   title: "Escale Box — La boutique autonome pour voyageurs",
   description:
     "La box transparente avec QR code qui permet aux hôtes de vendre des produits à leurs voyageurs. Paiement direct, 0% de commission, installation en 5 minutes.",
-  alternates: { canonical: "/" },
+  // Pas de canonical ici : il serait hérité par TOUTES les pages, qui se
+  // déclareraient alors doublons de l'accueil. Chaque page publique définit
+  // le sien (voir alternates dans chaque page.tsx).
   openGraph: {
-    title: "Escale Box — La boutique autonome pour voyageurs",
-    description:
-      "Transformez votre logement en boutique autonome. Vos voyageurs scannent, paient, se servent. Vous encaissez.",
+    // Valeurs par défaut (siteName, type, logo) — chaque page publique
+    // définit son propre titre/description/url OG.
     type: "website",
-    url: SITE_URL,
     siteName: "Escale Box",
     images: ["/escale-box-logo.png"],
   },

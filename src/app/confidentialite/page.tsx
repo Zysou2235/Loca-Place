@@ -1,6 +1,11 @@
 import { LegalShell, LegalSection } from "@/components/LegalShell";
 
-export const metadata = { title: "Politique de confidentialité — Escale Box" };
+export const metadata = {
+  title: "Politique de confidentialité — Escale Box",
+  description:
+    "Comment Escale Box collecte, utilise et protège les données personnelles des hôtes et des voyageurs.",
+  alternates: { canonical: "/confidentialite" },
+};
 
 export default function ConfidentialitePage() {
   return (
