@@ -5,6 +5,13 @@ export const metadata = {
   title: "À propos — Escale Box",
   description:
     "Notre histoire : d'un Airbnb à une nouvelle expérience voyageur qui génère du chiffre d'affaires additionnel pour les hôtes.",
+  alternates: { canonical: "/a-propos" },
+  openGraph: {
+    title: "À propos — Escale Box",
+    description:
+      "Notre histoire : d'un Airbnb à une nouvelle expérience voyageur qui génère du chiffre d'affaires additionnel pour les hôtes.",
+    url: "/a-propos",
+  },
 };
 
 export default function AProposPage() {

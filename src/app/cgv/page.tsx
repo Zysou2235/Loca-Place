@@ -1,6 +1,11 @@
 import { LegalShell, LegalSection } from "@/components/LegalShell";
 
-export const metadata = { title: "CGV — Escale Box" };
+export const metadata = {
+  title: "CGV — Escale Box",
+  description:
+    "Conditions générales de vente des produits proposés via les boîtes Escale Box.",
+  alternates: { canonical: "/cgv" },
+};
 
 export default function CgvPage() {
   return (
