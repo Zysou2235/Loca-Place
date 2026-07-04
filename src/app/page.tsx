@@ -353,8 +353,8 @@ function Benefits() {
     },
     {
       icon: <IconAuto />,
-      title: "Zéro gestion au quotidien",
-      text: "Pas de check-in produit, pas de logistique d'accueil. La box travaille seule.",
+      title: "Gestion minimale",
+      text: "Pas de caisse à tenir ni de check-in produit : un réassort régulier suffit, la box vend seule entre deux passages.",
     },
     {
       icon: <IconLayers />,
@@ -403,9 +403,9 @@ function Benefits() {
 function UseCases() {
   const cases = [
     {
-      img: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80",
-      title: "Vins & spiritueux locaux",
-      text: "Forte marge, valeur perçue élevée, parfait pour l'apéro du soir.",
+      emoji: "🧀🫒",
+      title: "Kit apéro",
+      text: "Planche salée, olives, crackers : forte marge, valeur perçue élevée, parfait pour l'apéro du soir.",
     },
     {
       img: "https://images.unsplash.com/photo-1452195100486-9cc805987862?w=600&q=80",
@@ -440,13 +440,19 @@ function UseCases() {
               className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-card transition hover:shadow-soft"
             >
               <div className="relative h-40 w-full">
-                <Image
-                  src={c.img}
-                  alt={c.title}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  className="object-cover"
-                />
+                {"emoji" in c ? (
+                  <div className="flex h-full w-full items-center justify-center bg-accent/10 text-5xl">
+                    {c.emoji}
+                  </div>
+                ) : (
+                  <Image
+                    src={c.img}
+                    alt={c.title}
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover"
+                  />
+                )}
               </div>
               <div className="p-5">
                 <h3 className="font-display font-bold">{c.title}</h3>
