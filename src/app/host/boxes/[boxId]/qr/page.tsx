@@ -40,7 +40,12 @@ export default async function HostQrPrintPage({
 
   // Retour : vers la page admin d'origine si on y accède en admin, sinon
   // vers la gestion de la box (côté hôte).
-  const backHref = admin && from === "admin-test" ? "/admin/test" : `/host/boxes/${boxId}`;
+  const backHref =
+    admin && from === "admin-test"
+      ? "/admin/test"
+      : admin && from === "admin"
+        ? "/admin"
+        : `/host/boxes/${boxId}`;
 
   const targetUrl = `${await getBaseUrl()}/b/${box.qrSlug}`;
   const displayUrl = targetUrl.replace(/^https?:\/\//, "");

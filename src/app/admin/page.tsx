@@ -264,7 +264,7 @@ export default async function AdminPage({
                               </span>
                             </div>
                             <Link
-                              href={`/admin/boxes/${box.id}/qr`}
+                              href={`/host/boxes/${box.id}/qr?from=admin`}
                               className="rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-dark"
                             >
                               🖨️ QR à imprimer
