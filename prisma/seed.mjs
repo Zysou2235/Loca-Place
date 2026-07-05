@@ -10,11 +10,12 @@ function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
-// Seed = un hôte de démo + une box d'exemple.
-// Le modèle : on fournit la box (vide), l'hôte gère ses propres produits.
+// Seed de développement local (npm run db:seed) : un hôte + une box + un
+// catalogue d'exemple pour avoir des données à manipuler sur une base
+// fraîche. N'est PAS exécuté automatiquement en production.
 async function main() {
   // Sans compte Stripe Connect réel configuré (DEMO_HOST_STRIPE_ACCOUNT), la
-  // box de démo existe et affiche son produit, mais l'achat reste désactivé
+  // box existe et affiche son produit, mais l'achat reste désactivé
   // ("bientôt disponible") — jamais de faux checkout qui échouerait vraiment.
   const demoStripeAccount = process.env.DEMO_HOST_STRIPE_ACCOUNT || null;
   const demoChargesEnabled = Boolean(demoStripeAccount);
