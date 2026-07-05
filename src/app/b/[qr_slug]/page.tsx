@@ -49,13 +49,6 @@ export default async function BoxPage({
   );
   const sellable = Boolean(box.accessCode && product && hostCanReceive);
 
-  // La box /b/demo (lien "Démo voyageur") sert à montrer le produit à des
-  // prospects sans compte Stripe Connect réel derrière — on affiche donc la
-  // fiche produit même non vendable, avec un bouton désactivé plutôt qu'un
-  // vrai paiement (jamais de faux checkout qui échouerait réellement).
-  const isDemo = qr_slug === "demo";
-  const showProduct = Boolean(product && (sellable || isDemo));
-
   // Trace le scan du QR code (instantané du produit présenté), best-effort.
   const scanId = await recordScan({
     boxId: box.id,
@@ -86,17 +79,12 @@ export default async function BoxPage({
         </p>
       </header>
 
-      {!showProduct || !product ? (
+      {!sellable || !product ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
           Cette boutique sera bientôt disponible. Revenez un peu plus tard&nbsp;!
         </p>
       ) : (
-        <div className="relative flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-          {isDemo && !sellable && (
-            <span className="absolute right-4 top-4 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-semibold text-brand">
-              Mode démo
-            </span>
-          )}
+        <div className="flex gap-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
           {product.photoUrl && (
             <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -121,27 +109,16 @@ export default async function BoxPage({
                 {formatPrice(product.priceCents, product.currency)}
               </span>
 
-              {sellable ? (
-                <form action={createCheckoutSession}>
-                  <input type="hidden" name="productId" value={product.id} />
-                  <input type="hidden" name="qrSlug" value={box.qrSlug} />
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark active:bg-accent-dark"
-                  >
-                    Payer
-                  </button>
-                </form>
-              ) : (
+              <form action={createCheckoutSession}>
+                <input type="hidden" name="productId" value={product.id} />
+                <input type="hidden" name="qrSlug" value={box.qrSlug} />
                 <button
-                  type="button"
-                  disabled
-                  title="Démonstration — paiement désactivé"
-                  className="cursor-not-allowed rounded-lg bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-500"
+                  type="submit"
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark active:bg-accent-dark"
                 >
                   Payer
                 </button>
-              )}
+              </form>
             </div>
           </div>
         </div>

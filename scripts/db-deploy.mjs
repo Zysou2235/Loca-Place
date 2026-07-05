@@ -67,20 +67,5 @@ try {
   );
 }
 
-// Hôte + box de démo (/b/demo, lien "Démo voyageur" du footer) — idempotent
-// (upsert), ne touche jamais qu'à ce compte démo dédié. Désactivable via
-// SKIP_DEMO_SEED si jamais nécessaire.
-if (!/^(1|true|yes)$/i.test(process.env.SKIP_DEMO_SEED ?? "")) {
-  try {
-    console.log("[db-deploy] Vérification de la box de démo…");
-    execSync("node prisma/seed.mjs", { stdio: "inherit", env: runEnv });
-  } catch (err) {
-    console.warn(
-      "[db-deploy] Seed démo ignoré (base non joignable) :",
-      err.message
-    );
-  }
-}
-
 process.exit(0);
 

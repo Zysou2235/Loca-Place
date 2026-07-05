@@ -158,12 +158,12 @@ function Hero() {
             >
               Équiper mes logements
             </Link>
-            <Link
-              href="/b/demo"
+            <a
+              href="#fonctionnement"
               className="rounded-full bg-white/10 px-6 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
             >
-              Voir la démo voyageur →
-            </Link>
+              Voir comment ça marche →
+            </a>
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/70">
@@ -750,12 +750,6 @@ function FinalCta() {
             >
               Créer mon espace hôte
             </Link>
-            <Link
-              href="/b/demo"
-              className="rounded-full bg-white/10 px-7 py-3 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
-            >
-              Voir la démo
-            </Link>
           </div>
         </div>
       </div>
@@ -784,7 +778,6 @@ function Footer() {
             { label: "Fonctionnement", href: "#fonctionnement" },
             { label: "Avantages", href: "#avantages" },
             { label: "Tarifs", href: "#tarifs" },
-            { label: "Démo voyageur", href: "/b/demo" },
           ]}
         />
         <FooterCol
