@@ -45,12 +45,23 @@ export async function POST(req: NextRequest) {
           const planId = session.metadata?.planId ?? null;
           if (hostId) {
             const quota = boxesFor(planId, Number(session.metadata?.boxes ?? 0));
+            // Statut réel (peut être "trialing" avec l'essai gratuit) plutôt
+            // que de coder "active" en dur — sinon un abonnement en essai
+            // s'affiche comme déjà payant.
+            const subId = session.subscription;
+            const sub =
+              typeof subId === "string"
+                ? await stripe.subscriptions.retrieve(subId)
+                : null;
             await prisma.host.update({
               where: { id: hostId },
               data: {
-                subscriptionStatus: "active",
+                subscriptionStatus: sub?.status ?? "active",
                 subscriptionPlan: planId,
                 boxQuota: quota,
+                trialEndsAt: sub?.trial_end
+                  ? new Date(sub.trial_end * 1000)
+                  : null,
                 stripeCustomerId:
                   (session.customer as string) ?? undefined,
               },
@@ -77,6 +88,7 @@ export async function POST(req: NextRequest) {
           where: { stripeCustomerId: customerId },
           data: {
             subscriptionStatus: sub.status,
+            trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
             ...(planId && quota !== undefined
               ? { subscriptionPlan: planId, boxQuota: quota }
               : {}),

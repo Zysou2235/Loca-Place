@@ -18,6 +18,8 @@ export const DUO_CENTS = 2490;
 export const EXTRA_BOX_CENTS = 900; // par box au-delà de 2 (formule Multi)
 export const MULTI_MIN_BOXES = 3;
 export const MAX_BOXES = 50;
+// Essai gratuit avant le 1er prélèvement (nouveaux clients uniquement).
+export const TRIAL_DAYS = 14;
 
 export const PLANS: Plan[] = [
   {

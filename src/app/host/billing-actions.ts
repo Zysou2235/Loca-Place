@@ -9,6 +9,7 @@ import {
   getPlan,
   boxesFor,
   priceCentsFor,
+  TRIAL_DAYS,
   type PlanId,
 } from "@/lib/plans";
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
@@ -91,6 +92,10 @@ export async function placeSubscriptionOrder(formData: FormData) {
   const label =
     planId === "multi" ? `${plan.name} — ${boxes} box` : plan.name;
 
+  // Essai gratuit réservé aux nouveaux clients Stripe (jamais eu de
+  // customerId) — évite l'abus résilier/se réabonner pour cumuler les essais.
+  const isFirstTimeCustomer = !host.stripeCustomerId;
+
   // Ensure a Stripe customer for this host.
   let customerId = host.stripeCustomerId;
   if (!customerId) {
@@ -124,6 +129,7 @@ export async function placeSubscriptionOrder(formData: FormData) {
     ],
     subscription_data: {
       metadata: { hostId: host.id, planId, boxes: String(boxes) },
+      ...(isFirstTimeCustomer ? { trial_period_days: TRIAL_DAYS } : {}),
     },
     client_reference_id: host.id,
     metadata: { hostId: host.id, planId, boxes: String(boxes) },
@@ -235,12 +241,19 @@ export async function syncSubscriptionFromCheckout(sessionId: string) {
     ) {
       const planId = session.metadata?.planId ?? host.subscriptionPlan;
       const boxes = boxesFor(planId, Number(session.metadata?.boxes ?? 0));
+      // Statut réel (peut être "trialing" pendant l'essai gratuit).
+      const subId = session.subscription;
+      const sub =
+        typeof subId === "string"
+          ? await stripe.subscriptions.retrieve(subId)
+          : null;
       await prisma.host.update({
         where: { id: host.id },
         data: {
-          subscriptionStatus: "active",
+          subscriptionStatus: sub?.status ?? "active",
           subscriptionPlan: planId,
           boxQuota: boxes,
+          trialEndsAt: sub?.trial_end ? new Date(sub.trial_end * 1000) : null,
           stripeCustomerId:
             (session.customer as string) ?? host.stripeCustomerId,
         },
@@ -281,6 +294,7 @@ export async function refreshSubscriptionStatus() {
       where: { id: host.id },
       data: {
         subscriptionStatus: sub.status,
+        trialEndsAt: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
         ...(active && sub.metadata?.planId && quota !== undefined
           ? { subscriptionPlan: sub.metadata.planId, boxQuota: quota }
           : {}),
