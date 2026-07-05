@@ -166,6 +166,13 @@ export default async function HostDashboard({
           {subscribed ? (
             <>
               <Badge ok>{plan ? plan.name : "Actif"}</Badge>
+              {host.subscriptionStatus === "trialing" && host.trialEndsAt && (
+                <p className="mt-1 text-xs font-medium text-accent">
+                  Essai gratuit jusqu&apos;au{" "}
+                  {host.trialEndsAt.toLocaleDateString("fr-FR")} — aucun
+                  prélèvement avant cette date.
+                </p>
+              )}
               <p className="mt-2 text-sm text-brand/60">
                 {boxes.length} / {limit} box utilisée{boxes.length > 1 ? "s" : ""}.
               </p>

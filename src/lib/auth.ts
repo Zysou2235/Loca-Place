@@ -135,6 +135,7 @@ export async function getCurrentHost() {
       subscriptionStatus: true,
       subscriptionPlan: true,
       boxQuota: true,
+      trialEndsAt: true,
     },
   });
   if (!host || host.tokenVersion !== data.v) return null;

@@ -168,10 +168,10 @@ function Hero() {
 
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/70">
             <span className="flex items-center gap-2">
-              <Check /> 0% de commission sur vos ventes
+              <Check /> 14 jours d&apos;essai gratuit
             </span>
             <span className="flex items-center gap-2">
-              <Check /> Installation en 5 min
+              <Check /> 0% de commission sur vos ventes
             </span>
             <span className="flex items-center gap-2">
               <Check /> Sans engagement
@@ -510,7 +510,7 @@ function Pricing() {
         <SectionHeading
           eyebrow="Tarifs"
           title="Un abonnement, sans commission"
-          subtitle="Vous gardez 100% de vos ventes. Sans engagement, résiliable à tout moment."
+          subtitle="14 jours d'essai gratuit, sans engagement. Vous gardez 100% de vos ventes."
         />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -670,6 +670,10 @@ const FAQS = [
   {
     q: "Quelle commission prenez-vous sur mes ventes ?",
     a: "0%. Vous payez uniquement votre abonnement. L'intégralité de vos ventes est versée directement sur votre compte (hors frais de transaction Stripe standards).",
+  },
+  {
+    q: "Comment fonctionne l'essai gratuit ?",
+    a: "14 jours à partir de la création de votre abonnement, sans prélèvement. Vous pouvez annuler à tout moment pendant cette période depuis votre espace, sans rien payer.",
   },
   {
     q: "Y a-t-il un engagement ?",

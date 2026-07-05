@@ -38,6 +38,8 @@ model Host {
   subscriptionStatus String  @default("none") // none | trialing | active | past_due | canceled
   subscriptionPlan   String? // essentiel | duo | multi
   boxQuota           Int     @default(0) // nb de box autorisées par l'abonnement
+  // Fin de l'essai gratuit (affichage "essai jusqu'au…") — null hors essai.
+  trialEndsAt        DateTime?
 
   // Informations légales / facturation (pour la facture + obligations légales).
   companyName    String?
