@@ -17,10 +17,12 @@ export default function NotFound() {
         className="h-16 w-auto"
       />
       <div>
-        <h1 className="font-display text-3xl font-extrabold text-brand">404</h1>
+        <h1 className="font-display text-3xl font-extrabold text-brand">
+          404 · Box vide 📦
+        </h1>
         <p className="mt-2 max-w-sm text-brand/60">
-          Cette page n&apos;existe pas ou plus. Vérifiez l&apos;adresse, ou
-          repartez de l&apos;accueil.
+          On a scanné partout, cette page n&apos;a rien à l&apos;intérieur.
+          Quelqu&apos;un a dû tout vendre avant vous.
         </p>
       </div>
       <Link
