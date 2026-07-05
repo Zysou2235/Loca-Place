@@ -9,11 +9,11 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts"
+    "db:seed": "node prisma/seed.mjs",
+    "db:reset": "prisma db push --force-reset && node prisma/seed.mjs"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
