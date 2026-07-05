@@ -39,6 +39,12 @@ const cmd = forceReset
   ? `${baseCmd} --force-reset --accept-data-loss`
   : baseCmd;
 
+const runEnv = {
+  ...process.env,
+  DATABASE_URL: url,
+  PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ""}`,
+};
+
 try {
   if (forceReset) {
     console.warn(
@@ -46,14 +52,7 @@ try {
     );
   }
   console.log("[db-deploy] Synchronisation du schéma Prisma…");
-  execSync(cmd, {
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      DATABASE_URL: url,
-      PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ""}`,
-    },
-  });
+  execSync(cmd, { stdio: "inherit", env: runEnv });
   console.log("[db-deploy] Tables à jour ✅");
   if (forceReset) {
     console.warn(
@@ -66,6 +65,21 @@ try {
     "[db-deploy] Synchronisation ignorée (base non joignable ou migration impossible) :",
     err.message
   );
+}
+
+// Hôte + box de démo (/b/demo, lien "Démo voyageur" du footer) — idempotent
+// (upsert), ne touche jamais qu'à ce compte démo dédié. Désactivable via
+// SKIP_DEMO_SEED si jamais nécessaire.
+if (!/^(1|true|yes)$/i.test(process.env.SKIP_DEMO_SEED ?? "")) {
+  try {
+    console.log("[db-deploy] Vérification de la box de démo…");
+    execSync("node prisma/seed.mjs", { stdio: "inherit", env: runEnv });
+  } catch (err) {
+    console.warn(
+      "[db-deploy] Seed démo ignoré (base non joignable) :",
+      err.message
+    );
+  }
 }
 
 process.exit(0);

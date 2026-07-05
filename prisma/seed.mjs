@@ -4,7 +4,7 @@ import crypto from "crypto";
 const prisma = new PrismaClient();
 
 // Local password hashing (mirrors src/lib/auth.ts) for the demo host.
-function hashPassword(password: string): string {
+function hashPassword(password) {
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = crypto.scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${hash}`;
@@ -13,12 +13,20 @@ function hashPassword(password: string): string {
 // Seed = un hôte de démo + une box d'exemple.
 // Le modèle : on fournit la box (vide), l'hôte gère ses propres produits.
 async function main() {
+  // Sans compte Stripe Connect réel configuré (DEMO_HOST_STRIPE_ACCOUNT), la
+  // box de démo existe et affiche son produit, mais l'achat reste désactivé
+  // ("bientôt disponible") — jamais de faux checkout qui échouerait vraiment.
+  const demoStripeAccount = process.env.DEMO_HOST_STRIPE_ACCOUNT || null;
+  const demoChargesEnabled = Boolean(demoStripeAccount);
+
   const host = await prisma.host.upsert({
     where: { email: "marie@example.com" },
     update: {
       name: "Marie Démo",
       subscriptionStatus: "active",
       subscriptionPlan: "pro",
+      stripeAccountId: demoStripeAccount,
+      chargesEnabled: demoChargesEnabled,
     },
     create: {
       name: "Marie Démo",
@@ -26,7 +34,8 @@ async function main() {
       passwordHash: hashPassword("password123"),
       subscriptionStatus: "active",
       subscriptionPlan: "pro",
-      stripeAccountId: process.env.DEMO_HOST_STRIPE_ACCOUNT ?? null,
+      stripeAccountId: demoStripeAccount,
+      chargesEnabled: demoChargesEnabled,
     },
   });
 
@@ -47,14 +56,12 @@ async function main() {
 
   // Catalogue d'articles de l'hôte (réutilisables). On en place UN dans la box.
   await prisma.product.deleteMany({ where: { hostId: host.id } });
-  const vin = await prisma.product.create({
+  const kitApero = await prisma.product.create({
     data: {
       hostId: host.id,
-      name: "Bouteille de vin rouge — Côtes du Rhône",
-      description: "Bouteille locale 75cl, parfaite pour l'apéro.",
+      name: "Kit apéro — planche locale",
+      description: "Fromages, olives et crackers, parfait pour l'apéro du soir.",
       priceCents: 1200,
-      photoUrl:
-        "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80",
     },
   });
   await prisma.product.create({
@@ -81,7 +88,7 @@ async function main() {
   // Article placé dans la box démo.
   await prisma.box.update({
     where: { id: box.id },
-    data: { selectedProductId: vin.id },
+    data: { selectedProductId: kitApero.id },
   });
 
   console.log("✅ Seed terminé.");
