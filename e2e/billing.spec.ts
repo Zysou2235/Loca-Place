@@ -27,6 +27,7 @@ test.describe("Tunnel d'abonnement (Stripe test mode)", () => {
     await page.fill('input[name="name"]', "Stripe Tester");
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', "motdepassesolide123");
+    await page.check('input[name="acceptCgv"]');
     await page.click('button[type="submit"]');
     await page.waitForURL(/\/host/);
 

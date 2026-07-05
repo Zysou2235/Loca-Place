@@ -7,6 +7,7 @@ import { sendAccessCodeEmail, sendAccessCodeSms } from "@/lib/notify";
 import { generateLockCode } from "@/lib/lock-code";
 import { createShippingLabel, type Carrier } from "@/lib/shipping";
 import { deleteHostAccount } from "@/lib/account";
+import { stripe } from "@/lib/stripe";
 import { redirect } from "next/navigation";
 
 /** Active manuellement un compte hôte (filet de sécurité support). Admin only. */
@@ -232,6 +233,31 @@ export async function resendCode(formData: FormData) {
   await prisma.order.update({
     where: { id: order.id },
     data: { codeSent: order.codeSent || emailed || smsed },
+  });
+  revalidatePath("/admin/orders");
+}
+
+/** Rembourse intégralement une commande voyageur via Stripe. Admin only.
+ *  Irréversible côté Stripe — pas de remboursement partiel pour l'instant. */
+export async function refundOrder(formData: FormData) {
+  await requireAdmin();
+
+  const orderId = String(formData.get("orderId") ?? "");
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) throw new Error("Commande introuvable.");
+  if (order.refundedAt) throw new Error("Cette commande est déjà remboursée.");
+
+  const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);
+  const paymentIntent = session.payment_intent;
+  if (!paymentIntent || typeof paymentIntent !== "string") {
+    throw new Error("Paiement introuvable côté Stripe pour cette commande.");
+  }
+
+  await stripe.refunds.create({ payment_intent: paymentIntent });
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { refundedAt: new Date() },
   });
   revalidatePath("/admin/orders");
 }

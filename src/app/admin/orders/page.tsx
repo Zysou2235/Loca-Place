@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/admin";
 import { formatPrice } from "@/lib/money";
 import { AdminNav } from "../AdminNav";
 import { resendCode } from "../actions";
+import { RefundButton } from "./RefundButton";
 
 export const dynamic = "force-dynamic";
 
@@ -70,26 +71,41 @@ export default async function AdminOrdersPage() {
                       {o.box.accessCode ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          o.codeSent
-                            ? "bg-green-100 text-green-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
-                      >
-                        {o.codeSent ? "Envoyé" : "Non envoyé"}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            o.codeSent
+                              ? "bg-green-100 text-green-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {o.codeSent ? "Envoyé" : "Non envoyé"}
+                        </span>
+                        {o.refundedAt && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                            Remboursée
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <form action={resendCode}>
-                        <input type="hidden" name="orderId" value={o.id} />
-                        <button
-                          type="submit"
-                          className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-black/5"
-                        >
-                          Renvoyer le code
-                        </button>
-                      </form>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <form action={resendCode}>
+                          <input type="hidden" name="orderId" value={o.id} />
+                          <button
+                            type="submit"
+                            className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-black/5"
+                          >
+                            Renvoyer le code
+                          </button>
+                        </form>
+                        {!o.refundedAt && (
+                          <RefundButton
+                            orderId={o.id}
+                            amountLabel={formatPrice(o.amountCents, o.currency)}
+                          />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

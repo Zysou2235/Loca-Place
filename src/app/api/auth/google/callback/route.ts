@@ -83,6 +83,10 @@ export async function GET(req: NextRequest) {
         name: profile.name?.slice(0, 120) || email,
         emailVerified: true,
         image: profile.picture ?? null,
+        // Signup Google : pas de case à cocher (redirection directe), le
+        // clic sur "S'inscrire avec Google" vaut acceptation (mentionné en
+        // clair sous le bouton). Voir AuthForm pour le flux email/mdp.
+        cgvAcceptedAt: new Date(),
       },
       select: { id: true, tokenVersion: true },
     });
