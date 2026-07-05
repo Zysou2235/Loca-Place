@@ -34,6 +34,17 @@ export default async function SignupPage({
         </p>
         <OAuthError error={error} />
         <GoogleButton label="S'inscrire avec Google" />
+        <p className="mt-2 text-center text-xs text-brand/40">
+          En continuant, vous acceptez les{" "}
+          <Link href="/cgv" target="_blank" className="underline hover:text-accent">
+            CGV
+          </Link>{" "}
+          et la{" "}
+          <Link href="/confidentialite" target="_blank" className="underline hover:text-accent">
+            politique de confidentialité
+          </Link>
+          .
+        </p>
         <Divider />
         <AuthForm mode="signup" action={signup} />
       </div>

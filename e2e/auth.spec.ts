@@ -29,6 +29,7 @@ test.describe("Auth", () => {
     await page.fill('input[name="name"]', "Test User");
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', "motdepassesolide123");
+    await page.check('input[name="acceptCgv"]');
     await page.click('button[type="submit"]');
 
     // Message "Vérifiez votre boîte mail" doit s'afficher
@@ -53,6 +54,7 @@ test.describe("Auth", () => {
     await page.fill('input[name="name"]', "Non Verif");
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', "motdepassesolide123");
+    await page.check('input[name="acceptCgv"]');
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
 
@@ -71,6 +73,7 @@ test.describe("Auth", () => {
     await page.fill('input[name="name"]', "Verif User");
     await page.fill('input[name="email"]', email);
     await page.fill('input[name="password"]', "motdepassesolide123");
+    await page.check('input[name="acceptCgv"]');
     await page.click('button[type="submit"]');
     await page.waitForLoadState("networkidle");
 

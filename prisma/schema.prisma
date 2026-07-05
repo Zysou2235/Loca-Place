@@ -21,6 +21,9 @@ model Host {
   // par simple inscription mot de passe).
   emailVerified Boolean @default(false)
   image         String?
+  // Horodatage de l'acceptation des CGV/confidentialité à l'inscription
+  // (preuve légale). Null pour les comptes créés avant l'ajout de la case.
+  cgvAcceptedAt DateTime?
   // Incrémenté pour invalider toutes les sessions existantes (ex. après reset
   // du mot de passe). La session signée embarque cette version.
   tokenVersion Int      @default(0)
@@ -195,6 +198,8 @@ model Order {
   // Empreinte visiteur au moment du checkout → relie l'achat aux scans.
   visitorHash     String?
   createdAt       DateTime @default(now())
+  // Remboursement déclenché depuis l'admin (Stripe). Null = jamais remboursé.
+  refundedAt      DateTime?
 
   boxId String
   box   Box    @relation(fields: [boxId], references: [id], onDelete: Cascade)

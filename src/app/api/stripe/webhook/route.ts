@@ -8,6 +8,7 @@ import {
   provisionBoxesForHost,
   deactivateBoxesForHost,
 } from "@/lib/box-provisioning";
+import { reportServerError } from "@/lib/error-report";
 
 // Stripe needs the raw request body to verify the signature.
 export const dynamic = "force-dynamic";
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
       }
     }
   } catch (err) {
-    console.error("[stripe webhook] handler error", err);
+    await reportServerError(`Stripe webhook (${event.type})`, err);
     return new Response("Handler error", { status: 500 });
   }
 

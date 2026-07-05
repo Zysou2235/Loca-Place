@@ -40,6 +40,8 @@ export async function signup(
     return { error: "Trop de tentatives. Réessayez dans une heure." };
   }
 
+  const acceptCgv = formData.get("acceptCgv") === "on";
+
   if (!name || !email || !password) {
     return { error: "Tous les champs sont requis." };
   }
@@ -48,6 +50,9 @@ export async function signup(
   }
   if (password.length < 8 || password.length > 200) {
     return { error: "Le mot de passe doit faire entre 8 et 200 caractères." };
+  }
+  if (!acceptCgv) {
+    return { error: "Vous devez accepter les CGV pour créer un compte." };
   }
 
   const existing = await prisma.host.findUnique({
@@ -67,6 +72,7 @@ export async function signup(
         phone,
         passwordHash: hashPassword(password),
         emailVerified: false,
+        cgvAcceptedAt: new Date(),
       },
       select: { id: true },
     });

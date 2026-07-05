@@ -68,6 +68,28 @@ export function AuthForm({
         autoComplete={isSignup ? "new-password" : "current-password"}
       />
 
+      {isSignup && (
+        <label className="flex items-start gap-2.5 text-sm text-brand/70">
+          <input
+            type="checkbox"
+            name="acceptCgv"
+            required
+            className="mt-0.5 h-4 w-4 rounded border-black/20 text-accent focus:ring-accent/30"
+          />
+          <span>
+            J&apos;accepte les{" "}
+            <Link href="/cgv" target="_blank" className="font-medium text-accent hover:underline">
+              CGV
+            </Link>{" "}
+            et la{" "}
+            <Link href="/confidentialite" target="_blank" className="font-medium text-accent hover:underline">
+              politique de confidentialité
+            </Link>
+            .
+          </span>
+        </label>
+      )}
+
       {state.error && (
         <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
           {state.error}
