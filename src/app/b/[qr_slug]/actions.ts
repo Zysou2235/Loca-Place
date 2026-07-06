@@ -7,6 +7,8 @@ import { getBaseUrl } from "@/lib/base-url";
 import { grantPurchaseAccess } from "@/lib/purchase-cookie";
 import { clientIp, rateLimit, HOUR } from "@/lib/rate-limit";
 import { computeVisitorHash } from "@/lib/visitor";
+import { withRetry } from "@/lib/retry";
+import { reportServerError } from "@/lib/error-report";
 
 export type LeadState = { done?: boolean; error?: string };
 
@@ -53,7 +55,7 @@ export async function leaveEmail(
     const isDuplicate =
       typeof err === "object" && err !== null && "code" in err && err.code === "P2002";
     if (!isDuplicate) {
-      console.error("[lead] enregistrement impossible :", err);
+      await reportServerError("Opt-in email voyageur (leaveEmail)", err);
       return { error: "Enregistrement impossible. Réessayez plus tard." };
     }
   }
@@ -72,9 +74,14 @@ export async function createCheckoutSession(formData: FormData) {
   const productId = String(formData.get("productId") ?? "");
   const qrSlug = String(formData.get("qrSlug") ?? "");
 
-  if (!productId || !qrSlug) {
-    throw new Error("Produit ou boîte manquant.");
-  }
+  // Retour vers la page de la box avec un message clair plutôt qu'un throw —
+  // ce sont des états métier attendus (stock/produit qui a changé entre le
+  // chargement de la page et le clic), pas des bugs à remonter à l'équipe.
+  const backWithError = (code: string): never => {
+    redirect(`/b/${qrSlug || ""}?checkoutError=${code}`);
+  };
+
+  if (!productId || !qrSlug) backWithError("missing");
 
   // The product must be the one currently selected in this box.
   const box = await prisma.box.findFirst({
@@ -82,80 +89,85 @@ export async function createCheckoutSession(formData: FormData) {
     include: { selectedProduct: true, host: true },
   });
 
-  const product = box?.selectedProduct;
-  if (!box || !product || !product.active) {
-    throw new Error("Produit introuvable.");
+  if (!box || !box.selectedProduct || !box.selectedProduct.active) {
+    backWithError("unavailable");
   }
+  const validBox = box!;
+  const product = validBox.selectedProduct!;
 
   // The box must have a lock code before it can sell — the code is sent to the
   // traveler after payment.
-  if (!box.accessCode) {
-    throw new Error("Cette box n'est pas encore disponible à la vente.");
-  }
+  if (!validBox.accessCode) backWithError("unavailable");
 
-  const host = box.host;
+  const host = validBox.host;
 
   // L'hôte DOIT pouvoir encaisser (Stripe Connect actif) : sinon l'argent
   // n'irait pas sur son compte. On bloque toute vente tant que ce n'est pas le cas.
   const canReceive = Boolean(host.stripeAccountId && host.chargesEnabled);
-  if (!canReceive) {
-    throw new Error(
-      "Cette boutique n'est pas encore prête à encaisser. Réessayez bientôt."
-    );
-  }
+  if (!canReceive) backWithError("unavailable");
 
   const baseUrl = await getBaseUrl();
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    phone_number_collection: { enabled: true },
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: product.currency,
-          unit_amount: product.priceCents,
-          product_data: {
-            name: product.name,
-            ...(product.description
-              ? { description: product.description }
-              : {}),
-            // Stripe n'accepte que des URLs publiques (pas les images importées
-            // en data URL) — on ne les transmet que si c'est une URL http(s).
-            ...(product.photoUrl && /^https?:\/\//.test(product.photoUrl)
-              ? { images: [product.photoUrl] }
-              : {}),
-          },
-        },
-      },
-    ],
-    // Destination charge → full amount goes to the host (0% commission).
-    ...(canReceive
-      ? {
-          payment_intent_data: {
-            on_behalf_of: host.stripeAccountId!,
-            transfer_data: { destination: host.stripeAccountId! },
-          },
-        }
-      : {}),
-    metadata: {
-      productId: product.id,
-      boxId: box.id,
-      qrSlug,
-      // Empreinte visiteur : reliera l'achat aux scans du même visiteur.
-      visitorHash: (await computeVisitorHash()) ?? "",
-    },
-    success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/b/${qrSlug}`,
-  });
+  const visitorHash = (await computeVisitorHash()) ?? "";
 
-  if (!session.url) {
-    throw new Error("Impossible de créer la session de paiement.");
+  let sessionUrl: string;
+  let sessionId: string;
+  try {
+    // Réessaie une fois avant d'abandonner — la plupart des ratés Stripe à
+    // cet endroit sont un simple pépin réseau transitoire.
+    const session = await withRetry(() =>
+      stripe.checkout.sessions.create({
+        mode: "payment",
+        phone_number_collection: { enabled: true },
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: product.currency,
+              unit_amount: product.priceCents,
+              product_data: {
+                name: product.name,
+                ...(product.description
+                  ? { description: product.description }
+                  : {}),
+                // Stripe n'accepte que des URLs publiques (pas les images importées
+                // en data URL) — on ne les transmet que si c'est une URL http(s).
+                ...(product.photoUrl && /^https?:\/\//.test(product.photoUrl)
+                  ? { images: [product.photoUrl] }
+                  : {}),
+              },
+            },
+          },
+        ],
+        // Destination charge → full amount goes to the host (0% commission).
+        payment_intent_data: {
+          on_behalf_of: host.stripeAccountId!,
+          transfer_data: { destination: host.stripeAccountId! },
+        },
+        metadata: {
+          productId: product.id,
+          boxId: validBox.id,
+          qrSlug,
+          // Empreinte visiteur : reliera l'achat aux scans du même visiteur.
+          visitorHash,
+        },
+        success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/b/${qrSlug}`,
+      })
+    );
+    if (!session.url) throw new Error("Session Stripe créée sans URL");
+    sessionUrl = session.url;
+    sessionId = session.id;
+  } catch (err) {
+    await reportServerError(`Checkout voyageur (box ${qrSlug})`, err);
+    backWithError("payment");
   }
 
+  // sessionUrl/sessionId sont garantis assignés ici : le catch ci-dessus
+  // redirige (throw) avant d'atteindre cette ligne en cas d'échec.
   // Marque ce navigateur comme l'acheteur : seul lui verra le code sur la page
   // de succès (l'URL contient le session_id, qui pourrait fuiter).
-  await grantPurchaseAccess(session.id);
+  await grantPurchaseAccess(sessionId!);
 
   // redirect() throws internally — keep it outside any try/catch.
-  redirect(session.url);
+  redirect(sessionUrl!);
 }

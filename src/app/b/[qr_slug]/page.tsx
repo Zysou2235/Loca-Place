@@ -18,12 +18,23 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+const CHECKOUT_ERROR_MESSAGES: Record<string, string> = {
+  missing: "Un problème est survenu. Rechargez la page et réessayez.",
+  unavailable:
+    "Ce produit vient de devenir indisponible. Rechargez la page pour voir l'offre à jour.",
+  payment:
+    "Le paiement n'a pas pu démarrer suite à un problème technique. Réessayez dans un instant.",
+};
+
 export default async function BoxPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ qr_slug: string }>;
+  searchParams: Promise<{ checkoutError?: string }>;
 }) {
   const { qr_slug } = await params;
+  const { checkoutError } = await searchParams;
 
   const box = await prisma.box.findFirst({
     where: { qrSlug: qr_slug, active: true },
@@ -78,6 +89,12 @@ export default async function BoxPage({
           requis.
         </p>
       </header>
+
+      {checkoutError && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {CHECKOUT_ERROR_MESSAGES[checkoutError] ?? CHECKOUT_ERROR_MESSAGES.payment}
+        </p>
+      )}
 
       {!sellable || !product ? (
         <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">

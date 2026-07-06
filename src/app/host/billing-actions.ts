@@ -15,6 +15,7 @@ import {
 import { PROFILE_SELECT, isProfileComplete } from "@/lib/profile";
 import { isEffectiveAdmin } from "@/lib/admin";
 import { provisionBoxesForHost } from "@/lib/box-provisioning";
+import { withRetry } from "@/lib/retry";
 
 function assertStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -112,30 +113,32 @@ export async function placeSubscriptionOrder(formData: FormData) {
   }
 
   const baseUrl = await getBaseUrl();
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    // Prix créé à la volée (TTC) — pas de produit à pré-créer dans Stripe.
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: plan.currency,
-          unit_amount: unitAmount,
-          recurring: { interval: "month" },
-          product_data: { name: `Escale Box — ${label}` },
+  const session = await withRetry(() =>
+    stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      // Prix créé à la volée (TTC) — pas de produit à pré-créer dans Stripe.
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: plan.currency,
+            unit_amount: unitAmount,
+            recurring: { interval: "month" },
+            product_data: { name: `Escale Box — ${label}` },
+          },
         },
+      ],
+      subscription_data: {
+        metadata: { hostId: host.id, planId, boxes: String(boxes) },
+        ...(isFirstTimeCustomer ? { trial_period_days: TRIAL_DAYS } : {}),
       },
-    ],
-    subscription_data: {
+      client_reference_id: host.id,
       metadata: { hostId: host.id, planId, boxes: String(boxes) },
-      ...(isFirstTimeCustomer ? { trial_period_days: TRIAL_DAYS } : {}),
-    },
-    client_reference_id: host.id,
-    metadata: { hostId: host.id, planId, boxes: String(boxes) },
-    success_url: `${baseUrl}/host?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/host/billing`,
-  });
+      success_url: `${baseUrl}/host?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/host/billing`,
+    })
+  );
 
   if (!session.url) throw new Error("Création de la session impossible.");
   redirect(session.url);
@@ -373,11 +376,13 @@ export async function connectOnboard() {
 
   let accountId = host.stripeAccountId;
   if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: "express",
-      email: host.email,
-      metadata: { hostId: host.id },
-    });
+    const account = await withRetry(() =>
+      stripe.accounts.create({
+        type: "express",
+        email: host.email,
+        metadata: { hostId: host.id },
+      })
+    );
     accountId = account.id;
     await prisma.host.update({
       where: { id: host.id },
@@ -386,17 +391,19 @@ export async function connectOnboard() {
   }
 
   const baseUrl = await getBaseUrl();
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    // refresh_url : Stripe y renvoie l'hôte si le lien d'onboarding a expiré ;
-    // on regénère alors un nouveau lien.
-    refresh_url: `${baseUrl}/host/connect/refresh`,
-    // return_url : retour après onboarding. Le query param ?connect=return
-    // force le rafraîchissement immédiat du statut (sinon le rate-limit
-    // anti-martèlement de 10 min empêche la mise à jour de chargesEnabled).
-    return_url: `${baseUrl}/host?connect=return`,
-    type: "account_onboarding",
-  });
+  const link = await withRetry(() =>
+    stripe.accountLinks.create({
+      account: accountId!,
+      // refresh_url : Stripe y renvoie l'hôte si le lien d'onboarding a expiré ;
+      // on regénère alors un nouveau lien.
+      refresh_url: `${baseUrl}/host/connect/refresh`,
+      // return_url : retour après onboarding. Le query param ?connect=return
+      // force le rafraîchissement immédiat du statut (sinon le rate-limit
+      // anti-martèlement de 10 min empêche la mise à jour de chargesEnabled).
+      return_url: `${baseUrl}/host?connect=return`,
+      type: "account_onboarding",
+    })
+  );
   redirect(link.url);
 }
 
