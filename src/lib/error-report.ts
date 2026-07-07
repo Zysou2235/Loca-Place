@@ -1,16 +1,19 @@
+import * as Sentry from "@sentry/nextjs";
 import { sendSlackAlert } from "@/lib/notify";
 
 /**
- * Alerte l'équipe (email + Slack, selon ce qui est configuré) qu'une erreur
- * serveur vient de se produire — remplace un vrai outil de monitoring
- * (Sentry…) par une notification simple sur l'infra déjà en place. Best
- * effort : ne lève jamais, ne bloque jamais l'appelant.
+ * Alerte l'équipe (email + Slack + Sentry) qu'une erreur serveur vient de se
+ * produire. Best effort : ne lève jamais, ne bloque jamais l'appelant.
  */
 export async function reportServerError(context: string, error: unknown): Promise<void> {
   const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : undefined;
 
   console.error(`[error-report] ${context}:`, error);
+
+  Sentry.captureException(error instanceof Error ? error : new Error(message), {
+    tags: { context },
+  });
 
   const text = [
     `🔴 Erreur serveur — ${context}`,

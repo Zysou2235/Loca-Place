@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 // Content-Security-Policy. 'unsafe-inline' is required by Next.js' runtime and
 // by next/font injected styles; the rest is locked down. Stripe Checkout runs
 // as a full-page redirect (not framed), so no frame allowances are needed.
+// connect-src autorise Sentry (remontée d'erreurs client) en plus de Stripe.
 const csp = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -12,7 +14,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.stripe.com",
+  "connect-src 'self' https://api.stripe.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io",
   "form-action 'self'",
   "upgrade-insecure-requests",
 ].join("; ");
@@ -52,4 +54,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Pas de bruit dans les logs de build tant que Sentry n'est pas configuré
+  // (pas de DSN/token en local ou en attendant la création du projet).
+  silent: true,
+  widenClientFileUpload: false,
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+  },
+});
