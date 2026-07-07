@@ -13,8 +13,8 @@ export function RequestResetForm() {
   if (state.sent) {
     return (
       <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-        Si un compte avec mot de passe existe pour cet email, un lien de
-        réinitialisation vient d&apos;être envoyé. Pensez à vérifier vos spams.
+        Si un compte existe pour cet email, un lien pour choisir votre mot
+        de passe vient d&apos;être envoyé. Pensez à vérifier vos spams.
       </p>
     );
   }

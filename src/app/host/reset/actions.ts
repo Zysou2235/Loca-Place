@@ -27,11 +27,13 @@ export async function requestPasswordReset(
   if (email) {
     const host = await prisma.host.findUnique({
       where: { email },
-      select: { id: true, tokenVersion: true, passwordHash: true },
+      select: { id: true, tokenVersion: true },
     });
-    // On n'envoie un lien que si un compte avec mot de passe existe, mais on ne
-    // le révèle jamais dans la réponse.
-    if (host?.passwordHash) {
+    // On envoie un lien dès qu'un compte existe — avec ou sans mot de passe
+    // déjà défini (ex. compte créé par l'admin via /admin/test, jamais de
+    // mot de passe initial : ce lien sert alors à en choisir un premier).
+    // On ne révèle jamais l'existence du compte dans la réponse.
+    if (host) {
       const token = createResetToken(host.id, host.tokenVersion);
       const link = `${await getBaseUrl()}/host/reset/confirm?token=${encodeURIComponent(token)}`;
       await sendPasswordResetEmail(email, link);

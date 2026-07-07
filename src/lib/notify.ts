@@ -263,10 +263,10 @@ export async function sendPasswordResetEmail(
   const from = process.env.RESEND_FROM ?? "Escale Box <onboarding@resend.dev>";
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:auto">
-      <h2>Réinitialisation de votre mot de passe</h2>
-      <p>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
-      Ce lien expire dans 1 heure.</p>
-      <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9999px;font-weight:bold">Choisir un nouveau mot de passe</a></p>
+      <h2>Choisissez votre mot de passe</h2>
+      <p>Cliquez sur le bouton ci-dessous pour définir votre mot de passe
+      (première connexion ou changement). Ce lien expire dans 1 heure.</p>
+      <p><a href="${escapeHtml(link)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 20px;border-radius:9999px;font-weight:bold">Choisir mon mot de passe</a></p>
       <p style="color:#666">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
     </div>`;
   try {
@@ -279,7 +279,7 @@ export async function sendPasswordResetEmail(
       body: JSON.stringify({
         from,
         to: email,
-        subject: "Réinitialisation de votre mot de passe Escale Box",
+        subject: "Choisissez votre mot de passe Escale Box",
         html,
       }),
     });
