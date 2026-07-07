@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 export default function GlobalError({
   error,
@@ -10,6 +11,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    Sentry.captureException(error);
     // Alerte l'équipe (email/Slack) en tâche de fond, jamais bloquant pour
     // l'utilisateur qui voit l'erreur.
     fetch("/api/client-error", {
