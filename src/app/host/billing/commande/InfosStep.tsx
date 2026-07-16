@@ -43,7 +43,13 @@ export function InfosStep({
         </h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Field name="companyName" label="Nom / Raison sociale" defaultValue={defaults.companyName} required />
-          <Field name="siret" label="SIRET" defaultValue={defaults.siret} optional />
+          <Field
+            name="siret"
+            label="SIRET"
+            defaultValue={defaults.siret}
+            optional
+            hint="Pas de SIRET ? Laissez vide, ce n'est pas bloquant."
+          />
           <Field name="phone" label="Téléphone" defaultValue={defaults.phone} optional />
           <div className="hidden sm:block" />
           <Field name="billingLine1" label="Adresse" defaultValue={defaults.billingLine1} required className="sm:col-span-2" />
@@ -95,6 +101,7 @@ function Field({
   defaultValue,
   required,
   optional,
+  hint,
   className,
 }: {
   name: string;
@@ -102,6 +109,7 @@ function Field({
   defaultValue: string;
   required?: boolean;
   optional?: boolean;
+  hint?: string;
   className?: string;
 }) {
   return (
@@ -116,6 +124,7 @@ function Field({
         required={required}
         className="rounded-xl border border-black/10 bg-white px-4 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
+      {hint && <span className="text-xs text-brand/40">{hint}</span>}
     </label>
   );
 }

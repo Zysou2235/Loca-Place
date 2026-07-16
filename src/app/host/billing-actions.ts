@@ -376,10 +376,24 @@ export async function connectOnboard() {
 
   let accountId = host.stripeAccountId;
   if (!accountId) {
+    // Préremplit ce qu'on connaît déjà (coordonnées saisies à la commande) pour
+    // que Stripe redemande le moins de champs possible pendant son onboarding.
+    const profile = await prisma.host.findUnique({
+      where: { id: host.id },
+      select: { phone: true, companyName: true },
+    });
     const account = await withRetry(() =>
       stripe.accounts.create({
         type: "express",
         email: host.email,
+        country: "FR",
+        business_profile: {
+          name: profile?.companyName || host.name,
+          product_description: "Vente de produits via une box en libre-service dans un logement de vacances",
+          support_email: host.email,
+          ...(profile?.phone ? { support_phone: profile.phone } : {}),
+          mcc: "5399", // Commerce de détail divers
+        },
         metadata: { hostId: host.id },
       })
     );

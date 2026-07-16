@@ -210,6 +210,14 @@ export default async function HostDashboard({
               <p className="mt-2 text-sm text-brand/60">
                 Connectez votre compte pour recevoir l&apos;argent de vos ventes.
               </p>
+              <p className="mt-2 text-xs text-brand/50">
+                Cette étape (~5 min) est gérée par Stripe, notre partenaire de
+                paiement — pas par Escale Box. C&apos;est une vérification
+                d&apos;identité obligatoire pour recevoir de l&apos;argent en
+                toute légalité (pièce d&apos;identité + RIB). Pas de SIRET ?
+                Choisissez « Particulier » sur la page Stripe, c&apos;est fait
+                pour ça.
+              </p>
               <form action={connectOnboard} className="mt-4">
                 <SmallButton>Configurer les paiements</SmallButton>
               </form>
