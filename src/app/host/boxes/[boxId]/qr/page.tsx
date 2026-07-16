@@ -6,6 +6,7 @@ import { getCurrentHost } from "@/lib/auth";
 import { isEffectiveAdmin } from "@/lib/admin";
 import { getBaseUrl } from "@/lib/base-url";
 import { PrintButton } from "./PrintButton";
+import { printSteps, printText } from "@/lib/traveler-i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +51,6 @@ export default async function HostQrPrintPage({
   const targetUrl = `${await getBaseUrl()}/b/${box.qrSlug}`;
   const displayUrl = targetUrl.replace(/^https?:\/\//, "");
 
-  const steps = [
-    { n: "1", title: "Scannez", desc: "avec l'appareil photo de votre téléphone" },
-    { n: "2", title: "Payez", desc: "en ligne, sans appli ni compte" },
-    { n: "3", title: "Ouvrez", desc: "avec le code reçu par email" },
-  ];
-
   return (
     <main className="min-h-screen bg-cream py-10 print:min-h-0 print:bg-white print:py-0">
       {/* Barre d'outils — écran uniquement */}
@@ -80,23 +75,26 @@ export default async function HostQrPrintPage({
           priority
           className="h-auto w-[42.6mm]"
         />
-        <h1 className="mt-[5.7mm] font-display text-[11.4mm] font-extrabold leading-tight text-brand">
-          Une petite envie&nbsp;?
+        <h1 className="mt-[4.5mm] font-display text-[11.4mm] font-extrabold leading-tight text-brand">
+          {printText.title.fr}
         </h1>
-        <p className="mt-[2.1mm] text-[5.1mm] leading-snug text-brand/60">
+        <p className="mt-[1.6mm] text-[5.1mm] leading-snug text-brand/60">
           Découvrez ce que votre hôte vous a préparé dans cette box.
+        </p>
+        <p className="mt-[0.7mm] whitespace-nowrap text-[2.6mm] text-brand/35">
+          🇬🇧{printText.title.en}·🇪🇸{printText.title.es}·🇮🇹{printText.title.it}
         </p>
 
         {/* QR encadré, badge orange par-dessus */}
-        <div className="relative mt-[9.9mm]">
-          <div className="rounded-[8.5mm] border-[1.1mm] border-brand p-[5.7mm]">
+        <div className="relative mt-[6.5mm]">
+          <div className="rounded-[8.5mm] border-[1.1mm] border-brand p-[5mm]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`/api/qr/${box.qrSlug}`}
               alt={`QR code — ${box.name}`}
               width={1024}
               height={1024}
-              className="h-[102.2mm] w-[102.2mm]"
+              className="h-[96mm] w-[96mm]"
             />
           </div>
           <span className="absolute -top-[5mm] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-[7.1mm] py-[2.3mm] text-[4.8mm] font-bold uppercase tracking-[0.06em] text-white">
@@ -104,18 +102,22 @@ export default async function HostQrPrintPage({
           </span>
         </div>
 
-        {/* Les 3 étapes */}
-        <div className="mt-[9.9mm] grid w-full grid-cols-3 gap-[5.7mm]">
-          {steps.map((s) => (
+        {/* Les 3 étapes — en français, avec le mot-clé en 3 langues pour les
+            voyageurs étrangers (la page scannée s'adapte, elle, entièrement). */}
+        <div className="mt-[7.5mm] grid w-full grid-cols-3 gap-[4.3mm]">
+          {printSteps.map((s) => (
             <div key={s.n} className="flex flex-col items-center">
-              <span className="flex h-[11.4mm] w-[11.4mm] items-center justify-center rounded-full bg-brand text-[5.7mm] font-bold text-white">
+              <span className="flex h-[10mm] w-[10mm] items-center justify-center rounded-full bg-brand text-[5mm] font-bold text-white">
                 {s.n}
               </span>
-              <span className="mt-[2.8mm] text-[5.4mm] font-bold text-brand">
-                {s.title}
+              <span className="mt-[2.3mm] text-[5mm] font-bold text-brand">
+                {s.title.fr}
               </span>
-              <span className="mt-[0.7mm] text-[4.1mm] leading-snug text-brand/55">
-                {s.desc}
+              <span className="mt-[0.7mm] text-[3.7mm] leading-snug text-brand/55">
+                {s.desc.fr}
+              </span>
+              <span className="mt-[1mm] whitespace-nowrap text-[2.6mm] leading-snug text-brand/40">
+                🇬🇧{s.title.en}·🇪🇸{s.title.es}·🇮🇹{s.title.it}
               </span>
             </div>
           ))}
@@ -132,8 +134,11 @@ export default async function HostQrPrintPage({
               Sans appareil photo&nbsp;? Tapez&nbsp;: {displayUrl}
             </div>
           </div>
-          <p className="mt-[3.5mm] text-[4mm] text-brand/40">
-            Paiement sécurisé par Stripe · Sans application
+          <p className="mt-[2.5mm] text-[4mm] text-brand/40">
+            {printText.trust.fr}
+          </p>
+          <p className="whitespace-nowrap text-[2.6mm] text-brand/30">
+            🇬🇧{printText.trust.en}·🇪🇸{printText.trust.es}·🇮🇹{printText.trust.it}
           </p>
         </div>
       </div>
