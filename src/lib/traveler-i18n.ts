@@ -111,6 +111,18 @@ export const printText = {
     es: "¿Te apetece algo?",
     it: "Una vogliolina?",
   },
+  subtitle: {
+    fr: "Découvrez ce que votre hôte vous a préparé dans cette box.",
+    en: "Discover what your host has prepared for you in this box.",
+    es: "Descubre lo que tu anfitrión te ha preparado en esta box.",
+    it: "Scopri cosa il tuo host ti ha preparato in questa box.",
+  },
+  noCamera: {
+    fr: "Sans appareil photo ? Tapez :",
+    en: "No camera? Type:",
+    es: "¿Sin cámara? Escribe:",
+    it: "Niente fotocamera? Digita:",
+  },
   scanMe: {
     fr: "Scannez-moi",
     en: "Scan me",

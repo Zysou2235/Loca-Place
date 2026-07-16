@@ -75,18 +75,21 @@ export default async function HostQrPrintPage({
           priority
           className="h-auto w-[42.6mm]"
         />
-        <h1 className="mt-[4.5mm] font-display text-[11.4mm] font-extrabold leading-tight text-brand">
+        <h1 className="mt-[4.5mm] font-display text-[10.5mm] font-extrabold leading-tight text-brand">
           {printText.title.fr}
         </h1>
-        <p className="mt-[1.6mm] text-[5.1mm] leading-snug text-brand/60">
-          Découvrez ce que votre hôte vous a préparé dans cette box.
+        <p className="mt-[0.3mm] text-[3mm] italic text-brand/40">
+          {printText.title.en}
         </p>
-        <p className="mt-[0.7mm] whitespace-nowrap text-[2.6mm] text-brand/35">
-          🇬🇧{printText.title.en}·🇪🇸{printText.title.es}·🇮🇹{printText.title.it}
+        <p className="mt-[1.4mm] text-[4.7mm] leading-snug text-brand/60">
+          {printText.subtitle.fr}
+        </p>
+        <p className="mt-[0.2mm] text-[3mm] italic text-brand/40">
+          {printText.subtitle.en}
         </p>
 
         {/* QR encadré, badge orange par-dessus */}
-        <div className="relative mt-[6.5mm]">
+        <div className="relative mt-[6mm]">
           <div className="rounded-[8.5mm] border-[1.1mm] border-brand p-[5mm]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -94,30 +97,35 @@ export default async function HostQrPrintPage({
               alt={`QR code — ${box.name}`}
               width={1024}
               height={1024}
-              className="h-[96mm] w-[96mm]"
+              className="h-[93mm] w-[93mm]"
             />
           </div>
-          <span className="absolute -top-[5mm] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-[7.1mm] py-[2.3mm] text-[4.8mm] font-bold uppercase tracking-[0.06em] text-white">
-            Scannez-moi
+          <span className="absolute -top-[6mm] left-1/2 flex -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-full bg-accent px-[7.1mm] py-[1.6mm] text-white">
+            <span className="text-[4.5mm] font-bold uppercase tracking-[0.06em]">
+              {printText.scanMe.fr}
+            </span>
+            <span className="text-[2.6mm] italic text-white/75">
+              {printText.scanMe.en}
+            </span>
           </span>
         </div>
 
-        {/* Les 3 étapes — en français, avec le mot-clé en 3 langues pour les
-            voyageurs étrangers (la page scannée s'adapte, elle, entièrement). */}
-        <div className="mt-[7.5mm] grid w-full grid-cols-3 gap-[4.3mm]">
+        {/* Les 3 étapes — français en principal, anglais en petit dessous
+            (la page scannée, elle, s'adapte entièrement — FR/EN/ES/IT). */}
+        <div className="mt-[7mm] grid w-full grid-cols-3 gap-[4.3mm]">
           {printSteps.map((s) => (
             <div key={s.n} className="flex flex-col items-center">
-              <span className="flex h-[10mm] w-[10mm] items-center justify-center rounded-full bg-brand text-[5mm] font-bold text-white">
+              <span className="flex h-[9.5mm] w-[9.5mm] items-center justify-center rounded-full bg-brand text-[4.7mm] font-bold text-white">
                 {s.n}
               </span>
-              <span className="mt-[2.3mm] text-[5mm] font-bold text-brand">
+              <span className="mt-[2mm] text-[4.7mm] font-bold text-brand">
                 {s.title.fr}
               </span>
-              <span className="mt-[0.7mm] text-[3.7mm] leading-snug text-brand/55">
+              <span className="mt-[0.6mm] text-[3.5mm] leading-snug text-brand/55">
                 {s.desc.fr}
               </span>
-              <span className="mt-[1mm] whitespace-nowrap text-[2.6mm] leading-snug text-brand/40">
-                🇬🇧{s.title.en}·🇪🇸{s.title.es}·🇮🇹{s.title.it}
+              <span className="mt-[0.8mm] text-[2.6mm] italic leading-snug text-brand/40">
+                {s.title.en} — {s.desc.en}
               </span>
             </div>
           ))}
@@ -126,19 +134,25 @@ export default async function HostQrPrintPage({
         {/* Pied : branding + URL de secours — jamais le nom interne de la
             box (identifiant technique, sans intérêt pour le voyageur). */}
         <div className="mt-auto w-full">
-          <div className="rounded-[5.7mm] bg-brand px-[8.5mm] py-[5mm] text-white">
-            <div className="font-display text-[6mm] font-bold">
+          <div className="rounded-[5.7mm] bg-brand px-[8.5mm] py-[4.3mm] text-white">
+            <div className="font-display text-[5.7mm] font-bold">
               Escale Box
             </div>
-            <div className="mt-[1.1mm] break-all text-[4.3mm] text-white/70">
-              Sans appareil photo&nbsp;? Tapez&nbsp;: {displayUrl}
+            <div className="mt-[1mm] text-[4mm] text-white/70">
+              {printText.noCamera.fr}{" "}
+              <span className="text-[2.8mm] italic text-white/45">
+                ({printText.noCamera.en})
+              </span>
+            </div>
+            <div className="break-all text-[4mm] text-white/70">
+              {displayUrl}
             </div>
           </div>
-          <p className="mt-[2.5mm] text-[4mm] text-brand/40">
+          <p className="mt-[2mm] text-[3.8mm] text-brand/40">
             {printText.trust.fr}
           </p>
-          <p className="whitespace-nowrap text-[2.6mm] text-brand/30">
-            🇬🇧{printText.trust.en}·🇪🇸{printText.trust.es}·🇮🇹{printText.trust.it}
+          <p className="text-[2.6mm] italic text-brand/30">
+            {printText.trust.en}
           </p>
         </div>
       </div>
