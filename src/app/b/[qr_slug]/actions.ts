@@ -9,6 +9,7 @@ import { clientIp, rateLimit, HOUR } from "@/lib/rate-limit";
 import { computeVisitorHash } from "@/lib/visitor";
 import { withRetry } from "@/lib/retry";
 import { reportServerError } from "@/lib/error-report";
+import { isTravelerLang } from "@/lib/traveler-i18n";
 
 export type LeadState = { done?: boolean; error?: string };
 
@@ -73,12 +74,15 @@ export async function leaveEmail(
 export async function createCheckoutSession(formData: FormData) {
   const productId = String(formData.get("productId") ?? "");
   const qrSlug = String(formData.get("qrSlug") ?? "");
+  const langRaw = String(formData.get("lang") ?? "");
+  const lang = isTravelerLang(langRaw) ? langRaw : "fr";
+  const langQuery = lang === "fr" ? "" : `&lang=${lang}`;
 
   // Retour vers la page de la box avec un message clair plutôt qu'un throw —
   // ce sont des états métier attendus (stock/produit qui a changé entre le
   // chargement de la page et le clic), pas des bugs à remonter à l'équipe.
   const backWithError = (code: string): never => {
-    redirect(`/b/${qrSlug || ""}?checkoutError=${code}`);
+    redirect(`/b/${qrSlug || ""}?checkoutError=${code}${langQuery}`);
   };
 
   if (!productId || !qrSlug) backWithError("missing");
@@ -117,6 +121,7 @@ export async function createCheckoutSession(formData: FormData) {
     const session = await withRetry(() =>
       stripe.checkout.sessions.create({
         mode: "payment",
+        locale: lang,
         phone_number_collection: { enabled: true },
         line_items: [
           {
@@ -151,7 +156,7 @@ export async function createCheckoutSession(formData: FormData) {
           visitorHash,
         },
         success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/b/${qrSlug}`,
+        cancel_url: `${baseUrl}/b/${qrSlug}${lang !== "fr" ? `?lang=${lang}` : ""}`,
       })
     );
     if (!session.url) throw new Error("Session Stripe créée sans URL");
