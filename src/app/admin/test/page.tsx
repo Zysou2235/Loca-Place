@@ -48,7 +48,7 @@ export default async function AdminTestPage({
             avec « Mot de passe oublié » (ou Google) sur son adresse email.
           </Banner>
         )}
-        {revoked && <Banner tone="green">Accès test retiré, box désactivées.</Banner>}
+        {revoked && <Banner tone="green">Accès test retiré, box supprimées.</Banner>}
         {error === "email" && <Banner tone="red">Adresse email invalide.</Banner>}
         {error === "paying" && (
           <Banner tone="red">

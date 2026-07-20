@@ -75,7 +75,7 @@ test.describe("Admin — Tests MVP (box offertes)", () => {
     }
   });
 
-  test("Retirer l'accès test → box désactivées, quota 0", async ({
+  test("Retirer l'accès test → box supprimées, quota 0", async ({
     page,
     context,
   }) => {
@@ -103,7 +103,63 @@ test.describe("Admin — Tests MVP (box offertes)", () => {
     expect(host?.isTestAccount).toBe(false);
     expect(host?.subscriptionStatus).toBe("none");
     expect(host?.boxQuota).toBe(0);
-    expect(host?.boxes.every((b) => !b.active)).toBe(true);
+    // Contrairement à un vrai client qui résilie (box désactivées mais
+    // conservées), un compte test est nettoyé pour de bon : aucune box
+    // fantôme qui resterait bloquée si l'accès est redonné plus tard.
+    expect(host?.boxes).toHaveLength(0);
+  });
+
+  test("Retirer puis redonner l'accès (même email) → box neuves et actives, la boutique fonctionne", async ({
+    page,
+    context,
+  }) => {
+    await loginAsAdmin(context);
+    const testerEmail = `recreate-${Date.now()}@test.escalebox.fr`;
+
+    // 1) Octroi initial — 4 box.
+    await page.goto("/admin/test");
+    await page.getByPlaceholder("testeur@exemple.fr").fill(testerEmail);
+    await page.getByRole("button", { name: /Activer l'accès test/i }).click();
+    await page.waitForURL(/ok=1/);
+
+    const firstHost = await prisma.host.findUniqueOrThrow({
+      where: { email: testerEmail },
+      include: { boxes: true },
+    });
+    const firstSlug = firstHost.boxes[0]!.qrSlug;
+
+    // 2) Retrait de l'accès.
+    const card = page
+      .locator("div.rounded-2xl")
+      .filter({ hasText: testerEmail })
+      .first();
+    await card.getByRole("button", { name: /Retirer l'accès/i }).click();
+    await page.waitForURL(/revoked=1/);
+
+    // L'ancien QR ne doit plus jamais fonctionner (box supprimée).
+    const oldRes = await page.goto(`/b/${firstSlug}`);
+    expect(oldRes?.status()).toBe(404);
+
+    // 3) Nouvel octroi sur le même email — c'est ici que le bug se produisait :
+    // les box restaient désactivées pour toujours (quota déjà "satisfait" en
+    // compte total, sans jamais réactiver ni recréer).
+    await page.goto("/admin/test");
+    await page.getByPlaceholder("testeur@exemple.fr").fill(testerEmail);
+    await page.getByRole("button", { name: /Activer l'accès test/i }).click();
+    await page.waitForURL(/ok=1/);
+
+    const secondHost = await prisma.host.findUniqueOrThrow({
+      where: { email: testerEmail },
+      include: { boxes: true },
+    });
+    expect(secondHost.isTestAccount).toBe(true);
+    expect(secondHost.boxes).toHaveLength(4);
+    expect(secondHost.boxes.every((b) => b.active)).toBe(true);
+
+    // La nouvelle box fonctionne réellement côté voyageur (plus de 404).
+    const newSlug = secondHost.boxes[0]!.qrSlug;
+    const newRes = await page.goto(`/b/${newSlug}`);
+    expect(newRes?.status()).toBe(200);
   });
 
   test("Refus d'écraser un vrai abonné payant", async ({ page, context }) => {
