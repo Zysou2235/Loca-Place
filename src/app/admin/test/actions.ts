@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
-import { provisionBoxesForHost, deactivateBoxesForHost } from "@/lib/box-provisioning";
+import { provisionBoxesForHost } from "@/lib/box-provisioning";
 import { MAX_BOXES } from "@/lib/plans";
 
 /**
@@ -88,7 +88,15 @@ export async function grantTestAccess(formData: FormData) {
   redirect("/admin/test?ok=1");
 }
 
-/** Retire l'accès test : abonnement coupé, box désactivées (conservées). */
+/**
+ * Retire l'accès test : abonnement coupé, box supprimées. Contrairement à un
+ * vrai client qui résilie (box désactivées mais conservées pour la traçabilité
+ * commerciale — voir deactivateBoxesForHost), un compte test n'a pas
+ * d'historique réel à garder : on supprime pour de bon (scans/leads/commandes
+ * liés suivent en cascade) afin qu'un octroi ultérieur reparte sur des box
+ * neuves et fonctionnelles plutôt que de rester bloqué sur d'anciennes box
+ * désactivées.
+ */
 export async function revokeTestAccess(formData: FormData) {
   await requireAdmin();
 
@@ -109,7 +117,7 @@ export async function revokeTestAccess(formData: FormData) {
       isTestAccount: false,
     },
   });
-  await deactivateBoxesForHost(hostId);
+  await prisma.box.deleteMany({ where: { hostId } });
 
   revalidatePath("/admin/test");
   redirect("/admin/test?revoked=1");
