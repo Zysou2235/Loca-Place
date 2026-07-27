@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/money";
 import { recordScan } from "@/lib/scans";
+import { checkBoxSellable } from "@/lib/box-sellable";
 import { createCheckoutSession } from "./actions";
 import { ScanTracker } from "./ScanTracker";
 import { EmailCaptureForm } from "./EmailCaptureForm";
@@ -54,12 +55,10 @@ export default async function BoxPage({
       ? box.selectedProduct
       : null;
 
-  // L'hôte doit pouvoir encaisser (Stripe Connect actif) pour que la vente
-  // soit autorisée — sinon l'argent n'irait pas sur son compte.
-  const hostCanReceive = Boolean(
-    box.host?.stripeAccountId && box.host?.chargesEnabled
-  );
-  const sellable = Boolean(box.accessCode && product && hostCanReceive);
+  const { sellable } = checkBoxSellable(box, {
+    stripeAccountId: box.host?.stripeAccountId ?? null,
+    chargesEnabled: box.host?.chargesEnabled ?? false,
+  });
 
   // Trace le scan du QR code (instantané du produit présenté), best-effort.
   const scanId = await recordScan({

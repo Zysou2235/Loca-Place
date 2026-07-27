@@ -92,8 +92,8 @@ test.describe.skip("Gestion box — renommage + désactivation/réactivation", (
       .click();
     await page.waitForTimeout(500); // laisse React traiter le click
 
-    // Pas de désactivation : la box est toujours Disponible
-    await expect(page.getByText("Disponible").first()).toBeVisible();
+    // Pas de désactivation : la box est toujours là, juste pas configurée
+    await expect(page.getByText("Non configurée").first()).toBeVisible();
 
     // Stub pour retourner true → form se soumet vraiment
     await page.evaluate(() => {
@@ -127,7 +127,80 @@ test.describe.skip("Gestion box — renommage + désactivation/réactivation", (
       .first()
       .click();
     await page.waitForLoadState("networkidle");
-    await expect(page.getByText("Disponible").first()).toBeVisible();
+    await expect(page.getByText("Non configurée").first()).toBeVisible();
+  });
+});
+
+test.describe("Garde-fou — box pas encore vendable (produit / paiements)", () => {
+  test("Le bandeau d'avertissement s'affiche puis disparaît une fois la config complète", async ({
+    page,
+    context,
+  }) => {
+    // Plusieurs navigations vers des routes distinctes (host/boxes, b/[slug])
+    // — chacune compile à froid en mode dev, le budget par défaut est court.
+    test.setTimeout(60_000);
+    const { hostId } = await loginAs(context, prisma, {
+      name: "Setup Incomplet",
+      subscriptionStatus: "active",
+      subscriptionPlan: "essentiel",
+      boxQuota: 1,
+      // Ni produit, ni Stripe Connect — état d'une box fraîchement créée.
+    });
+    await page.goto("/host"); // provisionne la box #1
+    await page.getByRole("link", { name: /Gérer Box #1/i }).click();
+    await page.waitForURL(/\/host\/boxes\//);
+    const boxUrl = page.url();
+
+    // Rien n'est configuré : le bandeau explique les 2 points bloquants
+    // (le code cadenas, lui, est déjà attribué par provisionBoxesForHost).
+    await expect(
+      page.getByText(/Cette box ne peut pas encore vendre/i)
+    ).toBeVisible();
+    await expect(page.getByText("Un article sélectionné dans la box")).toBeVisible();
+    await expect(page.getByText("Paiements Stripe activés")).toBeVisible();
+
+    const box = await prisma.box.findFirstOrThrow({ where: { hostId } });
+    const qrSlug = box.qrSlug;
+
+    // Côté voyageur : boutique pas encore disponible.
+    await page.goto(`/b/${qrSlug}`);
+    await expect(
+      page.getByText(/sera bientôt disponible/i)
+    ).toBeVisible();
+
+    // On ne complète qu'un des deux points (produit assigné, sans Stripe).
+    const product = await prisma.product.create({
+      data: {
+        name: "Bière artisanale",
+        priceCents: 450,
+        hostId,
+      },
+    });
+    await prisma.box.update({
+      where: { id: box.id },
+      data: { selectedProductId: product.id },
+    });
+    await page.goto(boxUrl);
+    await expect(
+      page.getByText(/Cette box ne peut pas encore vendre/i)
+    ).toBeVisible();
+    // Le point produit est maintenant coché, seul Stripe reste bloquant.
+    await expect(page.getByText(/configurer les paiements/i)).toBeVisible();
+
+    // On complète le second point : paiements Stripe activés.
+    await prisma.host.update({
+      where: { id: hostId },
+      data: { stripeAccountId: "acct_fake_e2e", chargesEnabled: true },
+    });
+    await page.goto(boxUrl);
+    await expect(
+      page.getByText(/Cette box ne peut pas encore vendre/i)
+    ).not.toBeVisible();
+
+    // Côté voyageur : la boutique vend maintenant réellement.
+    await page.goto(`/b/${qrSlug}`);
+    await expect(page.getByText(/sera bientôt disponible/i)).not.toBeVisible();
+    await expect(page.getByText("Bière artisanale")).toBeVisible();
   });
 });
 

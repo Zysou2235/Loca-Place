@@ -6,6 +6,7 @@ import { getCurrentHost } from "@/lib/auth";
 import { getPlan } from "@/lib/plans";
 import { isEffectiveAdmin } from "@/lib/admin";
 import { provisionBoxesForHost } from "@/lib/box-provisioning";
+import { checkBoxSellable } from "@/lib/box-sellable";
 import { HostShell } from "./HostShell";
 import { BoxQuickActions } from "./BoxQuickActions";
 import {
@@ -60,7 +61,7 @@ export default async function HostDashboard({
     where: { hostId: host.id },
     orderBy: { createdAt: "desc" },
     include: {
-      selectedProduct: { select: { name: true } },
+      selectedProduct: { select: { name: true, active: true } },
       _count: { select: { scans: true, orders: true } },
     },
   });
@@ -259,7 +260,9 @@ export default async function HostDashboard({
             )}
           </p>
         ) : (
-          boxes.map((box) => (
+          boxes.map((box) => {
+            const sellability = checkBoxSellable(box, host);
+            return (
             <div
               key={box.id}
               className={`group relative rounded-2xl border p-5 shadow-card transition hover:shadow-md ${
@@ -293,9 +296,15 @@ export default async function HostDashboard({
                       <span className="shrink-0 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
                         Désactivée
                       </span>
-                    ) : !box.selectedProduct ? (
+                    ) : !sellability.sellable ? (
                       <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                        {box._count.orders > 0 ? "Vide" : "Disponible"}
+                        {sellability.missingProduct
+                          ? box._count.orders > 0
+                            ? "Vide"
+                            : "Non configurée"
+                          : sellability.missingPayments
+                            ? "Paiements requis"
+                            : "Code en attente"}
                       </span>
                     ) : null}
                   </div>
@@ -307,11 +316,15 @@ export default async function HostDashboard({
                   <div className="mt-0.5 text-xs text-brand/40">
                     {!box.active
                       ? "Désactivée — cliquez pour réactiver"
-                      : box.selectedProduct
-                        ? `Article : ${box.selectedProduct.name}`
-                        : box._count.orders > 0
+                      : sellability.missingProduct
+                        ? box._count.orders > 0
                           ? "Vide — cliquez pour réattribuer un produit"
-                          : "À attribuer — cliquez pour configurer"}
+                          : "À attribuer — cliquez pour configurer"
+                        : sellability.missingPayments
+                          ? "Article prêt, mais paiements Stripe non activés"
+                          : sellability.missingAccessCode
+                            ? "En attente du code cadenas (Escale Box)"
+                            : `Article : ${box.selectedProduct!.name}`}
                   </div>
                 </div>
                 <span className="ml-auto shrink-0 text-brand/30 transition group-hover:text-accent">
@@ -333,7 +346,8 @@ export default async function HostDashboard({
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
