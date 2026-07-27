@@ -73,7 +73,7 @@ test.describe("Dashboard hôte (sans abonnement)", () => {
 });
 
 test.describe("Dashboard hôte (abonné)", () => {
-  test("Compteur 1/1 box et badge Disponible", async ({ page, context }) => {
+  test("Compteur 1/1 box et badge Non configurée", async ({ page, context }) => {
     await loginAs(context, prisma, {
       name: "Subscribed",
       subscriptionStatus: "active",
@@ -86,7 +86,9 @@ test.describe("Dashboard hôte (abonné)", () => {
       timeout: 10_000,
     });
     await expect(page.getByText("Box #1")).toBeVisible();
-    await expect(page.getByText("Disponible").first()).toBeVisible();
+    // Ni produit assigné ni paiements Stripe activés → la box ne peut pas
+    // encore vendre, le badge le dit explicitement (garde-fou).
+    await expect(page.getByText("Non configurée").first()).toBeVisible();
   });
 
   test("Plan Multi 4 → 4 box provisionnées", async ({ page, context }) => {

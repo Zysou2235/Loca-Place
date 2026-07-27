@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getCurrentHost } from "@/lib/auth";
 import { formatPrice } from "@/lib/money";
+import { checkBoxSellable } from "@/lib/box-sellable";
 import { ImageDropInput } from "@/components/ImageDropInput";
 import { HostShell } from "../../HostShell";
 import { ChangeCodeForm } from "./ChangeCodeForm";
@@ -78,6 +79,8 @@ export default async function ManageBoxPage({
   const conversion =
     scanCount > 0 ? Math.round((salesCount / scanCount) * 100) : 0;
 
+  const sellability = checkBoxSellable(box, host);
+
   return (
     <HostShell hostName={host.name}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -119,6 +122,51 @@ export default async function ManageBoxPage({
               Réactiver cette box
             </button>
           </form>
+        </div>
+      )}
+
+      {/* Garde-fou : tant que ces 3 conditions ne sont pas réunies, la page
+          voyageur affiche « bientôt disponible » — on l'explique ici pour
+          que l'hôte ne découvre pas ça en scannant sa propre box. Disparaît
+          dès que tout est en ordre. */}
+      {box.active && !sellability.sellable && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <p className="font-semibold">
+            ⚠️ Cette box ne peut pas encore vendre
+          </p>
+          <p className="mt-1 text-amber-700">
+            Les voyageurs qui scannent le QR code verront « bientôt
+            disponible » tant que tout n&apos;est pas coché ci-dessous.
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            <li className="flex items-center gap-2">
+              <Checkbox done={!sellability.missingProduct} />
+              Un article sélectionné dans la box
+              {sellability.missingProduct && (
+                <a href="#article" className="font-medium underline">
+                  → choisir un article
+                </a>
+              )}
+            </li>
+            <li className="flex items-center gap-2">
+              <Checkbox done={!sellability.missingPayments} />
+              Paiements Stripe activés
+              {sellability.missingPayments && (
+                <Link href="/host" className="font-medium underline">
+                  → configurer les paiements
+                </Link>
+              )}
+            </li>
+            <li className="flex items-center gap-2">
+              <Checkbox done={!sellability.missingAccessCode} />
+              Code du cadenas attribué par Escale Box
+              {sellability.missingAccessCode && (
+                <span className="text-amber-700/70">
+                  (en attente, pas d&apos;action de votre part)
+                </span>
+              )}
+            </li>
+          </ul>
         </div>
       )}
 
@@ -253,7 +301,7 @@ export default async function ManageBoxPage({
       </div>
 
       {/* Article actuellement dans la box */}
-      <div className="mt-8 rounded-2xl border border-black/5 bg-white p-5 shadow-card">
+      <div id="article" className="mt-8 rounded-2xl border border-black/5 bg-white p-5 shadow-card">
         <h3 className="font-display font-bold text-brand">
           Article dans cette box
         </h3>
@@ -423,5 +471,18 @@ export default async function ManageBoxPage({
         </div>
       )}
     </HostShell>
+  );
+}
+
+function Checkbox({ done }: { done: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+        done ? "bg-green-600 text-white" : "border border-amber-400 bg-white"
+      }`}
+    >
+      {done && "✓"}
+    </span>
   );
 }
