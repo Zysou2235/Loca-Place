@@ -81,3 +81,9 @@ activer le routage vers l'hôte.
 ## Cartes de test Stripe
 
 - Succès : `4242 4242 4242 4242`, date future, CVC quelconque.
+
+## Veille entreprises (outil annexe)
+
+Script indépendant de l'app : une alerte Slack chaque matin quand une nouvelle
+entreprise d'électricité est créée autour de Dinan.
+Mise en route pas à pas : **[VEILLE.md](./VEILLE.md)**.

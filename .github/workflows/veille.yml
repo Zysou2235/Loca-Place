@@ -1,0 +1,49 @@
+name: Veille entreprises
+
+on:
+  schedule:
+    # 6h00 UTC du lundi au vendredi.
+    # En France : 8h00 l'ete, 7h00 l'hiver (GitHub ne gere que l'heure UTC).
+    - cron: "0 6 * * 1-5"
+  # Permet aussi de lancer la veille a la main depuis l'onglet Actions.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Deux passages ne doivent jamais ecrire siren_vus.json en meme temps.
+concurrency:
+  group: veille-entreprises
+  cancel-in-progress: false
+
+jobs:
+  veille:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recupere le depot
+        uses: actions/checkout@v4
+
+      - name: Installe Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lance la veille
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python veille_entreprises.py
+
+      # always() : meme si l'envoi Slack a echoue, on enregistre ce qui est
+      # reellement parti. Le script, lui, ne memorise que les envois reussis.
+      - name: Enregistre les entreprises signalees
+        if: always()
+        run: |
+          if [ -z "$(git status --porcelain siren_vus.json)" ]; then
+            echo "Aucune nouveaute a enregistrer."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add siren_vus.json
+          git commit -m "Veille : entreprises signalees le $(date -u '+%d/%m/%Y')"
+          git push
