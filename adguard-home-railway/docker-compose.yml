@@ -1,0 +1,49 @@
+# ---------------------------------------------------------------------------
+# Test en local avant de déployer sur Railway.
+#
+#   cp .env.example .env      puis renseignez ADMIN_PASSWORD
+#   docker compose up --build
+#
+# Interface   : http://localhost:3000
+# DoH         : http://localhost:3000/dns-query/<clientid>
+#               (en HTTP clair — en local il n'y a pas de terminaison TLS ;
+#                sur Railway c'est bien du HTTPS)
+# DNS clair   : localhost:53 — utilisable ici, contrairement à Railway.
+#
+# Vérification rapide, une fois le conteneur démarré :
+#   dig @127.0.0.1 -p 53 exemple.fr
+#   curl -s -H 'accept: application/dns-json' \
+#        'http://localhost:3000/dns-query/pc-local?name=exemple.fr&type=A'
+# ---------------------------------------------------------------------------
+services:
+  adguardhome:
+    build:
+      context: .
+      args:
+        ADGUARD_VERSION: ${ADGUARD_VERSION:-v0.107.79}
+    container_name: adguardhome-local
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # En local on utilise un chemin fixe, pas de volume Railway.
+      DATA_DIR: /data
+      PORT: 3000
+      # Ici, contrairement à Railway, le DNS classique est joignable :
+      # on reprend donc le port 53 standard.
+      PLAIN_DNS_PORT: 53
+      # Pas de reverse proxy devant : ne faites confiance à personne pour
+      # les en-têtes X-Forwarded-For.
+      TRUSTED_PROXIES: 127.0.0.0/8,::1/128
+    ports:
+      - "3000:3000/tcp"   # interface web + DoH
+      - "53:53/udp"       # DNS classique
+      - "53:53/tcp"
+    volumes:
+      - adguard-data:/data
+    cap_add:
+      # Nécessaire uniquement pour écouter sur le port 53 (< 1024).
+      - NET_BIND_SERVICE
+
+volumes:
+  adguard-data:

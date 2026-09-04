@@ -1,0 +1,287 @@
+# ---------------------------------------------------------------------------
+# AdGuard Home — modèle de configuration initiale (Railway, usage familial)
+# ---------------------------------------------------------------------------
+#
+# CE FICHIER EST UN MODÈLE, PAS LA CONFIG ACTIVE.
+#
+# Il n'est utilisé qu'au TOUT PREMIER démarrage : scripts/entrypoint.sh
+# remplace les __PLACEHOLDERS__ par les variables d'environnement, puis écrit
+# le résultat dans $DATA_DIR/conf/AdGuardHome.yaml (sur le volume persistant).
+#
+# Ensuite c'est AdGuard Home qui possède ce fichier : l'interface web le
+# réécrit à chaque modification. Modifier ce modèle n'aura donc plus aucun
+# effet sur un déploiement existant (sauf à supprimer le volume).
+#
+# Vérifié contre AdGuard Home v0.107.79 (schema_version 34).
+# `schema_version` doit correspondre à la version de l'image : une image plus
+# récente migrera automatiquement, une image PLUS ANCIENNE refusera de démarrer.
+# ---------------------------------------------------------------------------
+
+http:
+  pprof:
+    port: 6060
+    enabled: false
+  doh:
+    # DoH est servi par le serveur web lui-même, donc sur le port exposé par
+    # Railway. C'est ce qui rend AdGuard utilisable depuis l'extérieur : Railway
+    # ne route pas l'UDP, le DNS classique (port 53) n'est donc PAS joignable.
+    routes:
+      - "GET /dns-query"
+      - "POST /dns-query"
+      - "GET /dns-query/{ClientID}"
+      - "POST /dns-query/{ClientID}"
+    # Railway termine le TLS et parle en HTTP clair au conteneur. Sans ceci,
+    # AdGuard refuse les requêtes DoH non chiffrées.
+    insecure_enabled: true
+  address: 0.0.0.0:__WEB_PORT__
+  session_ttl: 720h
+users:
+  - name: __ADMIN_USER__
+    password: __ADMIN_PASSWORD_HASH__
+auth_attempts: 5
+block_auth_min: 15
+http_proxy: ""
+language: fr
+theme: auto
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  # Port du DNS « classique » (UDP/TCP). Injoignable depuis Internet sur
+  # Railway ; on utilise un port non privilégié pour ne dépendre d'aucune
+  # capacité root. En local (docker compose) il est remis à 53.
+  port: __PLAIN_DNS_PORT__
+  anonymize_client_ip: false
+  # Limite de requêtes par seconde et par IP cliente. Le proxy Railway étant
+  # déclaré dans trusted_proxies, c'est bien l'IP publique de la maison qui
+  # est comptée, pas celle du proxy.
+  ratelimit: __RATELIMIT__
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
+  ratelimit_whitelist: []
+  refuse_any: true
+  upstream_dns:
+    - __LIST_UPSTREAM_DNS__
+  upstream_dns_file: ""
+  bootstrap_dns:
+    - 9.9.9.10
+    - 149.112.112.10
+    - 1.1.1.1
+  fallback_dns: []
+  upstream_mode: load_balance
+  fastest_timeout: 1s
+  # IMPORTANT — sécurité. Si cette liste est vide, l'URL DoH est un résolveur
+  # ouvert : n'importe qui connaissant l'adresse peut s'en servir. Renseignée
+  # avec des ClientID, AdGuard refuse toute requête sans ClientID connu.
+  allowed_clients:
+    - __LIST_ALLOWED_CLIENTS__
+  disallowed_clients: []
+  blocked_hosts:
+    - version.bind
+    - id.server
+    - hostname.bind
+  trusted_proxies:
+    - __LIST_TRUSTED_PROXIES__
+  cache_enabled: true
+  cache_size: 4194304
+  cache_ttl_min: 60
+  cache_ttl_max: 86400
+  # Répond depuis le cache expiré puis rafraîchit en arrière-plan : très utile
+  # quand le résolveur est à plusieurs dizaines de ms de la maison.
+  cache_optimistic: true
+  bogus_nxdomain: []
+  aaaa_disabled: false
+  enable_dnssec: true
+  edns_client_subnet:
+    custom_ip: ""
+    enabled: false
+    use_custom: false
+  max_goroutines: 300
+  handle_ddr: true
+  ipset: []
+  ipset_file: ""
+  bootstrap_prefer_ipv6: false
+  upstream_timeout: 10s
+  private_networks: []
+  # Aucun réseau local à résoudre depuis un conteneur Railway.
+  use_private_ptr_resolvers: false
+  local_ptr_upstreams: []
+  use_dns64: false
+  dns64_prefixes: []
+  serve_http3: false
+  use_http3_upstreams: false
+  # Doit rester à true : AdGuard refuse de démarrer sans au moins un listener,
+  # et notre DoH est porté par le serveur web, pas par le proxy DNS.
+  serve_plain_dns: true
+  hostsfile_enabled: false
+  pending_requests:
+    enabled: true
+tls:
+  # Le TLS est assuré par Railway (certificat automatique sur *.up.railway.app
+  # et sur les domaines personnalisés). AdGuard ne gère aucun certificat.
+  enabled: false
+  server_name: ""
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 853
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: ""
+  private_key_path: ""
+  strict_sni_check: false
+querylog:
+  dir_path: ""
+  ignored: []
+  # Durée de conservation de l'historique DNS (voir README : taille sur disque).
+  interval: __QUERYLOG_RETENTION__
+  size_memory: 1000
+  enabled: true
+  ignored_enabled: false
+  # Sans ceci l'historique ne survit pas à un redémarrage.
+  file_enabled: true
+statistics:
+  dir_path: ""
+  ignored: []
+  interval: __STATS_RETENTION__
+  enabled: true
+  ignored_enabled: false
+filters:
+  # --- Activées par défaut ---
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: true
+    url: https://big.oisd.nl/
+    name: OISD Blocklist Big
+    id: 101
+  - enabled: true
+    url: https://phishing.army/download/phishing_army_blocklist_extended.txt
+    name: Phishing Army (Extended)
+    id: 102
+  # --- Désactivées : à activer depuis l'interface si besoin ---
+  # Doublonne largement OISD Big ; utile seulement si vous désactivez OISD.
+  - enabled: false
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+    name: AdAway Default Blocklist
+    id: 2
+  - enabled: false
+    url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+    name: StevenBlack hosts (ads + malware)
+    id: 103
+  - enabled: false
+    url: "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus&showintro=0&mimetype=plaintext"
+    name: Peter Lowe's Blocklist
+    id: 104
+  # Contrôle parental : bloque les sites pour adultes.
+  - enabled: false
+    url: https://nsfw.oisd.nl/
+    name: OISD NSFW
+    id: 105
+  # Listes HaGeZi — alternatives plus agressives à OISD.
+  - enabled: false
+    url: https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.txt
+    name: HaGeZi Multi PRO
+    id: 106
+  - enabled: false
+    url: https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.txt
+    name: HaGeZi Threat Intelligence Feeds
+    id: 107
+  # EasyList est demandée souvent, mais c'est une liste pensée pour les
+  # bloqueurs de navigateur : la majorité de ses règles sont cosmétiques ou
+  # basées sur le chemin d'URL, donc inapplicables à du filtrage DNS. Elle
+  # ajoute beaucoup de règles pour peu d'effet ici. Laissée désactivée.
+  - enabled: false
+    url: https://easylist.to/easylist/easylist.txt
+    name: EasyList (peu efficace en DNS — voir README)
+    id: 108
+whitelist_filters: []
+user_rules:
+  # Exemples (à décommenter / adapter depuis l'interface) :
+  # @@||exemple-a-debloquer.fr^$important
+  # ||pub-a-bloquer.fr^
+  []
+dhcp:
+  # Sans objet sur Railway (pas de réseau local).
+  enabled: false
+  interface_name: ""
+  local_domain_name: lan
+  dhcpv4:
+    gateway_ip: ""
+    subnet_mask: ""
+    range_start: ""
+    range_end: ""
+    lease_duration: 86400
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: ""
+    lease_duration: 86400
+    ra_slaac_only: false
+    ra_allow_slaac: false
+filtering:
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_services:
+    schedule:
+      time_zone: Local
+    ids: []
+  protection_disabled_until: null
+  safe_search:
+    enabled: false
+    bing: true
+    duckduckgo: true
+    ecosia: true
+    google: true
+    pixabay: true
+    yandex: true
+    youtube: true
+  blocking_mode: default
+  parental_block_host: family-block.dns.adguard.com
+  safebrowsing_block_host: standard-block.dns.adguard.com
+  rewrites: []
+  safe_fs_patterns:
+    - __WORK_DIR__/data/userfilters/*
+  safebrowsing_cache_size: 1048576
+  safesearch_cache_size: 1048576
+  parental_cache_size: 1048576
+  cache_time: 30
+  filters_update_interval: 24
+  blocked_response_ttl: 10
+  filtering_enabled: true
+  # Contrôle parental AdGuard (sites adultes). Désactivé : à activer selon
+  # l'âge des enfants, plutôt par client dans l'interface.
+  parental_enabled: false
+  # « Protection contre les requêtes malveillantes » : phishing, malware,
+  # domaines compromis, vérifiés en direct auprès d'AdGuard.
+  safebrowsing_enabled: true
+  protection_enabled: true
+  rewrites_enabled: true
+clients:
+  # Sur Railway il n'y a ni ARP, ni DHCP, ni DNS inverse local : ces sources
+  # ne remonteraient rien. L'identification des appareils se fait par ClientID
+  # (voir README), pas par IP.
+  runtime_sources:
+    whois: false
+    arp: false
+    rdns: false
+    dhcp: false
+    hosts: false
+  persistent:
+__BLOCK_PERSISTENT_CLIENTS__
+log:
+  enabled: true
+  file: ""
+  max_backups: 0
+  max_size: 100
+  max_age: 3
+  compress: false
+  local_time: false
+  verbose: false
+os:
+  group: ""
+  user: ""
+  rlimit_nofile: 0
+schema_version: 34
