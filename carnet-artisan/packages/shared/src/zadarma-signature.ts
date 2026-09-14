@@ -38,8 +38,24 @@ export function chaineDeRequete(parametres: ParametresZadarma): string {
     .filter(([, v]) => v !== undefined && v !== null)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   return entrees
-    .map(([cle, valeur]) => `${encoderRfc1738(cle)}=${encoderRfc1738(String(valeur))}`)
+    .map(([cle, valeur]) => `${encoderRfc1738(cle)}=${encoderRfc1738(enTexte(valeur))}`)
     .join('&');
+}
+
+/**
+ * Convertit une valeur primitive en texte. Un objet passe ici serait un bug
+ * d'appel : on le refuse plutot que de signer "[object Object]".
+ */
+function enTexte(valeur: unknown): string {
+  switch (typeof valeur) {
+    case 'string':
+      return valeur;
+    case 'number':
+    case 'boolean':
+      return String(valeur);
+    default:
+      throw new TypeError('Un parametre Zadarma doit etre une chaine, un nombre ou un booleen.');
+  }
 }
 
 /**
@@ -86,7 +102,10 @@ export function estEvenementZadarma(valeur: unknown): valeur is EvenementZadarma
 export function chaineSigneeWebhook(corps: Record<string, unknown>): string | null {
   const s = (cle: string): string => {
     const v = corps[cle];
-    return v === undefined || v === null ? '' : String(v);
+    if (v === undefined || v === null) return '';
+    // Zadarma n'envoie que des champs scalaires : un objet ici signale un
+    // corps inattendu, qu'on ne veut surtout pas signer tel quel.
+    return typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
   };
   switch (corps['event']) {
     case 'NOTIFY_START':
@@ -168,7 +187,10 @@ export function cleIdempotence(corps: Record<string, unknown>): string | null {
   if (!estEvenementZadarma(evenement)) return null;
   const appel = corps['pbx_call_id'];
   if (typeof appel !== 'string' || appel === '') return null;
-  const complement =
-    evenement === 'NOTIFY_RECORD' ? String(corps['call_id_with_rec'] ?? '') : String(corps['call_start'] ?? '');
+  const lire = (cle: string): string => {
+    const v = corps[cle];
+    return typeof v === 'string' || typeof v === 'number' ? String(v) : '';
+  };
+  const complement = evenement === 'NOTIFY_RECORD' ? lire('call_id_with_rec') : lire('call_start');
   return `${appel}:${evenement}:${complement}`;
 }

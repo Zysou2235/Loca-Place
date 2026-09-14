@@ -40,7 +40,7 @@ async function rejouer(scenarioId: string) {
     payload: { scenarioId },
   });
   expect(reponse.statusCode, reponse.body).toBe(201);
-  return reponse.json() as { estDemonstration: boolean; appel: { id: string } };
+  return reponse.json<{ estDemonstration: boolean; appel: { id: string } }>();
 }
 
 describe('mode demonstration', () => {
@@ -50,7 +50,7 @@ describe('mode demonstration', () => {
       url: '/demo/scenarios',
       headers: entetes(artisan),
     });
-    const corps = liste.json() as { estDemonstration: boolean; avertissement: string };
+    const corps = liste.json();
     expect(corps.estDemonstration).toBe(true);
     expect(corps.avertissement).toContain('ne demontre pas');
   });
@@ -81,9 +81,7 @@ describe('analyse d un appel', () => {
       url: `/appels/${appel.id}`,
       headers: entetes(artisan),
     });
-    const corps = detail.json() as {
-      appel: { statutTraitement: string; resume: string; analyse: { contenu: Record<string, unknown> } };
-    };
+    const corps = detail.json();
     expect(corps.appel.statutTraitement).toBe('ANALYSE_TERMINEE');
     expect(corps.appel.resume).toContain('quatre prises');
     const analyse = corps.appel.analyse.contenu as {
@@ -248,10 +246,7 @@ describe('devis', () => {
       },
     });
     expect(reponse.statusCode, reponse.body).toBe(201);
-    const corps = reponse.json() as {
-      devis: { statut: string; numero: string };
-      calcul: { totalHtCents: number; totalTvaCents: number; totalTtcCents: number };
-    };
+    const corps = reponse.json();
     expect(corps.calcul.totalHtCents).toBe(34000);
     expect(corps.calcul.totalTvaCents).toBe(3400);
     expect(corps.calcul.totalTtcCents).toBe(37400);
@@ -280,7 +275,7 @@ describe('devis', () => {
         ],
       },
     });
-    const { devis } = creation.json() as { devis: { id: string; statut: string } };
+    const { devis } = creation.json();
     expect(devis.statut).toBe('BROUILLON_INCOMPLET');
 
     const validation = await app.inject({
@@ -328,7 +323,7 @@ describe('devis', () => {
         ],
       },
     });
-    const corps = reponse.json() as { calcul: { avertissements: { code: string }[] } };
+    const corps = reponse.json<{ calcul: { avertissements: { code: string }[] } }>();
     expect(corps.calcul.avertissements.map((a) => a.code)).toContain(
       'MAIN_OEUVRE_POTENTIELLEMENT_DOUBLEE',
     );
@@ -359,7 +354,7 @@ describe('devis', () => {
         ],
       },
     });
-    const { devis } = creation.json() as { devis: { id: string } };
+    const { devis } = creation.json();
 
     const brouillon = await app.inject({
       method: 'POST',
@@ -400,12 +395,7 @@ describe("ecran Aujourd'hui", () => {
       url: '/aujourdhui',
       headers: entetes(artisan),
     });
-    const corps = reponse.json() as {
-      mode: string;
-      telephonie: { etat: string; prochaineAction: string | null };
-      nouvellesDemandes: unknown[];
-      rappels: unknown[];
-    };
+    const corps = reponse.json();
     expect(corps.mode).toBe('DEMONSTRATION');
     // Aucun appel reel n a eu lieu : l etat telephonique ne dit jamais "connecte".
     expect(corps.telephonie.etat).not.toBe('TEST_REUSSI');

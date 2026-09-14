@@ -214,9 +214,11 @@ async function lireAvecLimite(reponse: Response, tailleMax: number): Promise<Buf
   if (!corps) throw new ErreurTelechargement('Reponse sans contenu.');
   const morceaux: Buffer[] = [];
   let total = 0;
-  const lecteur = corps.getReader();
+  // Le typage du corps de `Response` varie selon la plateforme : on fixe le
+  // type du lecteur pour ne jamais manipuler un `any` sur des octets reseau.
+  const lecteur = corps.getReader() as ReadableStreamDefaultReader<Uint8Array>;
   for (;;) {
-    const { done, value } = await lecteur.read();
+    const { done, value }: { done: boolean; value?: Uint8Array } = await lecteur.read();
     if (done) break;
     if (value) {
       total += value.byteLength;
@@ -226,7 +228,7 @@ async function lireAvecLimite(reponse: Response, tailleMax: number): Promise<Buf
           `Fichier plus gros que la limite de ${String(tailleMax)} octets : telechargement interrompu.`,
         );
       }
-      morceaux.push(Buffer.from(value));
+      morceaux.push(Buffer.from(value.buffer, value.byteOffset, value.byteLength));
     }
   }
   return Buffer.concat(morceaux);

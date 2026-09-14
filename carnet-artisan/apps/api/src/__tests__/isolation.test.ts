@@ -86,25 +86,25 @@ describe('lecture croisee', () => {
     await creerJeuDeDonnees(alice);
     const reponse = await app.inject({ method: 'GET', url: '/clients', headers: entetes(bob) });
     expect(reponse.statusCode).toBe(200);
-    expect((reponse.json() as { clients: unknown[] }).clients).toHaveLength(0);
+    expect((reponse.json()).clients).toHaveLength(0);
   });
 
   it('ne montre que ses propres appels', async () => {
     await creerJeuDeDonnees(alice);
     const reponse = await app.inject({ method: 'GET', url: '/appels', headers: entetes(bob) });
-    expect((reponse.json() as { appels: unknown[] }).appels).toHaveLength(0);
+    expect((reponse.json()).appels).toHaveLength(0);
   });
 
   it('ne montre que son propre catalogue', async () => {
     await creerJeuDeDonnees(alice);
     const reponse = await app.inject({ method: 'GET', url: '/catalogue', headers: entetes(bob) });
-    expect((reponse.json() as { prestations: unknown[] }).prestations).toHaveLength(0);
+    expect((reponse.json()).prestations).toHaveLength(0);
   });
 
   it('ne montre que ses propres devis', async () => {
     await creerJeuDeDonnees(alice);
     const reponse = await app.inject({ method: 'GET', url: '/devis', headers: entetes(bob) });
-    expect((reponse.json() as { devis: unknown[] }).devis).toHaveLength(0);
+    expect((reponse.json()).devis).toHaveLength(0);
   });
 });
 

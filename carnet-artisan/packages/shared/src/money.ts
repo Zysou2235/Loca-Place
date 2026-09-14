@@ -96,7 +96,7 @@ export function parseQuantityToMilli(input: string): Milli | null {
 function parseDecimal(input: string, decimals: number): number | null {
   if (typeof input !== 'string') return null;
   const cleaned = input
-    .replace(/[  \s]/g, '')
+    .replace(new RegExp('[\\s\\u00a0\\u202f\\u2009]', 'g'), '')
     .replace(/[€]/g, '')
     .replace(',', '.');
   if (cleaned === '' || cleaned === '-' || cleaned === '.') return null;

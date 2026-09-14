@@ -129,7 +129,7 @@ describe('echec du pipeline', () => {
   it('expose l appel en echec sur l ecran Aujourd hui', async () => {
     await creerAppel({ statutTraitement: 'ECHEC', erreurMessage: 'Transcription impossible : quota depasse.' });
     const reponse = await app.inject({ method: 'GET', url: '/aujourdhui', headers: entetes(artisan) });
-    const corps = reponse.json() as { aRegler: { message: string; relancable: boolean }[] };
+    const corps = reponse.json();
     expect(corps.aRegler).toHaveLength(1);
     expect(corps.aRegler[0]?.message).toContain('quota depasse');
     expect(corps.aRegler[0]?.relancable).toBe(true);
@@ -236,7 +236,7 @@ describe('suppression et export des donnees', () => {
       headers: entetes(artisan),
     });
     expect(reponse.statusCode).toBe(200);
-    const corps = reponse.json() as { entreprise: { jetonWebhook: string } };
+    const corps = reponse.json();
     expect(corps.entreprise.jetonWebhook).toBe('[retire de l export]');
   });
 
@@ -301,7 +301,7 @@ describe('etat de la telephonie', () => {
       },
     });
     expect(reponse.statusCode).toBe(200);
-    const corps = reponse.json() as { telephonie: { etat: string; detail: string } };
+    const corps = reponse.json();
     expect(corps.telephonie.etat).toBe('EN_ATTENTE_RENVOI_OPERATEUR');
     expect(corps.telephonie.detail).toContain('ne prouve pas');
   });
@@ -327,7 +327,7 @@ describe('etat de la telephonie', () => {
       payload: { numeroPersonnel: '0299887766', confirme: true },
     });
     expect(reponse.statusCode).toBe(400);
-    expect((reponse.json() as { erreur: string }).erreur).toContain('boucle');
+    expect((reponse.json()).erreur).toContain('boucle');
   });
 
   it('ne passe a TEST_REUSSI qu apres un appel reel analyse de bout en bout', async () => {
@@ -336,7 +336,7 @@ describe('etat de la telephonie', () => {
       url: '/parametres/telephonie/verification',
       headers: entetes(artisan),
     });
-    expect((avant.json() as { telephonie: { etat: string } }).telephonie.etat).not.toBe('TEST_REUSSI');
+    expect((avant.json()).telephonie.etat).not.toBe('TEST_REUSSI');
 
     // Un appel de DEMONSTRATION ne compte pas.
     await creerAppel({ statutTraitement: 'ANALYSE_TERMINEE', estDemonstration: true });
@@ -345,7 +345,7 @@ describe('etat de la telephonie', () => {
       url: '/parametres/telephonie/verification',
       headers: entetes(artisan),
     });
-    expect((apresDemo.json() as { telephonie: { etat: string } }).telephonie.etat).not.toBe(
+    expect((apresDemo.json()).telephonie.etat).not.toBe(
       'TEST_REUSSI',
     );
 
@@ -356,7 +356,7 @@ describe('etat de la telephonie', () => {
       url: '/parametres/telephonie/verification',
       headers: entetes(artisan),
     });
-    const corps = apresReel.json() as { telephonie: { etat: string }; appelDeTest: unknown };
+    const corps = apresReel.json();
     expect(corps.telephonie.etat).toBe('TEST_REUSSI');
     expect(corps.appelDeTest).not.toBeNull();
   });
@@ -380,7 +380,7 @@ describe('etat de la telephonie', () => {
     });
     expect(reponse.body).not.toContain('cle-tres-secrete-123456');
     expect(reponse.body).not.toContain('secret-tres-secret');
-    const corps = reponse.json() as { telephonie: { cleApiEnregistree: string } };
+    const corps = reponse.json();
     expect(corps.telephonie.cleApiEnregistree).toMatch(/^cle-.*3456$/);
   });
 });

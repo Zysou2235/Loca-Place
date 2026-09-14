@@ -90,7 +90,7 @@ export async function creerEntrepriseDeTest(
   if (reponse.statusCode !== 201) {
     throw new Error(`Inscription de test echouee : ${reponse.body}`);
   }
-  const corps = reponse.json() as { jeton: string; entreprise: { id: string } };
+  const corps = reponse.json();
 
   const secretFournisseur = options.secretFournisseur ?? `secret-${randomUUID()}`;
   await db.configTelephonie.update({
