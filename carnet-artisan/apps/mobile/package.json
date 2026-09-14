@@ -1,0 +1,22 @@
+{
+  "name": "@carnet/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo \"Aucun test mobile automatise : voir docs/05-matrice-tests-mobiles.md\" && exit 0"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-native": "0.87.1"
+  },
+  "devDependencies": {
+    "@react-native/babel-preset": "0.87.1",
+    "@react-native/metro-config": "0.87.1",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}

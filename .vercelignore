@@ -4,3 +4,4 @@ node_modules
 .next
 prisma/*.db
 prisma/*.db-journal
+carnet-artisan

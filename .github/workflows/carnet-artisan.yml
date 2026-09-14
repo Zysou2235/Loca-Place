@@ -1,0 +1,95 @@
+name: Carnet Artisan
+
+# Ne se déclenche que sur le monorepo Carnet Artisan : le produit EscaleBox
+# qui vit à la racine du dépôt n'est pas concerné.
+on:
+  push:
+    paths: ['carnet-artisan/**', '.github/workflows/carnet-artisan.yml']
+  pull_request:
+    paths: ['carnet-artisan/**', '.github/workflows/carnet-artisan.yml']
+
+defaults:
+  run:
+    working-directory: carnet-artisan
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+
+    services:
+      # Les tests d'isolation tournent contre une vraie base : une base en
+      # mémoire ne prouverait rien sur les contraintes d'unicité ni sur les
+      # cascades de suppression.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: carnet
+          POSTGRES_PASSWORD: carnet
+          POSTGRES_DB: carnet_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U carnet -d carnet_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://carnet:carnet@127.0.0.1:5432/carnet_test
+      JWT_SECRET: secret-de-ci-suffisamment-long-pour-passer-la-validation
+      # Clé de test uniquement : 32 octets nuls encodés en base64.
+      CHIFFREMENT_CLE: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: carnet-artisan/package-lock.json
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Générer le client Prisma
+        run: npm run db:generate -w @carnet/api
+
+      - name: Appliquer les migrations
+        run: npm run db:deploy -w @carnet/api
+
+      # Le typecheck de l'API passe par une référence de projet TypeScript :
+      # sans les déclarations compilées du socle, les types partagés se
+      # résolvent en `any` et la vérification passerait pour rien.
+      - name: Construire le socle partagé
+        run: npm run build:socle
+
+      - name: Vérifier les types
+        run: |
+          npm run typecheck -w @carnet/shared
+          npm run typecheck -w @carnet/api
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: carnet-artisan/apps/mobile/package-lock.json
+
+      # Volontairement limité au typecheck : produire un binaire exige Xcode
+      # (iOS) et le SDK Android. Cette étape ne prétend donc pas valider un
+      # build mobile.
+      - name: Vérifier les types de l'application mobile
+        working-directory: carnet-artisan/apps/mobile
+        run: |
+          npm install
+          npm run typecheck

@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Client Prisma genere : reconstruit par `npm run db:generate`
+apps/api/src/generated/
+
+# Donnees privees : enregistrements audio, PDF de devis.
+# Rien de tout cela ne doit entrer dans le depot.
+donnees-privees/
+*.mp3
+*.wav
+*.m4a
+
+# Variables d environnement
+.env
+.env.*
+!.env.example
+
+# Artefacts mobiles
+apps/mobile/ios/build/
+apps/mobile/android/app/build/
+apps/mobile/android/.gradle/
+*.keystore
+!debug.keystore

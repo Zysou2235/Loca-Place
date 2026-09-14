@@ -1,0 +1,552 @@
+// Modele de donnees Carnet Artisan.
+//
+// Regle structurante : TOUTE table metier porte `entrepriseId`. Il n'existe
+// aucune donnee metier partagee entre entreprises. Les contraintes d'unicite
+// sont toujours composees avec `entrepriseId` pour qu'une reference d'une
+// entreprise n'entre jamais en collision avec celle d'une autre.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ModeExecution {
+  DEMONSTRATION
+  REEL
+}
+
+enum RoleUtilisateur {
+  PROPRIETAIRE
+  MEMBRE
+}
+
+enum EtatTelephonie {
+  NON_CONFIGURE
+  EN_ATTENTE_FOURNISSEUR
+  EN_ATTENTE_RENVOI_OPERATEUR
+  PRET_A_TESTER
+  TEST_REUSSI
+  ERREUR
+}
+
+enum DirectionAppel {
+  ENTRANT
+  SORTANT
+  INTERNE
+}
+
+enum StatutTraitementAppel {
+  RECU
+  EN_ATTENTE_ENREGISTREMENT
+  AUDIO_TELECHARGE
+  TRANSCRIPTION_EN_COURS
+  ANALYSE_EN_COURS
+  ANALYSE_TERMINEE
+  SANS_ENREGISTREMENT
+  ECHEC
+}
+
+enum StatutAssociation {
+  CERTAIN
+  A_CONFIRMER
+  AUCUN
+  CORRIGE_MANUELLEMENT
+}
+
+enum NaturePrestation {
+  FOURNITURE_SEULE
+  FORFAIT_POSE
+  MAIN_OEUVRE
+  FRAIS
+}
+
+enum StatutDevis {
+  BROUILLON_INCOMPLET
+  PRET_A_VERIFIER
+  VALIDE
+  EXPORTE
+}
+
+enum StatutTache {
+  A_FAIRE
+  FAITE
+  ABANDONNEE
+}
+
+enum StatutRendezVous {
+  PROPOSE
+  VALIDE
+  REFUSE
+}
+
+enum StatutJob {
+  EN_ATTENTE
+  EN_COURS
+  TERMINE
+  ECHEC_DEFINITIF
+}
+
+enum StatutAbonnement {
+  ESSAI
+  ACTIF
+  IMPAYE
+  SUSPENDU
+  RESILIE
+}
+
+/// Une entreprise artisanale = un locataire (tenant).
+model Entreprise {
+  id             String        @id @default(uuid())
+  nom            String
+  metier         String
+  nomArtisan     String
+  telephonePro   String
+  emailContact   String
+  siret          String?
+  adresseLigne1  String?
+  codePostal     String?
+  ville          String?
+  fuseau         String        @default("Europe/Paris")
+  mode           ModeExecution @default(DEMONSTRATION)
+  /// Jeton public present dans l'URL de webhook du fournisseur.
+  /// Il ne sert PAS d'authentification : il ne fait que designer l'entreprise
+  /// dont le secret servira a verifier la signature.
+  jetonWebhook   String        @unique @default(uuid())
+  /// Duree de conservation des enregistrements audio, en jours.
+  retentionAudioJours Int      @default(30)
+  /// Duree de conservation des transcriptions, en jours. 0 = non conservees.
+  retentionTranscriptionJours Int @default(365)
+  creeA          DateTime      @default(now())
+  modifieA       DateTime      @updatedAt
+
+  utilisateurs   Utilisateur[]
+  configTelephonie ConfigTelephonie?
+  clients        Client[]
+  chantiers      Chantier[]
+  appels         Appel[]
+  evenements     EvenementTelephonie[]
+  transcriptions Transcription[]
+  analyses       Analyse[]
+  prestations    Prestation[]
+  devis          Devis[]
+  taches         Tache[]
+  rendezVous     RendezVous[]
+  fichiersAudio  FichierAudio[]
+  notes          NoteChantier[]
+  jobs           Job[]
+  usages         UsageMensuel[]
+  abonnement     Abonnement?
+
+  @@index([mode])
+}
+
+model Utilisateur {
+  id            String          @id @default(uuid())
+  entrepriseId  String
+  entreprise    Entreprise      @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  email         String          @unique
+  motDePasseHash String
+  nomAffiche    String
+  role          RoleUtilisateur @default(PROPRIETAIRE)
+  derniereConnexion DateTime?
+  creeA         DateTime        @default(now())
+
+  @@index([entrepriseId])
+}
+
+/// Parametrage telephonique d'une entreprise.
+///
+/// Les secrets fournisseur sont stockes chiffres (AES-256-GCM) avec la cle
+/// maitre du serveur. Ils ne sont jamais renvoyes a l'application mobile.
+model ConfigTelephonie {
+  id                String         @id @default(uuid())
+  entrepriseId      String         @unique
+  entreprise        Entreprise     @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  fournisseur       String         @default("zadarma")
+  etat              EtatTelephonie @default(NON_CONFIGURE)
+  detail            String         @default("Aucune configuration telephonique.")
+  /// Identifiant du sous-compte chez le fournisseur.
+  identifiantFournisseur String?
+  /// Cle et secret API du sous-compte, chiffres.
+  cleApiChiffree    String?
+  secretApiChiffre  String?
+  /// Numero technique attribue (jamais communique aux clients finaux).
+  numeroTechnique   String?
+  /// Poste du standard (ex. "100").
+  extensionPbx      String?
+  /// Identifiants SIP du poste, chiffres. Utilises uniquement si l'architecture
+  /// A (telephonie dans notre application) devient realisable.
+  sipLogin          String?
+  sipMotDePasseChiffre String?
+  /// Numero personnel de l'artisan vers lequel le renvoi est configure.
+  /// Sert a detecter une boucle de renvoi.
+  numeroPersonnel   String?
+  renvoiConfirmeParUtilisateur Boolean @default(false)
+  derniereVerification DateTime?
+  /// Horodatage du dernier appel de test reussi de bout en bout.
+  dernierTestReussi DateTime?
+  creeA             DateTime       @default(now())
+  modifieA          DateTime       @updatedAt
+}
+
+model Client {
+  id           String     @id @default(uuid())
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  nom          String
+  telephones   String[]   @default([])
+  email        String?
+  notes        String?
+  creeA        DateTime   @default(now())
+  modifieA     DateTime   @updatedAt
+
+  chantiers    Chantier[]
+  appels       Appel[]
+
+  @@index([entrepriseId])
+  @@index([entrepriseId, nom])
+}
+
+model Chantier {
+  id           String     @id @default(uuid())
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  libelle      String
+  adresse      String?
+  description  String?
+  actif        Boolean    @default(true)
+  creeA        DateTime   @default(now())
+  modifieA     DateTime   @updatedAt
+
+  appels       Appel[]
+  devis        Devis[]
+  taches       Tache[]
+  rendezVous   RendezVous[]
+  notes        NoteChantier[]
+
+  @@index([entrepriseId])
+  @@index([entrepriseId, clientId])
+}
+
+/// Un appel telephonique professionnel.
+///
+/// Un appel n'est jamais supprime parce que son traitement a echoue : il reste
+/// consultable avec son statut et son message d'erreur, et peut etre relance.
+model Appel {
+  id                    String                @id @default(uuid())
+  entrepriseId          String
+  entreprise            Entreprise            @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  /// Identifiant d'appel du fournisseur, stable de bout en bout.
+  pbxCallId             String
+  direction             DirectionAppel
+  /// Numero de l'interlocuteur. `null` si masque.
+  numeroDistant         String?
+  numeroMasque          Boolean               @default(false)
+  numeroAppele          String?
+  debut                 DateTime
+  dureeSecondes         Int                   @default(0)
+  disposition           String?
+  estEnregistre         Boolean               @default(false)
+  callIdAvecEnregistrement String?
+  statutTraitement      StatutTraitementAppel @default(RECU)
+  erreurMessage         String?
+  nbTentativesAnalyse   Int                   @default(0)
+  resume                String?
+  clientId              String?
+  client                Client?               @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  chantierId            String?
+  chantier              Chantier?             @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  statutAssociation     StatutAssociation     @default(AUCUN)
+  justificationAssociation String?
+  /// Autres rattachements possibles, quand l'association est ambigue.
+  alternativesAssociation Json?
+  /// `true` si l'appel provient du jeu de donnees de demonstration.
+  estDemonstration      Boolean               @default(false)
+  creeA                 DateTime              @default(now())
+  modifieA              DateTime              @updatedAt
+
+  transcription         Transcription?
+  analyse               Analyse?
+  fichierAudio          FichierAudio?
+  taches                Tache[]
+  rendezVous            RendezVous[]
+
+  @@unique([entrepriseId, pbxCallId])
+  @@index([entrepriseId, debut])
+  @@index([entrepriseId, statutTraitement])
+}
+
+/// Journal durable des evenements fournisseur.
+///
+/// Ecrit AVANT tout traitement : si le worker tombe, l'evenement est rejouable.
+/// La cle d'idempotence empeche qu'un evenement rejoue cree un doublon.
+model EvenementTelephonie {
+  id             String     @id @default(uuid())
+  entrepriseId   String
+  entreprise     Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  fournisseur    String     @default("zadarma")
+  type           String
+  cleIdempotence String
+  /// Corps brut de l'evenement, apres verification de signature.
+  contenu        Json
+  recuA          DateTime   @default(now())
+  traiteA        DateTime?
+  erreur         String?
+
+  @@unique([entrepriseId, cleIdempotence])
+  @@index([entrepriseId, recuA])
+}
+
+model Transcription {
+  id            String     @id @default(uuid())
+  entrepriseId  String
+  entreprise    Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  appelId       String     @unique
+  appel         Appel      @relation(fields: [appelId], references: [id], onDelete: Cascade)
+  texte         String
+  langue        String     @default("fr")
+  moteur        String
+  dureeAudioSecondes Int   @default(0)
+  coutCentimes  Int        @default(0)
+  /// Signaux d'injection releves dans la transcription, a titre informatif.
+  signauxInjection Json?
+  creeA         DateTime   @default(now())
+
+  @@index([entrepriseId])
+}
+
+model Analyse {
+  id            String     @id @default(uuid())
+  entrepriseId  String
+  entreprise    Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  appelId       String     @unique
+  appel         Appel      @relation(fields: [appelId], references: [id], onDelete: Cascade)
+  /// Contenu conforme au schema AnalyseAppel de @carnet/shared.
+  contenu       Json
+  moteur        String
+  versionSchema String     @default("1")
+  coutCentimes  Int        @default(0)
+  avertissements String[]  @default([])
+  creeA         DateTime   @default(now())
+
+  @@index([entrepriseId])
+}
+
+model FichierAudio {
+  id            String     @id @default(uuid())
+  entrepriseId  String
+  entreprise    Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  appelId       String     @unique
+  appel         Appel      @relation(fields: [appelId], references: [id], onDelete: Cascade)
+  chemin        String
+  tailleOctets  Int
+  typeMime      String
+  /// Date a partir de laquelle le fichier doit etre supprime.
+  expireA       DateTime
+  supprimeA     DateTime?
+  creeA         DateTime   @default(now())
+
+  @@index([entrepriseId, expireA])
+}
+
+model Prestation {
+  id                     String           @id @default(uuid())
+  entrepriseId           String
+  entreprise             Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  reference              String
+  libelle                String
+  description            String?
+  unite                  String
+  prixVenteCents         Int
+  coutAchatCents         Int?
+  tempsMainOeuvreMinutes Int?
+  nature                 NaturePrestation
+  tvaRateBp              Int
+  archive                Boolean          @default(false)
+  creeA                  DateTime         @default(now())
+  modifieA               DateTime         @updatedAt
+
+  lignes                 LigneDevis[]
+
+  @@unique([entrepriseId, reference])
+  @@index([entrepriseId, archive])
+}
+
+model Devis {
+  id            String      @id @default(uuid())
+  entrepriseId  String
+  entreprise    Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chantierId    String
+  chantier      Chantier    @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  numero        String
+  objet         String
+  statut        StatutDevis @default(BROUILLON_INCOMPLET)
+  /// Totaux recalcules a chaque enregistrement par le moteur deterministe.
+  /// Stockes pour l'affichage et l'historique, jamais comme source de verite.
+  totalHtCents  Int         @default(0)
+  totalTvaCents Int         @default(0)
+  totalTtcCents Int         @default(0)
+  /// Detail par taux de TVA, fige au moment du calcul.
+  postesTva     Json?
+  avertissements Json?
+  valideA       DateTime?
+  exporteA      DateTime?
+  /// Chemin du PDF genere. Toujours marque "brouillon" tant que non valide.
+  cheminPdf     String?
+  creeA         DateTime    @default(now())
+  modifieA      DateTime    @updatedAt
+
+  lignes        LigneDevis[]
+
+  @@unique([entrepriseId, numero])
+  @@index([entrepriseId, statut])
+}
+
+model LigneDevis {
+  id                 String           @id @default(uuid())
+  entrepriseId       String
+  devisId            String
+  devis              Devis            @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  prestationId       String?
+  prestation         Prestation?      @relation(fields: [prestationId], references: [id], onDelete: SetNull)
+  position           Int
+  libelle            String
+  unite              String
+  /// Quantite x 1000. `null` = a completer.
+  quantiteMilli      Int?
+  /// Prix unitaire HT en centimes. `null` = a completer, jamais devine.
+  prixUnitaireCents  Int?
+  tvaRateBp          Int?
+  remiseBp           Int              @default(0)
+  nature             NaturePrestation
+  origine            String
+  appelSourceId      String?
+  extraitSource      String?
+  creeA              DateTime         @default(now())
+
+  @@index([entrepriseId])
+  @@index([devisId, position])
+}
+
+model Tache {
+  id           String      @id @default(uuid())
+  entrepriseId String
+  entreprise   Entreprise  @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chantierId   String?
+  chantier     Chantier?   @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  appelId      String?
+  appel        Appel?      @relation(fields: [appelId], references: [id], onDelete: SetNull)
+  titre        String
+  echeance     DateTime?
+  priorite     String      @default("normale")
+  statut       StatutTache @default(A_FAIRE)
+  creeA        DateTime    @default(now())
+  modifieA     DateTime    @updatedAt
+
+  @@index([entrepriseId, statut])
+  @@index([entrepriseId, echeance])
+}
+
+/// Un rendez-vous PROPOSE. Il ne devient VALIDE que par une action de l'artisan.
+model RendezVous {
+  id             String           @id @default(uuid())
+  entrepriseId   String
+  entreprise     Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chantierId     String?
+  chantier       Chantier?        @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  appelId        String?
+  appel          Appel?           @relation(fields: [appelId], references: [id], onDelete: SetNull)
+  debutPropose   DateTime
+  precision      String
+  /// Expression entendue en appel, conservee comme preuve.
+  expressionEntendue String?
+  /// Expression abandonnee quand l'interlocuteur s'est repris.
+  expressionAbandonnee String?
+  ambigu         Boolean          @default(false)
+  explication    String?
+  statut         StatutRendezVous @default(PROPOSE)
+  creeA          DateTime         @default(now())
+  modifieA       DateTime         @updatedAt
+
+  @@index([entrepriseId, debutPropose])
+}
+
+model NoteChantier {
+  id           String     @id @default(uuid())
+  entrepriseId String
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  chantierId   String
+  chantier     Chantier   @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  texte        String
+  cheminPhoto  String?
+  creeA        DateTime   @default(now())
+
+  @@index([entrepriseId, chantierId])
+}
+
+/// File de traitement durable, en base.
+///
+/// Choix assume : pas de Redis ni de courtier de messages dans le MVP. Une
+/// table suffit a garantir la reprise apres panne, et se sauvegarde avec le
+/// reste des donnees.
+model Job {
+  id                 String     @id @default(uuid())
+  entrepriseId       String?
+  entreprise         Entreprise? @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  type               String
+  contenu            Json
+  statut             StatutJob  @default(EN_ATTENTE)
+  tentatives         Int        @default(0)
+  maxTentatives      Int        @default(5)
+  prochaineExecution DateTime   @default(now())
+  /// Verrou d'execution : empeche deux workers de prendre le meme job.
+  verrouJusqua       DateTime?
+  verrouPar          String?
+  derniereErreur     String?
+  /// Cle d'unicite metier : empeche d'empiler deux fois le meme travail.
+  cleUnicite         String?    @unique
+  creeA              DateTime   @default(now())
+  modifieA           DateTime   @updatedAt
+
+  @@index([statut, prochaineExecution])
+}
+
+/// Consommation mesuree, par entreprise et par mois. Alimente le modele de couts.
+model UsageMensuel {
+  id                        String     @id @default(uuid())
+  entrepriseId              String
+  entreprise                Entreprise @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  /// Format "AAAA-MM".
+  periode                   String
+  minutesAudio              Int        @default(0)
+  nbAppels                  Int        @default(0)
+  nbAnalyses                Int        @default(0)
+  nbReprises                Int        @default(0)
+  coutTelephonieCentimes    Int        @default(0)
+  coutTranscriptionCentimes Int        @default(0)
+  coutIaCentimes            Int        @default(0)
+  stockageOctets            BigInt     @default(0)
+  modifieA                  DateTime   @updatedAt
+
+  @@unique([entrepriseId, periode])
+}
+
+model Abonnement {
+  id            String           @id @default(uuid())
+  entrepriseId  String           @unique
+  entreprise    Entreprise       @relation(fields: [entrepriseId], references: [id], onDelete: Cascade)
+  statut        StatutAbonnement @default(ESSAI)
+  prixMensuelCentimes Int        @default(2490)
+  /// Fin de la periode payee ou d'essai.
+  finPeriode    DateTime?
+  /// Toujours en mode test dans le MVP : aucun paiement reel n'est encaisse.
+  referenceExterne String?
+  creeA         DateTime         @default(now())
+  modifieA      DateTime         @updatedAt
+}
