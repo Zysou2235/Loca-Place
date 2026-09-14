@@ -57,7 +57,13 @@ jobs:
       - name: Appliquer les migrations
         run: npm run db:deploy -w @carnet/api
 
-      - name: Vérifier les types (socle + API)
+      # Le typecheck de l'API passe par une référence de projet TypeScript :
+      # sans les déclarations compilées du socle, les types partagés se
+      # résolvent en `any` et la vérification passerait pour rien.
+      - name: Construire le socle partagé
+        run: npm run build:socle
+
+      - name: Vérifier les types
         run: |
           npm run typecheck -w @carnet/shared
           npm run typecheck -w @carnet/api
